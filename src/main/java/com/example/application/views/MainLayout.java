@@ -1,6 +1,5 @@
 package com.example.application.views;
 
-import com.example.application.views.ListView;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.H1;
@@ -30,13 +29,13 @@ public class MainLayout extends AppLayout {
 
     private void createDrawer() {
         RouterLink listView = new RouterLink ("Info", ListView.class);
-      //  RouterLink DashboardView = new RouterLink ("ELA Favoriten", DashboardView.class);
-      //  RouterLink MailboxView = new RouterLink ("Postfachverwaltung", ListView.class);
+        RouterLink mailboxConfig = new RouterLink ("Postfach Verwaltung", MailboxConfigView.class);
+        RouterLink elaFavoriten = new RouterLink ("ELA-Upload", ElaFavoritenView.class);
       //  RouterLink TableExportView = new RouterLink ("Tabellen Export", ListView.class);
        // RouterLink DashboardView = new RouterLink ("Dashboard", views.DashboardView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
         addToDrawer(new VerticalLayout(
-            listView//, DashboardView, MailboxView, TableExportView
+            listView, mailboxConfig, elaFavoriten
             , new RouterLink("Dashboard", DashboardView.class)
         ));
     }

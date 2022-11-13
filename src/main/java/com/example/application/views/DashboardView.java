@@ -14,7 +14,7 @@ public class DashboardView extends VerticalLayout{
 
     public DashboardView(CrmService service){
         this.service = service;
-        add(new H1("Hallo Michael!"));
+        add(new H1("FVM-Status Dashboard"));
     }
 
 
