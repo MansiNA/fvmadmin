@@ -30,7 +30,7 @@ public class MainLayout extends AppLayout {
 
     private void createDrawer() {
         RouterLink listView = new RouterLink ("Info", ListView.class);
-        RouterLink DashboardView = new RouterLink ("ELA Favoriten", ListView.class);
+        RouterLink DashboardView = new RouterLink ("ELA Favoriten", DashboardView.class);
         RouterLink MailboxView = new RouterLink ("Postfachverwaltung", ListView.class);
         RouterLink TableExportView = new RouterLink ("Tabellen Export", ListView.class);
        // RouterLink DashboardView = new RouterLink ("Dashboard", views.DashboardView.class);
