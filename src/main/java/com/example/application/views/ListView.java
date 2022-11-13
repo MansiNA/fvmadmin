@@ -1,4 +1,4 @@
-package com.example.application.views.list;
+package com.example.application.views;
 
 import com.example.application.data.entity.Contact;
 import com.example.application.data.service.CrmService;
@@ -11,10 +11,11 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import views.MainLayout;
+
 
 @PageTitle("Info | by DBUSS GmbH")
 @Route(value = "", layout= MainLayout.class)
+//@Route(value = "")
 public class ListView extends VerticalLayout {
 
     Grid<Contact> grid = new Grid<>(Contact.class);

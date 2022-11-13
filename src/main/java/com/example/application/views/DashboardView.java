@@ -1,4 +1,4 @@
-package views;
+package com.example.application.views;
 
 import com.example.application.data.service.CrmService;
 import com.vaadin.flow.component.html.H1;
