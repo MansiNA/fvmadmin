@@ -31,11 +31,12 @@ public class MainLayout extends AppLayout {
         RouterLink listView = new RouterLink ("Info", ListView.class);
         RouterLink mailboxConfig = new RouterLink ("Postfach Verwaltung", MailboxConfigView.class);
         RouterLink elaFavoriten = new RouterLink ("ELA-Upload", ElaFavoritenView.class);
+        RouterLink tableExport = new RouterLink ("Table Export", TableExportView.class);
       //  RouterLink TableExportView = new RouterLink ("Tabellen Export", ListView.class);
        // RouterLink DashboardView = new RouterLink ("Dashboard", views.DashboardView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
         addToDrawer(new VerticalLayout(
-            listView, mailboxConfig, elaFavoriten
+            listView, mailboxConfig, elaFavoriten, tableExport
             , new RouterLink("Dashboard", DashboardView.class)
         ));
     }

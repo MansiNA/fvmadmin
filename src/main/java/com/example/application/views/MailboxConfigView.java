@@ -5,12 +5,28 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import java.io.IOException;
+
 @PageTitle("Mailbox Verwaltung")
 @Route(value = "mailbox-config", layout= MainLayout.class)
 public class MailboxConfigView  extends VerticalLayout {
 
-    public MailboxConfigView(){
+    public MailboxConfigView()  {
 
         add(new H1("Postfach Verwaltung"));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 }
