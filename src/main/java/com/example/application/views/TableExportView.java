@@ -1,10 +1,13 @@
 package com.example.application.views;
 
+import com.example.application.DownloadLinksArea;
+import com.example.application.UploadArea;
 import com.example.application.data.entity.TableInfo;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.checkbox.CheckboxGroupVariant;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -17,6 +20,7 @@ import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 import java.io.*;
 import java.sql.*;
@@ -26,13 +30,25 @@ import java.util.Properties;
 
 @PageTitle("Table Export")
 @Route(value = "table-export", layout= MainLayout.class)
+@ConfigurationPropertiesScan
 public class TableExportView extends VerticalLayout {
 
+  //  @Value("${export.tables}")
+  //  private String tables;
+
+    //@Autowired
+    //private Environment env;
+
     CheckboxGroup<String> checkboxGroup = new CheckboxGroup<>();
+
+
+
+    //private String tables = env.getProperty("export.tables");
 
     public TableExportView() throws IOException {
 
         add(new H1("Table Export"));
+
 
 
 
@@ -60,25 +76,31 @@ public class TableExportView extends VerticalLayout {
         properties.load(stream);
         stream.close();
         String tables = properties.getProperty("export.tables");
-
-        System.out.println(tables);
+//
+//        System.out.println(tables);
 
 //        List<String> tab = new ArrayList<String>();
 //        tab.add(("Tab1"));
 //        tab.add(("Tab2"));
 //        tab.add(("Tab3"));
 
-        String[] tab = tables.split(";");
-
-        checkboxGroup.setLabel("Auswahl der zu exportierenden Tabellen");
-       // checkboxGroup.setItems("Order ID", "Product name", "Customer", "Status");
-        //checkboxGroup.setItems(tables);
-        checkboxGroup.setItems (tab);
 
 
-        //checkboxGroup.select("Order ID", "Customer");
-        checkboxGroup.addThemeVariants(CheckboxGroupVariant.LUMO_VERTICAL);
-        add(checkboxGroup);
+        if(tables==null || tables.isEmpty() ){
+            add(new H2("Keine Tabellen freigegeben!"));
+        }
+        else {
+
+            String[] tab = tables.split(";");
+
+            checkboxGroup.setLabel("Auswahl der zu exportierenden Tabellen");
+            checkboxGroup.setItems (tab);
+
+
+            //checkboxGroup.select("Order ID", "Customer");
+            checkboxGroup.addThemeVariants(CheckboxGroupVariant.LUMO_VERTICAL);
+
+            add(checkboxGroup);
 
         Button button = new Button("Start");
         Paragraph info = new Paragraph(infoText());
@@ -101,9 +123,34 @@ public class TableExportView extends VerticalLayout {
         horizontalLayout.setAlignItems(FlexComponent.Alignment.BASELINE);
         add(horizontalLayout);
 
+
+        //Download-Area:
+        File uploadFolder = getUploadFolder();
+        UploadArea uploadArea = new UploadArea(uploadFolder);
+        DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
+            uploadArea.getUploadField().addSucceededListener(e -> {
+                uploadArea.hideErrorField();
+                linksArea.refreshFileLinks();
+            });
+
+            add(uploadArea, linksArea);
+
+
+
+        }
+
        // generateExcel("c:\\tmp\\test.xls", "select  EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, WORK_CITY, WORK_COUNTRY from APEX_040000.WWV_DEMO_EMP");
 
     }
+
+    private static File getUploadFolder() {
+        File folder = new File("uploaded-files");
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+        return folder;
+    }
+
 
     private String infoText() {
 

@@ -6,6 +6,7 @@ import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.theme.Theme;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 /**
  * The entry point of the Spring Boot application.
@@ -18,6 +19,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @Theme(value = "flowcrmtutorial")
 @PWA(name = "Flow CRM Tutorial", shortName = "Flow CRM Tutorial", offlineResources = {})
 @NpmPackage(value = "line-awesome", version = "1.3.0")
+@ConfigurationPropertiesScan
 public class Application implements AppShellConfigurator {
 
     public static void main(String[] args) {
