@@ -31,8 +31,7 @@ public class DownloadLinksArea extends VerticalLayout {
 
     private void addLinkToFile(File file) {
         StreamResource streamResource = new StreamResource(file.getName(), () -> getStream(file));
-        Anchor link = new Anchor(streamResource, String.format("%s (%d KB)", file.getName(),
-                (int) file.length() / 1024));
+        Anchor link = new Anchor(streamResource, String.format("%s (%d KB)", file.getName(), (int) file.length() / 1024));
         link.getElement().setAttribute("download", true);
         add(link);
     }

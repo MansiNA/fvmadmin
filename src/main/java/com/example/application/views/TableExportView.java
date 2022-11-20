@@ -102,6 +102,11 @@ public class TableExportView extends VerticalLayout {
 
             add(checkboxGroup);
 
+       //Download-Area:
+       File uploadFolder = getUploadFolder();
+       UploadArea uploadArea = new UploadArea(uploadFolder);
+       DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
+
         Button button = new Button("Start");
         Paragraph info = new Paragraph(infoText());
         button.addClickListener(clickEvent -> {
@@ -111,7 +116,11 @@ public class TableExportView extends VerticalLayout {
             {
                 System.out.println("Start export von: " + table);
                 try {
-                    generateExcel("c:\\tmp\\"+ table + ".xls", "select * from " + table);
+                    File folder = getUploadFolder();
+                    String file = folder.getPath() + "\\" + table + ".xls";
+
+                    generateExcel(file, "select * from " + table);
+                    linksArea.refreshFileLinks();
                 } catch (IOException e) {
                     System.out.println("Error: " + e.toString());
                 }
@@ -124,16 +133,14 @@ public class TableExportView extends VerticalLayout {
         add(horizontalLayout);
 
 
-        //Download-Area:
-        File uploadFolder = getUploadFolder();
-        UploadArea uploadArea = new UploadArea(uploadFolder);
-        DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
+
             uploadArea.getUploadField().addSucceededListener(e -> {
                 uploadArea.hideErrorField();
                 linksArea.refreshFileLinks();
             });
 
-            add(uploadArea, linksArea);
+           // add(uploadArea, linksArea);
+            add(linksArea);
 
 
 
