@@ -174,7 +174,10 @@ public class TableExportView extends VerticalLayout {
             String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
             String user="SYSTEM";
             String password="Michael123";
-            DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
+
+            Class.forName("oracle.jdbc.driver.OracleDriver");
+
+         //   DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
             Connection conn=DriverManager.getConnection(url, user, password);
 
 
@@ -289,6 +292,8 @@ public class TableExportView extends VerticalLayout {
         } catch (SQLException | FileNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 }
