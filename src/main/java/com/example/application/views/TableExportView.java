@@ -29,7 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.Properties;
 
 @PageTitle("Table Export")
-@Route(value = "table-export", layout= MainLayout.class)
+@Route(value = "table-view", layout= MainLayout.class)
 @ConfigurationPropertiesScan
 public class TableExportView extends VerticalLayout {
 
@@ -72,7 +72,7 @@ public class TableExportView extends VerticalLayout {
   //      System.out.println(prop.getProperty("export.tables"));
 
         Properties properties = new Properties();
-        BufferedInputStream stream = new BufferedInputStream(new FileInputStream("./config.properties"));
+        BufferedInputStream stream = new BufferedInputStream(new FileInputStream("config.properties"));
         properties.load(stream);
         stream.close();
         String tables = properties.getProperty("export.tables");
@@ -117,7 +117,8 @@ public class TableExportView extends VerticalLayout {
                 System.out.println("Start export von: " + table);
                 try {
                     File folder = getUploadFolder();
-                    String file = folder.getPath() + "\\" + table + ".xls";
+                 //   String file = folder.getPath() + "\\" + table + ".xls";
+                    String file = folder.getPath() + "/" + table + ".xls";
 
                     generateExcel(file, "select * from " + table);
                     linksArea.refreshFileLinks();
