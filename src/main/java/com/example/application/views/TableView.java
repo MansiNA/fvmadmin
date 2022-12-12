@@ -27,18 +27,24 @@ public class TableView extends VerticalLayout {
        // Create the grid and set its items
         Grid<LinkedHashMap<String, Object>> grid2 = new Grid<>();
 
-        List<LinkedHashMap<String,Object>> rows = retrieveRows("select * from EKP.ELA_FAVORITEN");
+
+        List<LinkedHashMap<String,Object>> rows = retrieveRows("select * from EKP.ELA_FAVORITEN where rownum<500");
+        //List<LinkedHashMap<String,Object>> rows = retrieveRows("select * from EKP.AM_MAILBOX");
 
         grid2.setItems( rows); // rows is the result of retrieveRows
 
         // Add the columns based on the first row
         LinkedHashMap<String, Object> s = rows.get(0);
         for (Map.Entry<String, Object> entry : s.entrySet()) {
-            grid2.addColumn(h -> h.get(entry.getKey().toString())).setHeader(entry.getKey()).setAutoWidth(true).setResizable(true);
+            grid2.addColumn(h -> h.get(entry.getKey().toString())).setHeader(entry.getKey()).setAutoWidth(true).setResizable(true).setSortable(true);
         }
 
         grid2.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
-
+        grid2.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+        grid2.addThemeVariants(GridVariant.LUMO_COMPACT);
+        grid2.setAllRowsVisible(true);
+        //grid2.setPageSize(16);
+        //grid2.setPaginatorSize(5);
         // Add the grid to the page
         add(grid2);
 

@@ -20,12 +20,14 @@ import java.util.List;
 @Route(value = "mailbox-config", layout= MainLayout.class)
 public class MailboxConfigView  extends Div {
 
+    Grid<Person> grid = new Grid<>(Person.class, false);
+
     public MailboxConfigView()  {
 
         add(new H1("Postfach Verwaltung eKP HH QS"));
 
 
-        Grid<Person> grid = new Grid<>(Person.class, false);
+
        // grid.setSelectionMode(Grid.SelectionMode.MULTI);
         grid.addColumn(createEmployeeTemplateRenderer()).setHeader("Postfach")
                 .setAutoWidth(true).setFlexGrow(0);
@@ -39,14 +41,26 @@ public class MailboxConfigView  extends Div {
                         clickedItem -> {
                             //System.out.println(clickedItem.getLastName());
                             Notification.show("Postfach " + clickedItem.getLastName() + " wird geändert..." );
+
                             clickedItem.setIsActive(false);
+                            clickedItem.setLastName("Huhu");
+
+                            updateList();
                         })
         );
 
+      //  updateList();
         List<Person> people = DataService.getPeople();
         grid.setItems(people);
-
         add(grid);
+
+    }
+
+    private void updateList() {
+
+        List<Person> people = DataService.getPeople();
+        people.get(1).setLastName("hhh");
+        grid.setItems(people);
 
     }
 

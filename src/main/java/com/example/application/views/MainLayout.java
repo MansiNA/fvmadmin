@@ -1,5 +1,6 @@
 package com.example.application.views;
 
+import com.example.application.service.FileTree;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.H1;
@@ -28,6 +29,9 @@ public class MainLayout extends AppLayout {
     }
 
     private void createDrawer() {
+
+        FileTree ft = new FileTree();
+
         RouterLink listView = new RouterLink ("Info", ListView.class);
         RouterLink mailboxConfig = new RouterLink ("Postfach Verwaltung", MailboxConfigView.class);
         RouterLink elaFavoriten = new RouterLink ("ELA-Upload", ElaFavoritenView.class);
@@ -42,8 +46,12 @@ public class MainLayout extends AppLayout {
                 mailboxConfig,
                 elaFavoriten,
                 listView,
-                tableView
+                tableView,
+            ft
             , new RouterLink("Dashboard", DashboardView.class)
         ));
     }
+
+
+
 }
