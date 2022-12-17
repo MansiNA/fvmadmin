@@ -4,6 +4,8 @@ import com.example.application.data.entity.QSql;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.Text;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.grid.Grid;
@@ -11,6 +13,7 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.BoxSizing;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
@@ -108,21 +111,39 @@ public class TableView extends VerticalLayout {
         }
 
 
+        //Export Button
+        Button smallButton = new Button("Export");
+        smallButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        smallButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
 
-        //moveSubMenu.addItem("Metadaten", listener);
-        //moveSubMenu.addItem("ERV-Mapping", listener);
+        HorizontalLayout TableChooser = new HorizontalLayout ();
+        TableChooser.setAlignItems(Alignment.CENTER);
+        TableChooser.add(menuBar);
+        TableChooser.add(message);
 
         HorizontalLayout horizontalLayout = new HorizontalLayout ();
         horizontalLayout.setWidth("100%");
         horizontalLayout.setAlignItems(Alignment.CENTER);
-        horizontalLayout.add(menuBar);
-        horizontalLayout.add(message);
+        horizontalLayout.setSpacing(true);
+        horizontalLayout.setPadding(true);
+       // horizontalLayout.setMargin(true);
 
+
+        horizontalLayout.add(TableChooser);
+        horizontalLayout.add(smallButton);
+        horizontalLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+
+
+        horizontalLayout.setFlexGrow(1,TableChooser);
         add(horizontalLayout);
 
         show_grid("select 'Choose Table first!' as Info from dual");
 
         add(grid2);
+
+
+
+
     }
 
     private void show_grid(String sql) throws SQLException
@@ -147,8 +168,9 @@ public class TableView extends VerticalLayout {
         grid2.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
         grid2.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         grid2.addThemeVariants(GridVariant.LUMO_COMPACT);
-        grid2.setAllRowsVisible(true);
-        //grid2.setPageSize(16);
+     //   grid2.setAllRowsVisible(true);
+        grid2.setPageSize(50);
+        grid2.setHeight("800px");
         //grid2.setPaginatorSize(5);
         // Add the grid to the page
 
