@@ -1,7 +1,7 @@
 package com.example.application.service;
 
 import com.vaadin.flow.component.grid.GridSortOrder;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.function.ValueProvider;
@@ -15,7 +15,8 @@ import java.util.Comparator;
 import java.util.List;
 
 @Route("file-tree")
-public class FileTree extends VerticalLayout {
+//public class FileTree extends VerticalLayout {
+public class FileTree extends Div {
 
     /*
      * This static code block only sets up some artificial file tree, for users to browse.
@@ -24,34 +25,38 @@ public class FileTree extends VerticalLayout {
     static {
         try {
             File tmpDir = new File(System.getProperty("java.io.tmpdir"));
-            File root = new File(tmpDir.getAbsolutePath() + File.separator + "ROOT");
+            File root = new File(tmpDir.getAbsolutePath() + File.separator + "Table Viewer");
             boolean createdRoot = root.mkdir();
             if (createdRoot){
-                File subdir = new File(root.getAbsolutePath() + File.separator + "Sub-Directory");
+                File subdir = new File(root.getAbsolutePath() + File.separator + "Mailbox");
                 boolean createdSubDir = subdir.mkdir();
                 if (createdSubDir) {
-                    File four = new File(subdir.getAbsolutePath() + File.separator + "four");
+                    File four = new File(subdir.getAbsolutePath() + File.separator + "Config");
                     four.createNewFile();
                 }
             }
-            File one = new File(root.getAbsolutePath() + File.separator + "one");
+            File one = new File(root.getAbsolutePath() + File.separator + "Abnahme");
             one.createNewFile();
-            File two = new File(root.getAbsolutePath() + File.separator + "two");
+            File two = new File(root.getAbsolutePath() + File.separator + "Metadaten");
             two.createNewFile();
-            File three = new File(root.getAbsolutePath() + File.separator + "three");
+            File three = new File(root.getAbsolutePath() + File.separator + "Huhu");
             three.createNewFile();
         }
         catch (IOException ioException){
             ioException.printStackTrace();
         }
     }
-    private static final File rootFile = new File(System.getProperty("java.io.tmpdir") + File.separator + "ROOT");
+    private static final File rootFile = new File(System.getProperty("java.io.tmpdir") + File.separator + "Table Viewer");
+    //private static final File rootFile = new File(System.getProperty("c:\tmp") );
 
     private static class Tree<T> extends TreeGrid<T> {
 
         Tree(ValueProvider<T, ?> valueProvider) {
             Column<T> only = addHierarchyColumn(valueProvider);
             only.setAutoWidth(true);
+           // only.setHeader("Auswahl");
+            only.setWidth("500px");
+
         }
     }
 
@@ -67,15 +72,15 @@ public class FileTree extends VerticalLayout {
                             fileColumn.setComparator(Comparator.naturalOrder());
                             GridSortOrder<File> sortOrder = new GridSortOrder<>(fileColumn, SortDirection.ASCENDING);
                             filesTree.sort(Collections.singletonList(sortOrder));
-                            filesTree.setWidthFull();
-                            filesTree.setHeight("300px");
+                         //  filesTree.setWidthFull();
+                         //   filesTree.setHeight("300px");
                             filesTree
                                     .asSingleSelect()
                                     .addValueChangeListener(
                                             event -> {
                                                 File file = event.getValue();
                                                 if (file != null && file.isFile()) { // deselecting: file == null
-                                                    // do something
+                                                    System.out.println((event.getValue().getName()));
                                                 } else {
                                                     // don't do anything
                                                 }
@@ -83,9 +88,10 @@ public class FileTree extends VerticalLayout {
                                     );
                         }
                 );
+        filesTree.getStyle().set("--_lumo-grid-border-width","0px");
 
         this.add(filesTree);
-        setSizeFull();
+      //  setSizeFull();
     }
 
     private List<File> getFiles(File parent) {

@@ -29,7 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.Properties;
 
 @PageTitle("Table Export")
-@Route(value = "table-view", layout= MainLayout.class)
+@Route(value = "table-export", layout= MainLayout.class)
 @ConfigurationPropertiesScan
 public class TableExportView extends VerticalLayout {
 
