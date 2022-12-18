@@ -1,5 +1,6 @@
 package com.example.application.views;
 
+import com.example.application.uils.OSInfoUtil;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.H1;
@@ -21,6 +22,8 @@ public class MainLayout extends AppLayout {
     private void createHeader() {
         H1 logo = new H1("Dataport FVM Admin Tool");
         logo.addClassNames("text-l","m-m");
+
+        System.out.println("Betriebssystem: " + OSInfoUtil.getOsName());
 
         HorizontalLayout header= new HorizontalLayout(new DrawerToggle(),logo);
         header.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);

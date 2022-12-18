@@ -1,6 +1,7 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.QSql;
+import com.example.application.data.entity.TableInfo;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.Text;
@@ -10,17 +11,25 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.BoxSizing;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.StreamResource;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.sql.*;
 import java.util.*;
 
@@ -30,12 +39,21 @@ public class TableView extends VerticalLayout {
 
     public static Connection conn;
     private ResultSet resultset;
+    private Button smallButton = new Button("Export");
+    private String aktuelle_SQL="";
+    private String aktuelle_Tabelle="";
+    private Anchor anchor = new Anchor(getStreamResource(aktuelle_Tabelle + ".xls", "default content"), "click to download");
     Grid<LinkedHashMap<String, Object>> grid2 = new Grid<>();
     public TableView() throws SQLException, FileNotFoundException {
         //add(new H1("Table View"));
 
+        anchor.getElement().setAttribute("download",true);
+        anchor.setEnabled(false);
+        smallButton.setVisible(false);
 
         MenuBar menuBar = new MenuBar();
+
+        
         Text selected = new Text("");
         //ComponentEventListener<ClickEvent<MenuItem>> listener = e -> selected.setText(e.getSource().getText());
 
@@ -69,7 +87,27 @@ public class TableView extends VerticalLayout {
                 {
                     try {
                         System.out.println("jetzt Ausführen: " + line.SQL);
+                        aktuelle_SQL=line.SQL;
+                        aktuelle_Tabelle=line.Name;
                         show_grid(line.SQL);
+                        anchor.setEnabled(false);
+                        smallButton.setVisible(true);
+                      //  TextField filenameTextField = new TextField("input file name here");
+                      //  filenameTextField.setValue("default.txt");
+                        //Anchor anchor = new Anchor(getStreamResource("default.txt", "default content"), "click me to download");
+
+                  //      byte[] bytes = Files.readAllBytes(Paths.get("c:\\tmp\\" + aktuelle_Tabelle + ".xls"));
+
+                    //    StreamResource resource = new StreamResource(aktuelle_Tabelle + ".xls",
+//                                () -> new ByteArrayInputStream(bytes));
+                        //    () -> new ByteArrayInputStream("Hello world".getBytes(StandardCharsets.UTF_8)));
+
+
+
+                       // anchor.setHref(getStreamResource(aktuelle_Tabelle + ".xls", " contains some text"));
+                 //       anchor.setHref(resource);
+
+
                     } catch (SQLException ex) {
                         throw new RuntimeException(ex);
                     }
@@ -83,10 +121,10 @@ public class TableView extends VerticalLayout {
 
         };
 
+        //Div message = new Div(new Text("-->  "), selected);
+        H3 message = new H3(selected);
 
-            Div message = new Div(new Text("-->  "), selected);
-
-        MenuItem move = menuBar.addItem("Auswahl Tabelle");
+        MenuItem move = menuBar.addItem("Auswahl");
         SubMenu moveSubMenu = move.getSubMenu();
 
 
@@ -112,25 +150,54 @@ public class TableView extends VerticalLayout {
 
 
         //Export Button
-        Button smallButton = new Button("Export");
+
         smallButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
         smallButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+        smallButton.addClickListener(clickEvent -> {
+            Notification.show("Exportiere " + aktuelle_Tabelle);
+            //System.out.println("aktuelle_SQL:" + aktuelle_SQL);
+            try {
+                generateExcel("c:\\tmp\\" + aktuelle_Tabelle + ".xls",aktuelle_SQL);
+
+                File file= new File("c:\\tmp\\" + aktuelle_Tabelle +".xls");
+                StreamResource streamResource = new StreamResource(file.getName(),()->getStream(file));
+
+                anchor.setHref(streamResource);
+                //anchor = new Anchor(streamResource, String.format("%s (%d KB)", file.getName(), (int) file.length() / 1024));
+
+                anchor.setEnabled(true);
+                smallButton.setVisible(false);
+          //      download("c:\\tmp\\" + aktuelle_Tabelle + ".xls");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+
+
 
         HorizontalLayout TableChooser = new HorizontalLayout ();
-        TableChooser.setAlignItems(Alignment.CENTER);
+        //TableChooser.setAlignItems(Alignment.CENTER);
+        TableChooser.setAlignItems(Alignment.BASELINE );
         TableChooser.add(menuBar);
         TableChooser.add(message);
 
         HorizontalLayout horizontalLayout = new HorizontalLayout ();
         horizontalLayout.setWidth("100%");
-        horizontalLayout.setAlignItems(Alignment.CENTER);
+       // horizontalLayout.setAlignItems(Alignment.CENTER);
+        horizontalLayout.setAlignItems(Alignment.BASELINE);
         horizontalLayout.setSpacing(true);
         horizontalLayout.setPadding(true);
        // horizontalLayout.setMargin(true);
 
-
         horizontalLayout.add(TableChooser);
         horizontalLayout.add(smallButton);
+        horizontalLayout.add(anchor);
+
+
+
+
+
         horizontalLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
 
 
@@ -142,9 +209,31 @@ public class TableView extends VerticalLayout {
         add(grid2);
 
 
-
-
     }
+
+    private InputStream getStream(File file) {
+        FileInputStream stream = null;
+        try {
+            stream = new FileInputStream(file);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return stream;
+    }
+
+    public StreamResource getStreamResource(String filename, String content) {
+        return new StreamResource(filename,
+                () -> new ByteArrayInputStream(content.getBytes()));
+    }
+
+    public static void fileOutputStreamByteSingle(String file, String data) throws IOException {
+        byte[] bytes = data.getBytes();
+        try (OutputStream out = new FileOutputStream(file)) {
+            out.write(bytes);
+        }
+    }
+
 
     private void show_grid(String sql) throws SQLException
     {
@@ -240,6 +329,134 @@ public class TableView extends VerticalLayout {
         }
        // conn.close();
         return rows;
+    }
+
+    private static void generateExcel(String file, String query) throws IOException {
+        try {
+            String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
+            String user="SYSTEM";
+            String password="Michael123";
+
+            Class.forName("oracle.jdbc.driver.OracleDriver");
+
+            //   DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
+            Connection conn=DriverManager.getConnection(url, user, password);
+
+
+            PreparedStatement stmt=null;
+            //Workbook
+            HSSFWorkbook workBook=new HSSFWorkbook();
+            HSSFSheet sheet1=null;
+
+            //Cell
+            Cell c=null;
+
+            CellStyle cs=workBook.createCellStyle();
+            HSSFFont f =workBook.createFont();
+            f.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);
+            f.setFontHeightInPoints((short) 12);
+            cs.setFont(f);
+
+
+            sheet1=workBook.createSheet("Sheet1");
+
+
+            // String query="select  EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, WORK_CITY, WORK_COUNTRY from APEX_040000.WWV_DEMO_EMP";
+            stmt=conn.prepareStatement(query);
+            ResultSet rs=stmt.executeQuery();
+
+            ResultSetMetaData metaData=rs.getMetaData();
+            int colCount=metaData.getColumnCount();
+
+            LinkedHashMap<Integer, TableInfo> hashMap=new LinkedHashMap<Integer, TableInfo>();
+
+
+            for(int i=0;i<colCount;i++){
+                TableInfo tableInfo=new TableInfo();
+                tableInfo.setFieldName(metaData.getColumnName(i+1).trim());
+                tableInfo.setFieldText(metaData.getColumnLabel(i+1));
+                tableInfo.setFieldSize(metaData.getPrecision(i+1));
+                tableInfo.setFieldDecimal(metaData.getScale(i+1));
+                tableInfo.setFieldType(metaData.getColumnType(i+1));
+                //     tableInfo.setCellStyle(getCellAttributes(workBook, c, tableInfo));
+
+                hashMap.put(i, tableInfo);
+            }
+
+            //Row and Column Indexes
+            int idx=0;
+            int idy=0;
+
+            HSSFRow row=sheet1.createRow(idx);
+            TableInfo tableInfo=new TableInfo();
+
+            Iterator<Integer> iterator=hashMap.keySet().iterator();
+
+            while(iterator.hasNext()){
+                Integer key=(Integer)iterator.next();
+
+                tableInfo=hashMap.get(key);
+                c=row.createCell(idy);
+                c.setCellValue(tableInfo.getFieldText());
+                c.setCellStyle(cs);
+                if(tableInfo.getFieldSize() > tableInfo.getFieldText().trim().length()){
+                    sheet1.setColumnWidth(idy, (tableInfo.getFieldSize()* 10));
+                }
+                else {
+                    sheet1.setColumnWidth(idy, (tableInfo.getFieldText().trim().length() * 5));
+                }
+                idy++;
+            }
+
+            while (rs.next()) {
+
+                idx++;
+                row = sheet1.createRow(idx);
+                System.out.println(idx);
+                for (int i = 0; i < colCount; i++) {
+
+                    c = row.createCell(i);
+                    tableInfo = hashMap.get(i);
+
+                    switch (tableInfo.getFieldType()) {
+                        case 1:
+                            c.setCellValue(rs.getString(i+1));
+                            break;
+                        case 2:
+                            c.setCellValue(rs.getDouble(i+1));
+                            break;
+                        case 3:
+                            c.setCellValue(rs.getDouble(i+1));
+                            break;
+                        default:
+                            c.setCellValue(rs.getString(i+1));
+                            break;
+                    }
+                    c.setCellStyle(tableInfo.getCellStyle());
+                }
+
+            }
+            rs.close();
+            stmt.close();
+            conn.close();
+
+            // String path="c:\\tmp\\test.xls";
+
+            FileOutputStream fileOut = new FileOutputStream(file);
+
+            workBook.write(fileOut);
+            fileOut.close();
+
+
+
+
+
+        } catch (SQLException | FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
