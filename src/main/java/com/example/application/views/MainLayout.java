@@ -45,12 +45,12 @@ public class MainLayout extends AppLayout {
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
 
         addToDrawer(new VerticalLayout(
-                tableExport,
-                mailboxConfig,
-                elaFavoriten,
-                listView,
-                tableView,
-                DashboardView
+            //    tableExport,
+            //    mailboxConfig,
+            //    elaFavoriten,
+            //    listView,
+                tableView
+            //    DashboardView
         ));
 
     }

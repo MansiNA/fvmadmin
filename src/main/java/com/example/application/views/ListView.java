@@ -14,7 +14,7 @@ import com.vaadin.flow.router.Route;
 
 
 @PageTitle("Info | by DBUSS GmbH")
-@Route(value = "", layout= MainLayout.class)
+@Route(value = "demo", layout= MainLayout.class)
 //@Route(value = "")
 public class ListView extends VerticalLayout {
 

@@ -43,8 +43,14 @@ public class TableView extends VerticalLayout {
     private String aktuelle_SQL="";
     private String aktuelle_Tabelle="";
     private Anchor anchor = new Anchor(getStreamResource(aktuelle_Tabelle + ".xls", "default content"), "click to download");
+
     Grid<LinkedHashMap<String, Object>> grid2 = new Grid<>();
-    public TableView() throws SQLException, FileNotFoundException {
+
+    private static String url;
+    private static String user;
+    private static String password;
+
+    public TableView() throws SQLException, IOException {
         //add(new H1("Table View"));
 
         anchor.getElement().setAttribute("download",true);
@@ -53,7 +59,16 @@ public class TableView extends VerticalLayout {
 
         MenuBar menuBar = new MenuBar();
 
-        
+        Properties properties = new Properties();
+        BufferedInputStream stream = new BufferedInputStream(new FileInputStream("config.properties"));
+        properties.load(stream);
+        stream.close();
+        url = properties.getProperty("tableview.url");
+        user = properties.getProperty("tableview.user");
+        password = properties.getProperty("tableview.password");
+
+
+
         Text selected = new Text("");
         //ComponentEventListener<ClickEvent<MenuItem>> listener = e -> selected.setText(e.getSource().getText());
 
@@ -109,6 +124,8 @@ public class TableView extends VerticalLayout {
 
 
                     } catch (SQLException ex) {
+                        throw new RuntimeException(ex);
+                    } catch (IOException ex) {
                         throw new RuntimeException(ex);
                     }
                 }
@@ -235,8 +252,7 @@ public class TableView extends VerticalLayout {
     }
 
 
-    private void show_grid(String sql) throws SQLException
-    {
+    private void show_grid(String sql) throws SQLException, IOException {
         System.out.println(sql);
         // Create the grid and set its items
         //Grid<LinkedHashMap<String, Object>> grid2 = new Grid<>();
@@ -244,34 +260,41 @@ public class TableView extends VerticalLayout {
 
         //List<LinkedHashMap<String,Object>> rows = retrieveRows("select * from EKP.ELA_FAVORITEN where rownum<200");
         List<LinkedHashMap<String,Object>> rows = retrieveRows(sql);
-        //List<LinkedHashMap<String,Object>> rows = retrieveRows("select * from EKP.AM_MAILBOX");
 
-        grid2.setItems( rows); // rows is the result of retrieveRows
+        if(!rows.isEmpty()){
+            grid2.setItems( rows); // rows is the result of retrieveRows
 
-        // Add the columns based on the first row
-        LinkedHashMap<String, Object> s = rows.get(0);
-        for (Map.Entry<String, Object> entry : s.entrySet()) {
-            grid2.addColumn(h -> h.get(entry.getKey().toString())).setHeader(entry.getKey()).setAutoWidth(true).setResizable(true).setSortable(true);
+            // Add the columns based on the first row
+            LinkedHashMap<String, Object> s = rows.get(0);
+            for (Map.Entry<String, Object> entry : s.entrySet()) {
+                grid2.addColumn(h -> h.get(entry.getKey().toString())).setHeader(entry.getKey()).setAutoWidth(true).setResizable(true).setSortable(true);
+            }
+
+            grid2.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
+            grid2.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+            grid2.addThemeVariants(GridVariant.LUMO_COMPACT);
+            //   grid2.setAllRowsVisible(true);
+            grid2.setPageSize(50);
+            grid2.setHeight("800px");
+            //grid2.setPaginatorSize(5);
+            // Add the grid to the page
+
+            this.setPadding(false);
+            this.setSpacing(false);
+            this.setBoxSizing(BoxSizing.CONTENT_BOX);
+
         }
-
-        grid2.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
-        grid2.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
-        grid2.addThemeVariants(GridVariant.LUMO_COMPACT);
-     //   grid2.setAllRowsVisible(true);
-        grid2.setPageSize(50);
-        grid2.setHeight("800px");
-        //grid2.setPaginatorSize(5);
-        // Add the grid to the page
-
-        this.setPadding(false);
-        this.setSpacing(false);
-        this.setBoxSizing(BoxSizing.CONTENT_BOX);
-
-        //add(grid2);
+        else {
+            //Text txt = new Text("Es konnten keine Daten  abgerufen werden!");
+            //add(txt);
+        }
 
     }
 
-    public List<LinkedHashMap<String,Object>> retrieveRows(String queryString) throws SQLException{
+    public List<LinkedHashMap<String,Object>> retrieveRows(String queryString) throws SQLException, IOException {
+
+
+
 
         List<LinkedHashMap<String, Object>> rows = new LinkedList<LinkedHashMap<String, Object>>();
 
@@ -279,9 +302,9 @@ public class TableView extends VerticalLayout {
         ResultSet rs = null;
         try
         {
-            String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
-            String user="SYSTEM";
-            String password="Michael123";
+        //    String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
+        //    String user="SYSTEM";
+        //    String password="Michael123";
 
             Class.forName("oracle.jdbc.driver.OracleDriver");
 
@@ -316,7 +339,10 @@ public class TableView extends VerticalLayout {
                 rows.add(row);
             }
         } catch (SQLException | IllegalArgumentException  | SecurityException e) {
-            e.printStackTrace();
+           // e.printStackTrace();
+            add(new Text(e.getMessage()));
+
+            return Collections.emptyList();
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         } finally {
@@ -333,9 +359,9 @@ public class TableView extends VerticalLayout {
 
     private static void generateExcel(String file, String query) throws IOException {
         try {
-            String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
-            String user="SYSTEM";
-            String password="Michael123";
+            //String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
+            //String user="SYSTEM";
+            //String password="Michael123";
 
             Class.forName("oracle.jdbc.driver.OracleDriver");
 
@@ -412,7 +438,7 @@ public class TableView extends VerticalLayout {
 
                 idx++;
                 row = sheet1.createRow(idx);
-                System.out.println(idx);
+              //  System.out.println(idx);
                 for (int i = 0; i < colCount; i++) {
 
                     c = row.createCell(i);
