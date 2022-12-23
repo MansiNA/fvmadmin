@@ -5,7 +5,11 @@ import com.example.application.data.entity.ValueBlob;
 import com.example.application.uils.DateiZippen;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.details.Details;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H6;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
@@ -47,7 +51,8 @@ public class MessageExportView extends VerticalLayout {
     private Span content = new Span();
 
     private RawHtml rawHtmlml = new RawHtml();
-    VerticalLayout infoBox = new VerticalLayout();
+    //VerticalLayout infoBox = new VerticalLayout();
+    Details details = new Details("Dateiübersicht", rawHtmlml);
     File uploadFolder = getUploadFolder();
     private final VerticalLayout live_content;
     private final VerticalLayout archive_content;
@@ -78,14 +83,9 @@ public class MessageExportView extends VerticalLayout {
 
         archive_content.add(new H6("Archive Nachrichten-Export"));
 
-
-
-
         textField.setLabel("NachrichtIdIntern:");
         //textField.setValue("MessageIdIntern");
         textField.setClearButtonVisible(true);
-
-
 
 
         Button button = new Button("Start Export");
@@ -115,8 +115,6 @@ public class MessageExportView extends VerticalLayout {
 
                     exportMessage(NachrichtID);
 
-
-
                     //Thread.sleep(2000); //2 Sekunden warten
                     Thread.sleep(20); //2 Sekunden warten
 
@@ -127,9 +125,8 @@ public class MessageExportView extends VerticalLayout {
                 // Need to use access() when running from background thread
                 ui.access(() -> {
                     // Stop polling and hide spinner
-              //      ui.setPollInterval(-1);
+                    ui.setPollInterval(-1);
                     spinner.setVisible(false);
-                    linksArea.refreshFileLinks();
 
 
                     String csvData= "";
@@ -147,21 +144,14 @@ public class MessageExportView extends VerticalLayout {
                         //handle exception
                     }
 
-                   // content.removeAll();
-                   // content.add(new Html("<span>" + csvData + "</span>"));
-
-                    //ui.add(content);
-
-                //    infotext.setValue(csvData);
-                //    infotext.setWidth("100%");
-                //    infotext.setMaxHeight("500px");
 
                     rawHtmlml.setHtml(csvData);
-                    infoBox.setVisible(true);
+                    //infoBox.setVisible(true);
+                    details.setVisible(true);
                     info.setVisible(false);
 
                     ZipMessage("c:/tmp/messages/", NachrichtID);
-
+                    linksArea.refreshFileLinks();
                 });
             });
 
@@ -172,11 +162,13 @@ public class MessageExportView extends VerticalLayout {
         HorizontalLayout buttonLayout = new HorizontalLayout(textField,button, info);
         buttonLayout.setAlignItems(Alignment.BASELINE);
 
-VerticalLayout vertical = new VerticalLayout();
-vertical.setSpacing(false);
-vertical.setAlignItems(Alignment.START);
-vertical.add(buttonLayout);
-vertical.add(linksArea);
+        VerticalLayout vertical = new VerticalLayout();
+        vertical.setSpacing(false);
+        vertical.setAlignItems(Alignment.START);
+        vertical.add(buttonLayout);
+        vertical.add(spinner);
+
+        vertical.add(linksArea);
 
      //   live_content.add(new H6("Message-Export"));
     //    live_content.add(textField);
@@ -184,14 +176,20 @@ vertical.add(linksArea);
 
         spinner.setIndeterminate(true);
         spinner.setVisible(false);
-        live_content.add(spinner);
+
    //     live_content.add(linksArea);
 
-        infoBox.add("Dateiübersicht:");
-        infoBox.add(rawHtmlml);
-        infoBox.setVisible(false);
+      //  infoBox.add("Dateiübersicht:");
+      //  infoBox.add(rawHtmlml);
+      //  infoBox.setVisible(false);
 
-        live_content.add(infoBox);
+       // live_content.add(infoBox);
+
+
+        details.setOpened(false);
+        details.setVisible(false);
+
+        live_content.add(details);
 
         main_content = new VerticalLayout();
         main_content.setSpacing(false);
