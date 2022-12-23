@@ -78,14 +78,14 @@ public class MessageExportView extends VerticalLayout {
 
         archive_content.add(new H6("Archive Nachrichten-Export"));
 
-        live_content.add(new H6("Message-Export"));
+
 
 
         textField.setLabel("NachrichtIdIntern:");
         //textField.setValue("MessageIdIntern");
         textField.setClearButtonVisible(true);
 
-        live_content.add(textField);
+
 
 
         Button button = new Button("Start Export");
@@ -169,22 +169,23 @@ public class MessageExportView extends VerticalLayout {
 
         });
 
-        HorizontalLayout horizontalLayout = new HorizontalLayout(button, info);
-        horizontalLayout.setAlignItems(Alignment.BASELINE);
-        live_content.add(horizontalLayout);
+        HorizontalLayout buttonLayout = new HorizontalLayout(textField,button, info);
+        buttonLayout.setAlignItems(Alignment.BASELINE);
+
+VerticalLayout vertical = new VerticalLayout();
+vertical.setSpacing(false);
+vertical.setAlignItems(Alignment.START);
+vertical.add(buttonLayout);
+vertical.add(linksArea);
+
+     //   live_content.add(new H6("Message-Export"));
+    //    live_content.add(textField);
+        live_content.add(vertical);
 
         spinner.setIndeterminate(true);
         spinner.setVisible(false);
         live_content.add(spinner);
-
-
-       // UploadArea uploadArea = new UploadArea(uploadFolder);
-
-
-        // add(uploadArea, linksArea);
-        live_content.add(linksArea);
-       // add(infotext);
-
+   //     live_content.add(linksArea);
 
         infoBox.add("Dateiübersicht:");
         infoBox.add(rawHtmlml);
