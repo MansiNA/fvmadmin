@@ -39,7 +39,7 @@ public class DownloadLinksArea extends VerticalLayout {
         Grid<Anchor> anchorGrid = new Grid(Anchor.class,false);
 
         for (File file : uploadFolder.listFiles()) {
-            addLinkToFile(file);
+           // addLinkToFile(file);
 
             anchor_list.add(getAnchor(file));
         }
@@ -51,14 +51,17 @@ public class DownloadLinksArea extends VerticalLayout {
         //anchorGrid.addColumn(Anchor::getHref ).setHeader("Link");
 
      //   anchorGrid.addColumn(createAnchorRenderer()).setHeader("Link").setAutoWidth(true).setFlexGrow(0);
-     //   add(anchorGrid);
+        anchorGrid.addColumn(Anchor::getText).setHeader("Filename");
+        anchorGrid.addColumn(createAnchorRenderer()).setHeader("Link");
+
+        add(anchorGrid);
 
     }
 
 
     private static Renderer<Anchor> createAnchorRenderer() {
         return LitRenderer.<Anchor> of(
-                "<a router-ignore=\"\" href=\"${item.pictureUrl}\" download>YY</a>")
+                "<a router-ignore=\"\" href=\"${item.pictureUrl}\" download>Download</a>")
                 .withProperty("pictureUrl", Anchor::getHref)
                 .withProperty("target", Anchor::getTarget)
                 ;
@@ -84,9 +87,11 @@ public class DownloadLinksArea extends VerticalLayout {
         }
 
 
-        Anchor link = new Anchor(streamResource, String.format("%s | %s | (%d KB)", file.getName(), creationDate.getDate() + "/" +  (creationDate.getMonth() + 1) + "/" +  (creationDate.getYear() + 1900) + " " + creationDate.getHours() + ":" +  creationDate.getMinutes() , (int) file.length() / 1024));
+       // Anchor link = new Anchor(streamResource, String.format("%s | %s | (%d KB)", file.getName(), creationDate.getDate() + "/" +  (creationDate.getMonth() + 1) + "/" +  (creationDate.getYear() + 1900) + " " + creationDate.getHours() + ":" +  creationDate.getMinutes() , (int) file.length() / 1024));
+        Anchor link = new Anchor(streamResource, String.format("%s", file.getName()));
         link.getElement().setAttribute("download", true);
-
+        link.getElement().setVisible(false);
+        add(link);
         return link;
     }
 
