@@ -4,6 +4,7 @@ import com.example.application.uils.OSInfoUtil;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -23,9 +24,15 @@ public class MainLayout extends AppLayout {
         H1 logo = new H1("Dataport FVM Admin Tool");
         logo.addClassNames("text-l","m-m");
 
+
+        Image image = new Image("images/dataport.png", "Dataport Image");
+
         System.out.println("Betriebssystem: " + OSInfoUtil.getOsName());
 
         HorizontalLayout header= new HorizontalLayout(new DrawerToggle(),logo);
+        header.add(image);
+
+
         header.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
         header.expand(logo);
         header.setWidthFull();
@@ -38,6 +45,7 @@ public class MainLayout extends AppLayout {
 
         RouterLink listView = new RouterLink ("Info", ListView.class);
         RouterLink mailboxConfig = new RouterLink ("Postfach Verwaltung", MailboxConfigView.class);
+        RouterLink MessageExport = new RouterLink ("Message Exporter", MessageExportView.class);
         RouterLink elaFavoriten = new RouterLink ("ELA-Upload", ElaFavoritenView.class);
         RouterLink tableExport = new RouterLink ("Table Export", TableExportView.class);
         RouterLink tableView = new RouterLink ("Table Viewer", TableView.class);
@@ -49,7 +57,8 @@ public class MainLayout extends AppLayout {
             //    mailboxConfig,
             //    elaFavoriten,
             //    listView,
-                tableView
+                tableView,
+                MessageExport
             //    DashboardView
         ));
 

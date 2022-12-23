@@ -46,6 +46,8 @@ public class TableView extends VerticalLayout {
 
     Grid<LinkedHashMap<String, Object>> grid2 = new Grid<>();
 
+   // PaginatedGrid<String, Object> grid = new PaginatedGrid<>();
+
     private static String url;
     private static String user;
     private static String password;
