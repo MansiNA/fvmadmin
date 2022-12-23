@@ -5,13 +5,12 @@ import com.example.application.data.entity.ValueBlob;
 import com.example.application.uils.DateiZippen;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.component.tabs.Tab;
+import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -50,19 +49,43 @@ public class MessageExportView extends VerticalLayout {
     private RawHtml rawHtmlml = new RawHtml();
     VerticalLayout infoBox = new VerticalLayout();
     File uploadFolder = getUploadFolder();
+    private final VerticalLayout live_content;
+    private final VerticalLayout archive_content;
+
+    private final VerticalLayout main_content;
+
     private Integer NachrichtID=576757;
     DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
     public LobHandler lobHandler;
 
+    private final Tab live;
+    private final Tab archive;
+
     public MessageExportView() {
-        add(new H1("Message-Export"));
+
+        live = new Tab("Live");
+        archive = new Tab("Archive");
+
+
+        Tabs tabs = new Tabs(live, archive);
+       // tabs.setAutoselect(false);
+        tabs.addSelectedChangeListener(
+                event -> setContent(event.getSelectedTab()));
+        add(tabs);
+
+        live_content = new VerticalLayout();
+        archive_content = new VerticalLayout();
+
+        archive_content.add(new H6("Archive Nachrichten-Export"));
+
+        live_content.add(new H6("Message-Export"));
 
 
         textField.setLabel("NachrichtIdIntern:");
         //textField.setValue("MessageIdIntern");
         textField.setClearButtonVisible(true);
 
-        add(textField);
+        live_content.add(textField);
 
 
         Button button = new Button("Start Export");
@@ -148,18 +171,18 @@ public class MessageExportView extends VerticalLayout {
 
         HorizontalLayout horizontalLayout = new HorizontalLayout(button, info);
         horizontalLayout.setAlignItems(Alignment.BASELINE);
-        add(horizontalLayout);
+        live_content.add(horizontalLayout);
 
         spinner.setIndeterminate(true);
         spinner.setVisible(false);
-        add(spinner);
+        live_content.add(spinner);
 
 
        // UploadArea uploadArea = new UploadArea(uploadFolder);
 
 
         // add(uploadArea, linksArea);
-        add(linksArea);
+        live_content.add(linksArea);
        // add(infotext);
 
 
@@ -167,8 +190,29 @@ public class MessageExportView extends VerticalLayout {
         infoBox.add(rawHtmlml);
         infoBox.setVisible(false);
 
-        add(infoBox);
+        live_content.add(infoBox);
 
+        main_content = new VerticalLayout();
+        main_content.setSpacing(false);
+        main_content.add(live_content);
+
+
+        add(tabs,main_content);
+
+    }
+
+    private void setContent(Tab tab) {
+        main_content.removeAll();
+        if (tab == null) {
+            return;
+        }
+        if (tab.equals(live)) {
+            main_content.add(live_content);
+        } else if (tab.equals(archive)) {
+            main_content.add(archive_content);
+        } else {
+            main_content.add(new Paragraph("This is the Shipping tab"));
+        }
     }
 
     private class RawHtml extends Div {

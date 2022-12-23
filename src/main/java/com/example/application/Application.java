@@ -16,8 +16,8 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
  *
  */
 @SpringBootApplication
-@Theme(value = "flowcrmtutorial")
-@PWA(name = "Flow CRM Tutorial", shortName = "Flow CRM Tutorial", offlineResources = {})
+@Theme(value = "fvmadmin")
+@PWA(name = "FVM Admin Tool", shortName = "FVM Admin", offlineResources = {})
 @NpmPackage(value = "line-awesome", version = "1.3.0")
 @ConfigurationPropertiesScan
 public class Application implements AppShellConfigurator {

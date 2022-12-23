@@ -51,12 +51,13 @@ public class DownloadLinksArea extends VerticalLayout {
         //anchorGrid.addColumn(Anchor::getHref ).setHeader("Link");
 
      //   anchorGrid.addColumn(createAnchorRenderer()).setHeader("Link").setAutoWidth(true).setFlexGrow(0);
-        anchorGrid.addColumn(Anchor::getText).setHeader("Filename").setWidth("60px");
-        anchorGrid.addColumn(Anchor::getTitle).setHeader("Erstellt").setWidth("80px");
+        anchorGrid.addColumn(Anchor::getText).setHeader("Filename").setAutoWidth(true).setFlexGrow(0);;
+     //   anchorGrid.addColumn(Anchor::getTitle).setHeader("Erstellt").setWidth("80px");
+      //  anchorGrid.sets
         anchorGrid.addColumn(createAnchorRenderer());
 
         anchorGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
-        anchorGrid.setHeight("80px");
+        anchorGrid.setHeight("150px");
         add(anchorGrid);
 
     }
