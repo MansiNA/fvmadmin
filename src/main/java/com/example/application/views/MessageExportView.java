@@ -55,7 +55,7 @@ public class MessageExportView extends VerticalLayout {
         textField.setClearButtonVisible(true);
 
         add(textField);
-        add(infotext);
+
 
         Button button = new Button("Start Export");
         Paragraph info = new Paragraph(infoText());
@@ -140,6 +140,7 @@ public class MessageExportView extends VerticalLayout {
 
         // add(uploadArea, linksArea);
         add(linksArea);
+        add(infotext);
     }
 
     private static File getUploadFolder() {
