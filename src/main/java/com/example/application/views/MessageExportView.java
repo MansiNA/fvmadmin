@@ -5,12 +5,13 @@ import com.example.application.data.entity.ValueBlob;
 import com.example.application.uils.DateiZippen;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
-import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -40,9 +41,16 @@ public class MessageExportView extends VerticalLayout {
     @Autowired
     JdbcTemplate jdbcTemplate;
     private TextField textField = new TextField();
+
     ProgressBar spinner = new ProgressBar();
-    TextArea infotext = new TextArea();
+  //  private TextArea infotext = new TextArea();
+
+    private Span content = new Span();
+
+    private RawHtml rawHtmlml = new RawHtml();
+    VerticalLayout infoBox = new VerticalLayout();
     File uploadFolder = getUploadFolder();
+    private Integer NachrichtID=576757;
     DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
     public LobHandler lobHandler;
 
@@ -72,13 +80,17 @@ public class MessageExportView extends VerticalLayout {
             ui.setPollInterval(500);
             spinner.setVisible(true);
 
+            NachrichtID=576757;
             // Start background task
             CompletableFuture.runAsync(() -> {
 
                 // Do some long running task
                 try {
                     System.out.println("Hole Dateien für NachrichtenID: " + textField.getValue() );
-                    exportMessage(576757);
+
+                    //NachrichtID=Integer.getInteger(textField.getValue());
+
+                    exportMessage(NachrichtID);
 
 
 
@@ -97,28 +109,36 @@ public class MessageExportView extends VerticalLayout {
                     linksArea.refreshFileLinks();
 
 
-                    String csvData= "";;
+                    String csvData= "";
 
-                    Path filePath = Path.of("c:/tmp/messages/eKP_Metadata.html");
+                    String InfoFile="c:/tmp/messages/"+ NachrichtID.toString() +"/eKP_Metadata.html";
+
+                    Path filePath = Path.of(InfoFile);
 
                     try {
-
+                        System.out.println("Read InfoFile >" + InfoFile);
                         byte[] bytes = Files.readAllBytes(Paths.get(filePath.toUri()));
                         csvData = new String (bytes);
                     } catch (IOException e) {
+                        System.out.println("InfoFile >" + InfoFile +"< nicht gefunden:" + e.getMessage());
                         //handle exception
                     }
 
+                   // content.removeAll();
+                   // content.add(new Html("<span>" + csvData + "</span>"));
 
-                    infotext.setValue(csvData);
-                    infotext.setWidth("100%");
-                    infotext.setMaxHeight("500px");
+                    //ui.add(content);
 
+                //    infotext.setValue(csvData);
+                //    infotext.setWidth("100%");
+                //    infotext.setMaxHeight("500px");
 
-
-
-
+                    rawHtmlml.setHtml(csvData);
+                    infoBox.setVisible(true);
                     info.setVisible(false);
+
+                    ZipMessage("c:/tmp/messages/", NachrichtID);
+
                 });
             });
 
@@ -140,8 +160,23 @@ public class MessageExportView extends VerticalLayout {
 
         // add(uploadArea, linksArea);
         add(linksArea);
-        add(infotext);
+       // add(infotext);
+
+
+        infoBox.add("Dateiübersicht:");
+        infoBox.add(rawHtmlml);
+        infoBox.setVisible(false);
+
+        add(infoBox);
+
     }
+
+    private class RawHtml extends Div {
+        public void setHtml(String html) {
+            getElement().setProperty("innerHTML", html);
+        }
+    }
+
 
     private static File getUploadFolder() {
         File folder = new File("c:\\tmp\\messages");
@@ -206,11 +241,15 @@ public class MessageExportView extends VerticalLayout {
 
 
 
-
-        DateiZippen dateiZippen = new DateiZippen();
-        dateiZippen.createZipOfFolder(targetfolder + nachrichtid);
+       // ZipMessage(targetfolder, nachrichtid);
 
 
+
+    }
+
+    private void ZipMessage(String targetfolder, Integer nachrichtid){
+           DateiZippen dateiZippen = new DateiZippen();
+           dateiZippen.createZipOfFolder(targetfolder + nachrichtid);
     }
 
     private String infoText() {

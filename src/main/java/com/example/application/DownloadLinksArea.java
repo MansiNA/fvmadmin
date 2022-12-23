@@ -3,7 +3,6 @@ package com.example.application;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
@@ -32,9 +31,9 @@ public class DownloadLinksArea extends VerticalLayout {
     public void refreshFileLinks() {
         removeAll();
 
-        if(uploadFolder.listFiles().length != 0){
-            add(new H4("Exportierte Nachrichten:"));
-        }
+       // if(uploadFolder.listFiles().length != 0){
+       //     add(new H4("Exportierte Nachrichten:"));
+       // }
 
         List<Anchor> anchor_list = new ArrayList<Anchor>();
         Grid<Anchor> anchorGrid = new Grid(Anchor.class,false);
@@ -52,11 +51,12 @@ public class DownloadLinksArea extends VerticalLayout {
         //anchorGrid.addColumn(Anchor::getHref ).setHeader("Link");
 
      //   anchorGrid.addColumn(createAnchorRenderer()).setHeader("Link").setAutoWidth(true).setFlexGrow(0);
-        anchorGrid.addColumn(Anchor::getText).setHeader("Filename").setWidth("100px");
-        anchorGrid.addColumn(Anchor::getTitle).setHeader("Erstellt").setWidth("100px");
+        anchorGrid.addColumn(Anchor::getText).setHeader("Filename").setWidth("60px");
+        anchorGrid.addColumn(Anchor::getTitle).setHeader("Erstellt").setWidth("80px");
         anchorGrid.addColumn(createAnchorRenderer());
 
         anchorGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
+        anchorGrid.setHeight("80px");
         add(anchorGrid);
 
     }
