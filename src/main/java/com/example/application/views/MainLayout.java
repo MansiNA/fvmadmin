@@ -21,7 +21,7 @@ public class MainLayout extends AppLayout {
     }
 
     private void createHeader() {
-        H1 logo = new H1("Dataport FVM Admin Tool");
+        H1 logo = new H1("FVM Admin Tool");
         logo.addClassNames("text-l","m-m");
 
 

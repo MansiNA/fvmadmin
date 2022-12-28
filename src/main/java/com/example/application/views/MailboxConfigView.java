@@ -26,8 +26,10 @@ public class MailboxConfigView  extends Div {
 
         ComboBox<String> comboBox = new ComboBox<>("Umgebung");
         comboBox.setAllowCustomValue(true);
+
         add(comboBox);
         comboBox.setItems("eKP Prod", "eKP QS", "eKP Test1", "eKP Test2");
+        comboBox.setValue("eKP Prod");
      //   comboBox.setHelperText("Auswahl der Umgebung ");
 
 

@@ -1,8 +1,10 @@
 package com.example.application;
 
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
@@ -17,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static com.helger.commons.io.file.FileOperations.deleteFile;
 
 public class DownloadLinksArea extends VerticalLayout {
 
@@ -56,6 +60,17 @@ public class DownloadLinksArea extends VerticalLayout {
       //  anchorGrid.sets
         anchorGrid.addColumn(createAnchorRenderer());
 
+
+        anchorGrid.addComponentColumn(item -> new Button("Delete File", click -> {
+            try {
+                delFile(item.getText());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            anchor_list.remove(item);
+            refreshFileLinks();
+        }));
+
         anchorGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
       //  anchorGrid.addThemeVariants(GridVariant.LUMO_COLUMN_BORDERS);
         anchorGrid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
@@ -66,6 +81,19 @@ public class DownloadLinksArea extends VerticalLayout {
         this.setSpacing(false);
     }
 
+    private boolean delFile(String file) throws IOException {
+
+
+        String path = uploadFolder.getAbsolutePath();
+        File myFile=new File(path+"/"+file);
+        Notification.show("Delete file " + myFile.getCanonicalPath() );
+        if (file != null) {
+           deleteFile(myFile);
+
+        }
+        return false;
+
+    }
 
     private static Renderer<Anchor> createAnchorRenderer() {
         return LitRenderer.<Anchor> of(
