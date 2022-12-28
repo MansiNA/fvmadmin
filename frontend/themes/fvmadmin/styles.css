@@ -11,3 +11,11 @@ a[highlight] {
     font-weight: bold;
     text-decoration: underline;
 }
+
+.downloadArea{
+    margin:0px;
+
+    padding:0px;
+    padding-top: 10px;
+}
+

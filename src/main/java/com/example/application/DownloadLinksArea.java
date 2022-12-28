@@ -45,7 +45,7 @@ public class DownloadLinksArea extends VerticalLayout {
         }
 
         anchorGrid.setItems(anchor_list);
-
+//anchorGrid.addClassNames("py-0","px-0");
 
 
         //anchorGrid.addColumn(Anchor::getHref ).setHeader("Link");
@@ -62,7 +62,8 @@ public class DownloadLinksArea extends VerticalLayout {
         anchorGrid.setHeight("150px");
         anchorGrid.setWidth("450px");
         add(anchorGrid);
-
+        this.addClassName("downloadArea");
+        this.setSpacing(false);
     }
 
 

@@ -59,18 +59,20 @@ public class MessageExportView extends VerticalLayout {
 
     private final VerticalLayout main_content;
 
-    private Integer NachrichtID=576757;
+    private Integer NachrichtID;
     DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
     public LobHandler lobHandler;
 
     private final Tab live;
     private final Tab archive;
 
+    Integer ret=0;
     public MessageExportView() {
 
-        live = new Tab("Live");
+        live = new Tab("Prod");
         archive = new Tab("Archive");
 
+        linksArea.addClassName("link-grid");
 
         Tabs tabs = new Tabs(live, archive);
        // tabs.setAutoselect(false);
@@ -84,7 +86,7 @@ public class MessageExportView extends VerticalLayout {
         archive_content.add(new H6("Archive Nachrichten-Export"));
 
         textField.setLabel("NachrichtIdIntern:");
-        //textField.setValue("MessageIdIntern");
+        textField.setValue("576757");
         textField.setClearButtonVisible(true);
 
 
@@ -103,7 +105,8 @@ public class MessageExportView extends VerticalLayout {
             ui.setPollInterval(500);
             spinner.setVisible(true);
 
-            NachrichtID=576757;
+           // NachrichtID=576757;
+            NachrichtID= Integer.valueOf(textField.getValue());
             // Start background task
             CompletableFuture.runAsync(() -> {
 
@@ -113,7 +116,9 @@ public class MessageExportView extends VerticalLayout {
 
                     //NachrichtID=Integer.getInteger(textField.getValue());
 
-                    exportMessage(NachrichtID);
+                    ret = exportMessage(NachrichtID);
+
+
 
                     //Thread.sleep(2000); //2 Sekunden warten
                     Thread.sleep(20); //2 Sekunden warten
@@ -128,6 +133,15 @@ public class MessageExportView extends VerticalLayout {
                     ui.setPollInterval(-1);
                     spinner.setVisible(false);
 
+                    if (ret!=0)
+                    {
+                        System.out.println("Keine Dateien gefunden!");
+                        info.setText("Keine Dateien zu dieser ID gefunden!");
+                        spinner.setVisible(false);
+                        details.setVisible(false);
+
+                        return;
+                    }
 
                     String csvData= "";
 
@@ -229,7 +243,7 @@ public class MessageExportView extends VerticalLayout {
         return folder;
     }
 
-    private void exportMessage(int nachrichtid) throws IOException {
+    private Integer exportMessage(int nachrichtid) throws IOException {
 
         System.out.println("Exportiere: " + nachrichtid);
 
@@ -247,6 +261,11 @@ public class MessageExportView extends VerticalLayout {
         LobHandler lobHandler = new DefaultLobHandler();
         List<ValueBlob> values = new ArrayList<>();
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+
+        if(rows.isEmpty()){
+            return 1;
+        }
+
         for (Map row : rows) {
             ValueBlob obj = new ValueBlob();
 
@@ -282,11 +301,7 @@ public class MessageExportView extends VerticalLayout {
         }
 
 
-
-
-       // ZipMessage(targetfolder, nachrichtid);
-
-
+        return 0;
 
     }
 
