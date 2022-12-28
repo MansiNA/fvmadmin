@@ -2,9 +2,9 @@ package com.example.application.views;
 
 import com.example.application.data.entity.Person;
 import com.example.application.data.service.DataService;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
@@ -24,7 +24,12 @@ public class MailboxConfigView  extends Div {
 
     public MailboxConfigView()  {
 
-        add(new H1("Postfach Verwaltung eKP HH QS"));
+        ComboBox<String> comboBox = new ComboBox<>("Umgebung");
+        comboBox.setAllowCustomValue(true);
+        add(comboBox);
+        comboBox.setItems("eKP Prod", "eKP QS", "eKP Test1", "eKP Test2");
+     //   comboBox.setHelperText("Auswahl der Umgebung ");
+
 
 
 

@@ -44,12 +44,12 @@ public class MainLayout extends AppLayout {
 
 
         RouterLink listView = new RouterLink ("Info", ListView.class);
-        RouterLink mailboxConfig = new RouterLink ("Postfach Verwaltung", MailboxConfigView.class);
+        RouterLink mailboxConfig = new RouterLink ("Postfach Verwaltung (geplant)", MailboxConfigView.class);
         RouterLink MessageExport = new RouterLink ("Message Exporter", MessageExportView.class);
-        RouterLink elaFavoriten = new RouterLink ("ELA-Upload", ElaFavoritenView.class);
+        RouterLink elaFavoriten = new RouterLink ("ELA-Upload (geplant)", ElaFavoritenView.class);
         RouterLink tableExport = new RouterLink ("Table Export", TableExportView.class);
         RouterLink tableView = new RouterLink ("Table Viewer", TableView.class);
-        RouterLink DashboardView = new RouterLink ("Dashboard", DashboardView.class);
+        RouterLink DashboardView = new RouterLink ("Dashboard (geplant)", DashboardView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
 
         addToDrawer(new VerticalLayout(
@@ -58,8 +58,10 @@ public class MainLayout extends AppLayout {
             //    elaFavoriten,
             //    listView,
                 tableView,
-                MessageExport
-            //    DashboardView
+                MessageExport,
+                elaFavoriten,
+                mailboxConfig,
+                DashboardView
         ));
 
     }

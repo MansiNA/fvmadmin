@@ -2,6 +2,7 @@ package com.example.application.views;
 
 import com.example.application.DownloadLinksArea;
 import com.example.application.UploadArea;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -15,6 +16,7 @@ public class ElaFavoritenView extends VerticalLayout {
 
     public ElaFavoritenView(){
 
+        add(new H2("Upload neuer ELA-Favoriten Excel Datei"));
 
         File uploadFolder = getUploadFolder();
         UploadArea uploadArea = new UploadArea(uploadFolder);
