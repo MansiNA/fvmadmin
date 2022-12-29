@@ -1,8 +1,6 @@
 package com.example.application.views.list;
 
 import com.example.application.data.entity.Configuration;
-import com.example.application.data.entity.Contact;
-import com.example.application.views.ContactForm;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentEventListener;
@@ -17,11 +15,12 @@ import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.shared.Registration;
-import org.apache.poi.ss.formula.functions.T;
 
 public class ConfigForm extends FormLayout {
     private Configuration conf = new Configuration();
     Binder<Configuration> binder = new BeanValidationBinder<>(Configuration.class);
+    TextField land = new TextField("Land");
+    TextField umgebung = new TextField("Umgebung");
     TextField userName = new TextField("Username");
     PasswordField password = new PasswordField("Password");
     TextField db_Url = new TextField("DB-ConnectionString");
@@ -35,6 +34,8 @@ public class ConfigForm extends FormLayout {
        binder.bindInstanceFields(this);
 
         add(
+                land,
+                umgebung,
                 userName,
                 password,
                 db_Url,
