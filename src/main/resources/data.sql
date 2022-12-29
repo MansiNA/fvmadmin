@@ -11,7 +11,7 @@ INSERT INTO "COMPANY" VALUES
 ('2fb669ec-0659-49fb-af9f-e6f71ce8156f', 'AutoZone, Inc.'),
 ('8db2356e-c5a4-461d-b231-6e13d4b48757', 'Linens ''n Things Inc.');   
 INSERT INTO "CONTACT" VALUES
-('51df6789-1b4f-4e32-b075-ef99e86ad9a5', 'eula.lane@jigrormo.ye', 'Eula', 'Lane', '8cf87de5-574d-44ab-bf7f-25dec35cca73', '72b11cec-0080-496a-a3a9-92494007befb'),
+('51df6789-1b4f-4e32-b075-ef99e86ad9a5', 'eula.lane@jigrormo.ye', 'Quaschny', 'Lane', '8cf87de5-574d-44ab-bf7f-25dec35cca73', '72b11cec-0080-496a-a3a9-92494007befb'),
 ('d3bbd40d-8394-4e1c-b516-7d7808a08534', 'barry.rodriquez@zun.mm', 'Barry', 'Rodriquez', 'c58f8dd9-95dc-4d01-836b-4df6b37de527', 'b501cfdc-ea0b-4659-b6d5-0449467a9ca0'),
 ('dd280051-9ec2-450d-992a-c55b33e45afe', 'eugenia.selvi@capfad.vn', 'Eugenia', 'Selvi', '48767ba4-a9a2-4c0b-9ce9-cf0c53e8e45e', 'd6c3fe4e-e7c9-4961-b7fe-9350242992e9'),
 ('6bc84da4-cc04-4289-895f-eb8bf50b45a1', 'alejandro.miles@dec.bn', 'Alejandro', 'Miles', '8db2356e-c5a4-461d-b231-6e13d4b48757', 'd6c3fe4e-e7c9-4961-b7fe-9350242992e9'),

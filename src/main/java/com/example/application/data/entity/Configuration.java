@@ -7,26 +7,26 @@ import javax.validation.constraints.NotEmpty;
 public class Configuration extends AbstractEntity{
 
     public String getLand() {
-        return Land;
+        return land;
     }
 
     public void setLand(String land) {
-        Land = land;
+        land = land;
     }
 
     public String getUmgebung() {
-        return Umgebung;
+        return umgebung;
     }
 
     public void setUmgebung(String umgebung) {
-        Umgebung = umgebung;
+        umgebung = umgebung;
     }
 
     @NotEmpty
-    private String Land="";
+    private String land="";
 
     @NotEmpty
-    private String Umgebung="";
+    private String umgebung="";
     @NotEmpty
     private String userName="";
     @NotEmpty
