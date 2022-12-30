@@ -1,3 +1,10 @@
+insert into  configuration(id, DB_URL, land, password, umgebung, user_name)
+values ('72b11cec-0080-496a-a3a9-92494007befb','meine Url','HH','Geheim', 'Prod', 'Michi');
+
+insert into  configuration(id, DB_URL, land, password, umgebung, user_name)
+values ('72b11cec-0080-496a-a3a9-9249400722fb','meine zweite Url','HH','Geheim', 'QS', 'ekp');
+
+
 INSERT INTO "STATUS" VALUES
 ('72b11cec-0080-496a-a3a9-92494007befb', 'Imported lead'),
 ('5ce3bbc1-6561-4c71-aa33-382692322b40', 'Not contacted'),

@@ -1,6 +1,7 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.Contact;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.views.list.ConfigForm;
 import com.vaadin.flow.component.Component;
@@ -34,7 +35,7 @@ public class ConfigurationView extends VerticalLayout {
         add(getToolbar(), getContent());
 
         updateList();
-
+        closeEditor();
         //    cf = new ConfigForm();
     //    cf.setWidth("25em");
     //    add(new H1("Konfiguration"));
@@ -62,11 +63,11 @@ public class ConfigurationView extends VerticalLayout {
     private void configureGrid() {
         grid.addClassNames("configuration-grid");
         grid.setSizeFull();
-        grid.setColumns("land", "umgebung", "userName", "password","db_Url");
+        grid.setColumns("land", "umgebung", "userName","db_Url");
 
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
 
-
+        grid.asSingleSelect().addValueChangeListener(e->editConfig(e.getValue()));
     }
 
     private void updateList() {
@@ -76,15 +77,24 @@ public class ConfigurationView extends VerticalLayout {
     private void configureForm() {
         cf = new ConfigForm();
         cf.setWidth("25em");
-    }
 
+        cf.addListener(ConfigForm.SaveEvent.class, this::saveConfig);
+     //   cf.addListener(ConfigForm.DeleteEvent.class, this::deleteContact);
+        cf.addListener(ConfigForm.CloseEvent.class, e-> closeEditor());
+
+    }
+    private void saveConfig(ConfigForm.SaveEvent event) {
+        service.saveConfiguration(event.getConfiguration());
+        updateList();
+        closeEditor();
+    }
     private HorizontalLayout getToolbar() {
         filterText.setPlaceholder("Filter by name...");
         filterText.setClearButtonVisible(true);
         filterText.setValueChangeMode(ValueChangeMode.LAZY);
 
         Button addContactButton = new Button("Neu");
-
+        addContactButton.addClickListener((e->addContact()));
         HorizontalLayout toolbar = new HorizontalLayout(filterText, addContactButton);
 
 
@@ -92,7 +102,10 @@ public class ConfigurationView extends VerticalLayout {
         return toolbar;
     }
 
-
+    private void addContact() {
+        grid.asSingleSelect().clear();
+        editConfig(new Configuration());
+    }
     private void closeEditor() {
         cf.setConfiguration(null);
         cf.setVisible(false);
@@ -102,5 +115,13 @@ public class ConfigurationView extends VerticalLayout {
     private void updateView() {
 
     }
-
+    private void editConfig(Configuration conf) {
+        if(conf == null){
+            closeEditor();
+        } else {
+            cf.setConfiguration(conf);
+            cf.setVisible(true);
+            addClassName("editing");
+        }
+    }
 }

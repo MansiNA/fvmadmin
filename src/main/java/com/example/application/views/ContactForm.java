@@ -40,16 +40,12 @@ public class ContactForm extends FormLayout {
         addClassName("contact-form");
         binder.bindInstanceFields(this);
 
-
-
         company.setItems(companies);
         company.setItemLabelGenerator(Company::getName);
         status.setItems(statuses);
         status.setItemLabelGenerator(Status::getName);
 
         add(firstName,
-
-
                 lastName,
                 email,
                 company,
@@ -61,6 +57,7 @@ public class ContactForm extends FormLayout {
         this.contact = contact;
         binder.readBean(contact);
     }
+
     // Events
     public static abstract class ContactFormEvent extends ComponentEvent<ContactForm> {
         private Contact contact;
@@ -100,11 +97,8 @@ public class ContactForm extends FormLayout {
     }
     private HorizontalLayout createButtonsLayout() {
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-
-
         delete.addThemeVariants(ButtonVariant.LUMO_ERROR);
         close.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
         save.addClickShortcut(Key.ENTER);
         close.addClickShortcut(Key.ESCAPE);
 
