@@ -1,10 +1,13 @@
 package com.example.application.views;
 
 import com.example.application.DownloadLinksArea;
+import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.ValueBlob;
+import com.example.application.data.service.ConfigurationService;
 import com.example.application.uils.DateiZippen;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H6;
@@ -63,11 +66,14 @@ public class MessageExportView extends VerticalLayout {
     DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
     public LobHandler lobHandler;
 
+    private  ComboBox<Configuration> comboBox;
     private final Tab live;
     private final Tab archive;
-
+    private ConfigurationService service;
     Integer ret=0;
-    public MessageExportView() {
+    public MessageExportView(ConfigurationService service) {
+
+        this.service=service;
 
         live = new Tab("Prod");
         archive = new Tab("Archive");
@@ -88,6 +94,14 @@ public class MessageExportView extends VerticalLayout {
         textField.setLabel("NachrichtIdIntern:");
         textField.setValue("576757");
         textField.setClearButtonVisible(true);
+
+//        ComboBox<String> comboBox = new ComboBox<>("Verbindung");
+//        comboBox.setAllowCustomValue(true);
+//        comboBox.setItems("Chrome", "Edge", "Firefox", "Safari");
+
+        comboBox = new ComboBox<>("Verbindung");
+        comboBox.setItems(service.findMessageConfigurations());
+        comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
 
 
         Button button = new Button("Start Export");
@@ -117,6 +131,9 @@ public class MessageExportView extends VerticalLayout {
                     //NachrichtID=Integer.getInteger(textField.getValue());
 
                     ret = exportMessage(NachrichtID);
+                    if(ret==1){
+                        System.out.println("Fehlgeschlagen! " );
+                    }
 
 
 
@@ -145,7 +162,7 @@ public class MessageExportView extends VerticalLayout {
 
                     String csvData= "";
 
-                    String InfoFile="c:/tmp/messages/"+ NachrichtID.toString() +"/eKP_Metadata.html";
+                    String InfoFile="c:/tmp/messages/"+ NachrichtID.toString() +"/eKP_ZIP_Protokoll.html";
 
                     Path filePath = Path.of(InfoFile);
 
@@ -173,13 +190,16 @@ public class MessageExportView extends VerticalLayout {
 
         });
 
-        HorizontalLayout buttonLayout = new HorizontalLayout(textField,button, info);
+        HorizontalLayout buttonLayout = new HorizontalLayout(comboBox,textField,button, info);
         buttonLayout.setAlignItems(Alignment.BASELINE);
 
         VerticalLayout vertical = new VerticalLayout();
         vertical.setSpacing(false);
         vertical.setAlignItems(Alignment.START);
         vertical.add(buttonLayout);
+
+
+
         vertical.add(spinner);
 
         vertical.add(linksArea);
@@ -250,9 +270,15 @@ public class MessageExportView extends VerticalLayout {
         String sql = "select a.Name NAME,a.Relativerpfad PFAD,v.Value BVAL from ekp.anhang a inner join ekp.value_blob v on a.INHALT=v.ID  and nachrichtidintern= " + nachrichtid;
 
         DriverManagerDataSource ds = new DriverManagerDataSource();
-        ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
-        ds.setUsername("SYSTEM");
-        ds.setPassword("Michael123");
+        Configuration conf;
+        conf=comboBox.getValue();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(conf.getPassword());
+
+        //ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
+        //ds.setUsername("SYSTEM");
+        //ds.setPassword("Michael123");
 
 
         jdbcTemplate.setDataSource(ds);
@@ -260,9 +286,17 @@ public class MessageExportView extends VerticalLayout {
 
         LobHandler lobHandler = new DefaultLobHandler();
         List<ValueBlob> values = new ArrayList<>();
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+        List<Map<String, Object>> rows=null;
+        try {
+            rows = jdbcTemplate.queryForList(sql);
+        }
+        catch(Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
 
-        if(rows.isEmpty()){
+
+
+        if(rows == null || rows.isEmpty()){
             return 1;
         }
 

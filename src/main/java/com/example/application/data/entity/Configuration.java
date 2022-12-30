@@ -68,4 +68,14 @@ public class Configuration extends AbstractEntity{
     public void setDb_Url(String db_Url) {
         this.db_Url = db_Url;
     }
+
+
+    public String get_Message_Connection()
+    {
+        return  land + " - " + umgebung;
+    }
+    @Override
+    public String toString() {
+        return  land + " - " + umgebung + " - " + userName;
+    }
 }

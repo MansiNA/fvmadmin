@@ -19,6 +19,17 @@ public class ConfigurationService {
    public List<Configuration> findAllConfigurations(){
             return configurationRepository.findAll();
         };
+
+ //   public List<Configuration> findMessageConfigurations(){
+ //       return configurationRepository.findByName();
+ //   };
+
+   public List<Configuration> findMessageConfigurations(){
+        return configurationRepository.findAll();
+    };
+
+
+
     public void saveConfiguration(Configuration config){
 
     if(config == null){
