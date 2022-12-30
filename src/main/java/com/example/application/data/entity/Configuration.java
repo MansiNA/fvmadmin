@@ -21,11 +21,7 @@ public class Configuration extends AbstractEntity{
     public Configuration() {
 
     }
-    public Configuration(String userName, String password, String db_Url) {
-        this.userName = userName;
-        this.password = password;
-        this.db_Url = db_Url;
-    }
+
 
     public String getUserName() {
         return userName;
@@ -51,7 +47,7 @@ public class Configuration extends AbstractEntity{
     }
 
     public void setLand(String land) {
-        land = land;
+        this.land = land;
     }
 
     public String getUmgebung() {
@@ -67,7 +63,7 @@ public class Configuration extends AbstractEntity{
     }
 
     public void setUmgebung(String umgebung) {
-        umgebung = umgebung;
+        this.umgebung = umgebung;
     }
     public void setDb_Url(String db_Url) {
         this.db_Url = db_Url;
