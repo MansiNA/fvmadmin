@@ -48,7 +48,7 @@ public class MainLayout extends AppLayout {
         RouterLink MessageExport = new RouterLink ("Message Exporter", MessageExportView.class);
         RouterLink elaFavoriten = new RouterLink ("ELA-Upload (geplant)", ElaFavoritenView.class);
         RouterLink tableExport = new RouterLink ("Table Export", TableExportView.class);
-        RouterLink quarantaeneView = new RouterLink ("Quarantäne (geplant)", QuarantaeneView.class);
+        RouterLink quarantaeneView = new RouterLink ("Quarantäne Info", QuarantaeneView.class);
         RouterLink tableView = new RouterLink ("Table Viewer", TableView.class);
         RouterLink DashboardView = new RouterLink ("Dashboard (geplant)", DashboardView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
@@ -60,9 +60,9 @@ public class MainLayout extends AppLayout {
             //    listView,
                 tableView,
                 MessageExport,
+                quarantaeneView,
                 elaFavoriten,
                 mailboxConfig,
-                quarantaeneView,
                 DashboardView
         ));
 
