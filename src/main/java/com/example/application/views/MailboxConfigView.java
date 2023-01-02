@@ -12,9 +12,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.data.renderer.ComponentRenderer;
-import com.vaadin.flow.data.renderer.NativeButtonRenderer;
-import com.vaadin.flow.data.renderer.TemplateRenderer;
+import com.vaadin.flow.data.renderer.*;
 import com.vaadin.flow.function.SerializableBiConsumer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -57,18 +55,28 @@ public class MailboxConfigView  extends VerticalLayout {
 
        // grid.setSelectionMode(Grid.SelectionMode.MULTI);
         grid.addColumn(createEmployeeTemplateRenderer()).setHeader("Postfach")
-                .setAutoWidth(true).setFlexGrow(0);
-        grid.addColumn(Mailbox::getKONVERTIERUNGSDIENSTE).setHeader("Konvertierungsdienste")
-                .setAutoWidth(true);
+                .setAutoWidth(true).setResizable(true);
+        grid.addColumn(Mailbox::getKONVERTIERUNGSDIENSTE).setHeader("hat Konvertierungsdienst")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         grid.addColumn(createStatusComponentRenderer()).setHeader("Status")
-                .setAutoWidth(true);
+                .setAutoWidth(true).setResizable(true);
 
         grid.addColumn(
-                new NativeButtonRenderer<>("Enable/Disable",
+                new NativeButtonRenderer<>("Switch",
                         clickedItem -> {
-                            //System.out.println(clickedItem.getLastName());
-                            Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird geändert..." );
 
+                            if (clickedItem.getQUANTIFIER()==0) {
+
+                                //System.out.println(clickedItem.getLastName());
+                                Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird eingeschaltet...");
+                             //   clickedItem.setQUANTIFIER(1);
+                                updateMessageBox(clickedItem,"1");
+                            }
+                            else {
+                                Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird ausgeschaltet...");
+                              //  clickedItem.setQUANTIFIER(0);
+                                updateMessageBox(clickedItem,"0");
+                            }
                            // clickedItem.setIsActive(false);
                            // clickedItem.setLastName("Huhu");
 
@@ -123,6 +131,26 @@ public class MailboxConfigView  extends VerticalLayout {
 
     }
 
+    private void updateMessageBox(Mailbox mb, String i) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        Configuration conf;
+        conf = comboBox.getValue();
+
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(conf.getPassword());
+        try {
+
+            jdbcTemplate.setDataSource(ds);
+
+            jdbcTemplate.execute("update EKP.MAILBOX_CONFIG set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
+
+        } catch (Exception e) {
+        System.out.println("Exception: " + e.getMessage());
+    }
+
+    }
+
     private List<Mailbox> getMailboxes() {
 
         String sql = "select name,court_id,quantifier, user_id,typ,konvertierungsdienste from EKP.MAILBOX_CONFIG";
@@ -165,18 +193,18 @@ public class MailboxConfigView  extends VerticalLayout {
 
     }
 
-    private static TemplateRenderer<Mailbox> createEmployeeTemplateRenderer() {
-        return TemplateRenderer.<Mailbox>of(
+    private static Renderer<Mailbox> createEmployeeTemplateRenderer() {
+        return LitRenderer.<Mailbox>of(
                         "<vaadin-horizontal-layout style=\"align-items: center;\" theme=\"spacing\">"
                                 + "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
-                                + "    <h4> [[item.Name]] </h4>"
+                                + "    <h4> ${item.Name} </h4>"
                                 + "    <span style=\"font-size: var(--lumo-font-size-s); color: var(--lumo-secondary-text-color);\">"
-                                + "      ([[item.User_ID]])" + "    </span>"
+                                + "      (${item.User_ID})" + "    </span>"
                                 + "  </vaadin-vertical-layout>"
                                 + "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
-                                + "    <span> [[item.Court_ID]] </span>"
+                                + "    <span> ${item.Court_ID} </span>"
                                 + "    <span style=\"font-size: var(--lumo-font-size-s); color: var(--lumo-secondary-text-color);\">"
-                                + "      ([[item.Typ]])" + "    </span>"
+                                + "      (${item.Typ})" + "    </span>"
                                 + "  </vaadin-vertical-layout>"
                                 + "</vaadin-horizontal-layout>")
                 .withProperty("Name", Mailbox::getNAME)

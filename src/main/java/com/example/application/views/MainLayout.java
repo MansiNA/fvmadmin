@@ -44,7 +44,7 @@ public class MainLayout extends AppLayout {
 
 
         RouterLink listView = new RouterLink ("Info", ListView.class);
-        RouterLink mailboxConfig = new RouterLink ("Postfach Verwaltung (geplant)", MailboxConfigView.class);
+        RouterLink mailboxConfig = new RouterLink ("Postfach Verwaltung", MailboxConfigView.class);
         RouterLink MessageExport = new RouterLink ("Message Exporter", MessageExportView.class);
         RouterLink elaFavoriten = new RouterLink ("ELA-Upload (geplant)", ElaFavoritenView.class);
         RouterLink tableExport = new RouterLink ("Table Export", TableExportView.class);
@@ -60,9 +60,9 @@ public class MainLayout extends AppLayout {
             //    listView,
                 tableView,
                 MessageExport,
+                mailboxConfig,
                 quarantaeneView,
                 elaFavoriten,
-                mailboxConfig,
                 DashboardView
         ));
 
