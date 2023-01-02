@@ -1,75 +1,78 @@
 package com.example.application.data.service;
 
-import com.example.application.data.entity.Person;
+import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.Mailbox;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-
-import java.util.UUID;
 
 public class DataService {
 
-    private final PersonRepository repository;
-
     @Autowired
-    public DataService(PersonRepository repository) {
-        this.repository = repository;
+    static
+    JdbcTemplate jdbcTemplate;
+    public static List<Mailbox> mygetMailboxes(Configuration conf) {
+
+
+        List<Mailbox> mailboxen = new ArrayList<Mailbox>();
+
+        /*Mailbox p = new Mailbox();
+        p.setCourt_ID("K1101");
+        p.setQuantifier(1);
+        p.setTyp("eVvD");
+        p.setName("Amtsgericht Hamburg");
+        p.setUser_ID("safe-sp1-147676755-90078127");
+        p.setKonvertierungsdienste("1");
+        mailboxen.add(p);
+
+        Mailbox t = new Mailbox();
+        t.setName("Landgericht Bremerhaven");
+
+        t.setCourt_ID("K1221");
+        t.setQuantifier(0);
+        t.setTyp("ZENVG");
+        t.setUser_ID("safe-sp1-1qw3eq3drqw3dr-wef127");
+        t.setKonvertierungsdienste("0");
+        mailboxen.add(t);*/
+
+
+        String sql = "select name,court_id,quantifier, user_id,typ,konvertierungsdienste from EKP.MAILBOX_CONFIG";
+
+        System.out.println("Abfrage EKP.Mailbox_Config");
+
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(conf.getPassword());
+
+        //ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
+        //ds.setUsername("SYSTEM");
+        //ds.setPassword("Michael123");
+
+        try {
+
+            jdbcTemplate.setDataSource(ds);
+
+            mailboxen = jdbcTemplate.query(
+                    sql,
+                    new BeanPropertyRowMapper(Mailbox.class));
+
+
+
+            System.out.println("MAILBOX_CONFIG eingelesen");
+
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+
+        return mailboxen;
     }
 
-    public static List<Person> getPeople() {
-        List<Person> personen = new ArrayList<Person>();
-
-        Person p = new Person();
-        p.setEmail("DE.Justiztest.ajehrfhefr-23sef-2423.2344");
-
-        p.setFirstName("Landgericht Hamburg_Test_2");
-        p.setLastName("K1100");
-        p.setIsActive(false);
-        personen.add(p);
-
-        Person p2 = new Person();
-        p2.setEmail("DE.Justiztest.ehwefrfhefr-23sef-2323.2333");
-
-        p2.setFirstName("Amtsgericht Hamburh_ZENVG_Test2");
-        p2.setLastName("K1010V");
-        p2.setIsActive(true);
-
-        personen.add(p2);
-
-        Person p3 = new Person();
-        p3.setEmail("DE.Justiztest.ehgggrfhefr-23sef-2423.2323");
-
-        p3.setFirstName("Grundbuchamt Hamburg Test_2");
-        p3.setLastName("K1101G");
-        p3.setIsActive(true);
-
-        personen.add(p3);
-
-
-        return personen;
-    }
-
-    public Optional<Person> get(UUID id) {
-        return repository.findById(id);
-    }
-
-    public Person update(Person entity) {
-        return repository.save(entity);
-    }
-
-    public void delete(UUID id) {
-        repository.deleteById(id);
-    }
-
-    public Page<Person> list(Pageable pageable) {
-        return repository.findAll(pageable);
-    }
-
-    public int count() {
-        return (int) repository.count();
-    }
 }
+
+
