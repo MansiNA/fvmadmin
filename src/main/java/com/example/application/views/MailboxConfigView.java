@@ -92,7 +92,8 @@ public class MailboxConfigView  extends VerticalLayout {
         button.addClickListener(clickEvent -> {
 
             UI ui = UI.getCurrent();
-
+            grid.setItems();
+            mailboxen=null;
             // Instruct client side to poll for changes and show spinner
             ui.setPollInterval(500);
             // Start background task
@@ -118,10 +119,14 @@ public class MailboxConfigView  extends VerticalLayout {
 
                     if (ret != 0) {
                         System.out.println("Keine Mailbox Infos gefunden!");
+                        grid.setItems();
 
                         return;
                     }
-                    grid.setItems(mailboxen);
+                    else{
+                        grid.setItems(mailboxen);
+                    }
+
                 });
             });
 
