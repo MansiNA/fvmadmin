@@ -1,6 +1,8 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.Contact;
+import com.example.application.data.entity.Person;
 import com.example.application.data.entity.Quarantine;
 import com.example.application.data.service.ConfigurationService;
 import com.vaadin.flow.component.UI;
@@ -18,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @PageTitle("Quarantäne Verwaltung")
@@ -50,6 +53,20 @@ public class QuarantaeneView extends VerticalLayout {
         qgrid.addColumn(Quarantine::getTag).setHeader("Tag");
         qgrid.addColumn(Quarantine::getExceptionCode).setHeader("Exception Code");
         qgrid.addColumn(Quarantine::getAnzahl).setHeader("Anzahl");
+        qgrid.addColumn(Quarantine::getAnzahlInFH).setHeader("Anzahl in FH");
+      //  qgrid.asSingleSelect().addValueChangeListener(e->showDetails(e.getValue()));
+
+
+        qgrid.addSelectionListener(selection -> {
+            Optional<Quarantine> optionalPerson = selection.getFirstSelectedItem();
+            if (optionalPerson.isPresent()) {
+                 System.out.printf("Selected Row: %s%n",
+                 optionalPerson.get().getExceptionCode());
+            }
+        });
+
+
+
 
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox,button);
@@ -100,8 +117,19 @@ public class QuarantaeneView extends VerticalLayout {
 
     }
 
+    private void showDetails(Quarantine quarantine) {
+        if(quarantine == null){
+          //  closeEditor();
+        } else {
+            System.out.println("Zeige Details von" + quarantine.getExceptionCode());
+          //  form.setContact(contact);
+          //  form.setVisible(true);
+            addClassName("editing");
+        }
+    }
+
     private List<Quarantine> getQuarantaene() {
-        String sql = "select substr(stacktrace,1,16) as Tag, EXCEPTIONCODE, count(*) as Anzahl from QUARANTINE a where to_date(substr(stacktrace,1,10),'YYYY-MM_DD') > sysdate-30  group by substr(stacktrace,1,16), EXCEPTIONCODE order by 1 desc";
+        String sql = "select substr(stacktrace,1,16) as Tag, EXCEPTIONCODE, count(*) as Anzahl, 4 as AnzahlInFH from QUARANTINE a where to_date(substr(stacktrace,1,10),'YYYY-MM_DD') > sysdate-30  group by substr(stacktrace,1,16), EXCEPTIONCODE order by 1 desc";
 //  String sql = "select substr(stacktrace,1,10) as Tag, EXCEPTIONCODE, count(*) as Anzahl from EGVP.QUARANTINE@EGVP a where to_date(substr(stacktrace,1,10),'YYYY-MM_DD') > sysdate-30  group by substr(stacktrace,1,10), EXCEPTIONCODE order by 1 desc";
 
         System.out.println("Abfrage EGVP-Quarantäne");

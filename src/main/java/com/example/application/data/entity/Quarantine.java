@@ -6,7 +6,9 @@ public class Quarantine {
     private String ExceptionCode;
     private Integer Anzahl;
 
-    public Quarantine(String tag, String exceptioncode, int anzahl) {
+    private Integer AnzahlInFH;
+
+    public Quarantine(String tag, String exceptioncode, int anzahl, Integer AnzahlInFH) {
     }
 
     public Quarantine() {
@@ -34,5 +36,11 @@ public class Quarantine {
 
     public void setAnzahl(Integer anzahl) {
         Anzahl = anzahl;
+    }
+
+    public Integer getAnzahlInFH(){ return AnzahlInFH;}
+
+    public void setAnzahlInFH(Integer anzahl) {
+        AnzahlInFH = anzahl;
     }
 }

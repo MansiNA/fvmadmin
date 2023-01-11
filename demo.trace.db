@@ -793,3 +793,7 @@ Database is already closed (to disable automatic closing at VM shutdown, add ";D
 	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
 	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
 	at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:49)
+2023-01-11 21:12:11 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabelle "COMPANY" nicht gefunden
+Table "COMPANY" not found; SQL statement:
+select company0_.id as id1_0_, company0_.name as name2_0_ from company company0_ [42102-214]
