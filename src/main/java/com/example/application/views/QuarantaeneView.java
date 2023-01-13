@@ -1,8 +1,6 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
-import com.example.application.data.entity.Contact;
-import com.example.application.data.entity.Person;
 import com.example.application.data.entity.Quarantine;
 import com.example.application.data.service.ConfigurationService;
 import com.vaadin.flow.component.UI;
@@ -20,7 +18,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @PageTitle("Quarantäne Verwaltung")
@@ -53,20 +50,6 @@ public class QuarantaeneView extends VerticalLayout {
         qgrid.addColumn(Quarantine::getTag).setHeader("Tag");
         qgrid.addColumn(Quarantine::getExceptionCode).setHeader("Exception Code");
         qgrid.addColumn(Quarantine::getAnzahl).setHeader("Anzahl");
-        qgrid.addColumn(Quarantine::getAnzahlInFH).setHeader("Anzahl in FH");
-      //  qgrid.asSingleSelect().addValueChangeListener(e->showDetails(e.getValue()));
-
-
-        qgrid.addSelectionListener(selection -> {
-            Optional<Quarantine> optionalPerson = selection.getFirstSelectedItem();
-            if (optionalPerson.isPresent()) {
-                 System.out.printf("Selected Row: %s%n",
-                 optionalPerson.get().getExceptionCode());
-            }
-        });
-
-
-
 
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox,button);
@@ -115,17 +98,6 @@ public class QuarantaeneView extends VerticalLayout {
         });
 
 
-    }
-
-    private void showDetails(Quarantine quarantine) {
-        if(quarantine == null){
-          //  closeEditor();
-        } else {
-            System.out.println("Zeige Details von" + quarantine.getExceptionCode());
-          //  form.setContact(contact);
-          //  form.setVisible(true);
-            addClassName("editing");
-        }
     }
 
     private List<Quarantine> getQuarantaene() {
