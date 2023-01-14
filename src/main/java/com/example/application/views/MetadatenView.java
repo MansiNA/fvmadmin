@@ -42,7 +42,7 @@ public class MetadatenView extends VerticalLayout {
     private ComboBox<Configuration> comboBox;
     Grid<Metadaten> grid = new Grid<>(Metadaten.class, false);
     //Grid<Ablaufdaten> gridAblaufdaten = new Grid<>(Ablaufdaten.class, false);
-    Grid<Ablaufdaten> gridAblaufdaten = new Grid<>(Ablaufdaten.class);
+    Grid<Ablaufdaten> gridAblaufdaten = new Grid<>(Ablaufdaten.class, false);
 
     TextField filterText = new TextField();
     Integer ret = 0;
@@ -55,7 +55,7 @@ public class MetadatenView extends VerticalLayout {
 
         this.service = service;
 
-        add(new H3("Die Tabelle Metadaten"));
+        add(new H3("Metadaten Viewer"));
 
         comboBox = new ComboBox<>("Verbindung");
         comboBox.setItems(service.findMessageConfigurations());
@@ -72,12 +72,21 @@ public class MetadatenView extends VerticalLayout {
         addClassName("list-view");
       //  setSizeFull();
 
+        gridAblaufdaten.addColumn(Ablaufdaten::getNAME_NLS).setHeader("NAME_NLS").setSortable(true).setResizable(true);
+        gridAblaufdaten.addColumn(Ablaufdaten::getNAME).setHeader("NAME").setSortable(true).setResizable(true);
+        gridAblaufdaten.addColumn(Ablaufdaten::getTYP).setHeader("TYP").setSortable(true).setResizable(true);
+        gridAblaufdaten.addColumn(Ablaufdaten::getSTART_DATUM).setHeader("Start").setSortable(true).setResizable(true);
+        gridAblaufdaten.addColumn(Ablaufdaten::getENDE_DATUM).setHeader("Ende").setSortable(true).setResizable(true);
+        gridAblaufdaten.addColumn(Ablaufdaten::getTIMESTAMPVERSION).setHeader("Timestamp").setSortable(true).setResizable(true);
+        gridAblaufdaten.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+        gridAblaufdaten.addThemeVariants(GridVariant.LUMO_COMPACT);
+
         grid.addColumn(Metadaten::getNACHRICHTIDEXTERN).setHeader("NachrichtID-Extern")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         grid.addColumn(Metadaten::getEINGANGSDATUMSERVER).setHeader("Eingangsdatum")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         grid.addColumn(Metadaten::getVERARBEITET).setHeader("Verarbeitet")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
 
        // grid.setItemDetailsRenderer(createPersonDetailsRenderer());
        // grid.addItemDoubleClickListener(e->showAblaufdaten(e));
@@ -96,19 +105,17 @@ public class MetadatenView extends VerticalLayout {
                                                     System.out.println("Suche nach: " + searchField.getValue());
                                                    // metadaten=getMailboxes(searchField.getValue());
                                                    // grid.setItems(metadaten);
-                                                    dataView.refreshAll();
+                                                    try{
+                                                        dataView.setFilter((item -> item.getNACHRICHTIDEXTERN().toLowerCase().contains(e.getValue().toLowerCase())));
+                                                        //dataView.refreshAll();
+                                                    }
+                                                    catch (Exception exception) {
+                                                        System.out.println("Keine Eintrag gefunden..." + exception.getMessage());
+                                                    }
+
                                                 });
 
-        dataView.addFilter(metadaten -> {
-            String searchTerm = searchField.getValue().trim();
 
-            if (searchTerm.isEmpty())
-                return true;
-
-            boolean matchesFullName = matchesTerm(metadaten.getNACHRICHTIDEXTERN(), searchTerm);
-            boolean matchesEmail = matchesTerm(metadaten.getNACHRICHTIDINTERN().toString(), searchTerm);
-            return matchesFullName || matchesEmail;
-        });
 
         VerticalLayout layout = new VerticalLayout(searchField, grid);
         layout.setPadding(false);
@@ -120,7 +127,8 @@ public class MetadatenView extends VerticalLayout {
         button.addClickListener(clickEvent -> {
 
             UI ui = UI.getCurrent();
-            grid.setItems();
+            dataView = grid.setItems();
+            dataView.refreshAll();
             metadaten=null;
             // Instruct client side to poll for changes and show spinner
             ui.setPollInterval(500);
@@ -148,12 +156,13 @@ public class MetadatenView extends VerticalLayout {
 
                     if (ret != 0) {
                         System.out.println("Keine Mailbox Infos gefunden!");
-                        grid.setItems();
+                        dataView = grid.setItems();
+                        dataView.refreshAll();
 
                         return;
                     }
                     else{
-                        grid.setItems(metadaten);
+                        //grid.setItems(metadaten);
                         dataView =grid.setItems(metadaten);
                         dataView.refreshAll();
                     }
@@ -170,6 +179,7 @@ public class MetadatenView extends VerticalLayout {
    private void showAblaufdaten(ItemClickEvent<Metadaten> e) {
 
         System.out.println(("Aktualisiere Ablaufdaten Grid für NachrichtidIntern: " +  e.getItem().getNACHRICHTIDINTERN()));
+        gridAblaufdaten.setItems();
         gridAblaufdaten.setItems(getAblaufdaten(e.getItem().getNACHRICHTIDINTERN().toString()));
     }
 
@@ -228,7 +238,52 @@ public class MetadatenView extends VerticalLayout {
 
     private List<Metadaten> getMailboxes() {
 
-        String sql = "select * from EKP.Metadaten";
+        String sql = "select TIMESTAMPVERSION,\n" +
+                "       SENDERROLLEN,\n" +
+                "       ID,\n" +
+                "       nvl(to_char(EINGANGSDATUMSERVER,'dd.MM.YYYY HH24:MI'),'unbekannt') as EINGANGSDATUMSERVER,\n" +
+                "       NACHRICHTIDINTERN,\n" +
+                "       NACHRICHTIDEXTERN,\n" +
+                "       STATUS,\n" +
+                "       NACHRICHTTYP,\n" +
+                "       TRANSPORTART,\n" +
+                "       TRANSPORTVERSION,\n" +
+                "       ART,\n" +
+                "       SENDER,\n" +
+                "       SENDERAKTENZEICHEN,\n" +
+                "       SENDERGOVELLOID,\n" +
+                "       SENDERPOSTFACHNAME,\n" +
+                "       SENDERGESCHAEFTSZEICHEN,\n" +
+                "       EMPFAENGER,\n" +
+                "       EMPFAENGERAKTENZEICHEN,\n" +
+                "       EMPFAENGERGOVELLOID,\n" +
+                "       EMPFAENGERPOSTFACHNAME,\n" +
+                "       WEITERLEITUNGGOVELLOID,\n" +
+                "       WEITERLEITUNGPOSTFACHNAME,\n" +
+                "       BETREFF,\n" +
+                "       BEMERKUNG,\n" +
+                "       ERSTELLUNGSDATUM,\n" +
+                "       ABHOLDATUM,\n" +
+                "       VERFALLSDATUM,\n" +
+                "       SIGNATURPRUEFUNGSDATUM,\n" +
+                "       VALIDIERUNGSDATUM,\n" +
+                "       SIGNATURSTATUS,\n" +
+                "       FACHVERFAHREN,\n" +
+                "       FACHBEREICH,\n" +
+                "       SACHGEBIET,\n" +
+                "       ABTEILUNGE1,\n" +
+                "       ABTEILUNGE2,\n" +
+                "       PRIO,\n" +
+                "       XJUSTIZVERSION,\n" +
+                "       MANUELLBEARBEITETFLAG,\n" +
+                "       BEARBEITERNAME,\n" +
+                "       BEARBEITERKENNUNG,\n" +
+                "       FEHLERTAG,\n" +
+                "       PAPIERVORGANG,\n" +
+                "       VERARBEITET,\n" +
+                "       LOESCHTAG\n" +
+                "from EKP.Metadaten \n " +
+                "where nachrichtidextern is not null and (eingangsdatumserver is null or eingangsdatumserver > sysdate -1)";
 
         System.out.println("Abfrage EKP.Metadaten (MetadatenView.java)");
 
