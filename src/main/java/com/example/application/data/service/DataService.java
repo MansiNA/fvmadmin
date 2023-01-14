@@ -40,9 +40,9 @@ public class DataService {
         mailboxen.add(t);*/
 
 
-        String sql = "select name,court_id,quantifier, user_id,typ,konvertierungsdienste from EKP.MAILBOX_CONFIG";
+        String sql = "select name1,court_id,quantifier, user_id,typ,konvertierungsdienste from EKP.MAILBOX_CONFIG";
 
-        System.out.println("Abfrage EKP.Mailbox_Config");
+        System.out.println("Info: Abfrage EKP.Mailbox_Config");
 
         DriverManagerDataSource ds = new DriverManagerDataSource();
 

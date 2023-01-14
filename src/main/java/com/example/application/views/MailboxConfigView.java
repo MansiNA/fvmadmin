@@ -49,7 +49,7 @@ public class MailboxConfigView  extends VerticalLayout {
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox,button);
         hl.setAlignItems(FlexComponent.Alignment.BASELINE);
-
+        setSizeFull();
         add(hl);
 
 
@@ -160,7 +160,7 @@ public class MailboxConfigView  extends VerticalLayout {
 
         String sql = "select name,court_id,quantifier, user_id,typ,konvertierungsdienste from EKP.MAILBOX_CONFIG";
 
-        System.out.println("Abfrage EKP.Mailbox_Config");
+        System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
 
         DriverManagerDataSource ds = new DriverManagerDataSource();
         Configuration conf;
