@@ -9,6 +9,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.LitRenderer;
@@ -35,7 +36,6 @@ public class QuarantaeneView extends VerticalLayout {
 
     Button button = new Button("Refresh");
     Integer ret = 0;
-    Integer Anzahl = 0;
     Grid<Quarantine> qgrid = new Grid<>(Quarantine.class, false);
 
     List<Quarantine> lq = new ArrayList<>();
@@ -52,7 +52,7 @@ public class QuarantaeneView extends VerticalLayout {
 
         comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
 
-        qgrid.addColumn(createNachrichtIDRenderer()).setHeader("Nachricht-ID").setAutoWidth(true).setSortable(true).setResizable(true).setComparator(Quarantine::getID).setFooter(String.format("%s gesamt",Anzahl));
+        qgrid.addColumn(createNachrichtIDRenderer()).setKey("ID").setHeader("Nachricht-ID").setAutoWidth(true).setSortable(true).setResizable(true).setComparator(Quarantine::getID).setFooter("Anzahl Einträge: 0");
         qgrid.addColumn(Quarantine::getEXCEPTIONCODE).setHeader("Exception-Code").setAutoWidth(true).setResizable(true).setSortable(true);
         qgrid.addColumn(createDateRenderer()).setHeader("Date").setAutoWidth(true).setSortable(true).setResizable(true).setComparator(Quarantine::getENTRANCEDATE);
 
@@ -76,7 +76,7 @@ public class QuarantaeneView extends VerticalLayout {
       //  qgrid.addColumn(Quarantine::getLOESCHTAG).setHeader("Löschtag").setAutoWidth(true).setResizable(true).setSortable(true);
 
         qgrid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
-
+        qgrid.setColumnReorderingAllowed(true);
 
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox,button);
@@ -86,6 +86,9 @@ public class QuarantaeneView extends VerticalLayout {
         add(hl, qgrid);
 
         button.addClickListener(clickEvent -> {
+
+            Notification.show("hole Daten...");
+            qgrid.setItems();
 
             UI ui = UI.getCurrent();
 
@@ -118,7 +121,9 @@ public class QuarantaeneView extends VerticalLayout {
                         return;
                     }
                     qgrid.setItems(lq);
-                    Anzahl = lq.size();
+
+                    refreshGrid();
+
                 });
             });
 
@@ -175,6 +180,25 @@ public class QuarantaeneView extends VerticalLayout {
                 )
                 .withProperty("SenderName", Quarantine::getSENDERNAME)
                 .withProperty("SenderID", Quarantine::getSENDERID);
+    }
+
+    private void refreshGrid(){
+        Notification.show("Daten wurden aktualisiert");
+
+
+
+        Integer anz_MessageIncomplete = 0;
+
+        for ( Quarantine item: lq){
+            if (item.getEXCEPTIONCODE().contains("erger")){
+                anz_MessageIncomplete++;
+            }
+        }
+
+        qgrid.getFooterRows().get(0).getCell(qgrid.getColumnByKey("ID")).setText(String.format("Anzahl Einträge: %s", lq.size() ) + "Anzahl Incomplete: " + anz_MessageIncomplete);
+
+//        qgrid.getDataProvider().refreshAll();
+
     }
 
     private List<Quarantine> getQuarantaene() {
