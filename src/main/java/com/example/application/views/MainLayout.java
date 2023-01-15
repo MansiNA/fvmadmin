@@ -52,7 +52,7 @@ public class MainLayout extends AppLayout {
         RouterLink metadatenView = new RouterLink ("METADATEN", MetadatenView.class);
         RouterLink tableView = new RouterLink ("Table Viewer", TableView.class);
         RouterLink DashboardView = new RouterLink ("Dashboard (geplant)", DashboardView.class);
-        RouterLink fileBrowserView = new RouterLink ("FileBrowser", FileBrowserView.class);
+        RouterLink fileBrowserView = new RouterLink ("LogFileBrowser (geplant)", FileBrowserView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
 
         addToDrawer(new VerticalLayout(

@@ -2,7 +2,9 @@ package com.example.application.data.entity;
 
 public class Quarantine {
 
-    private Integer ID;
+    private String ID;
+
+    private Integer NACHRICHTIDINTERN;
 
     private String ENTRANCEDATE;
 
@@ -30,7 +32,7 @@ public class Quarantine {
     public Quarantine() {
     }
 
-    public Quarantine(Integer ID, String ENTRANCEDATE, String CREATIONDATE, String POBOX, String EXCEPTIONCODE, String RECEIVERID, String RECEIVERNAME, String SENDERID, String SENDERNAME, String ART, String FEHLERTAG, String VERARBEITET, String LOESCHTAG) {
+    public Quarantine(String ID, String ENTRANCEDATE, String CREATIONDATE, String POBOX, String EXCEPTIONCODE, String RECEIVERID, String RECEIVERNAME, String SENDERID, String SENDERNAME, String ART, String FEHLERTAG, String VERARBEITET, String LOESCHTAG) {
         this.ID = ID;
         this.ENTRANCEDATE = ENTRANCEDATE;
         this.CREATIONDATE = CREATIONDATE;
@@ -46,12 +48,20 @@ public class Quarantine {
         this.LOESCHTAG = LOESCHTAG;
     }
 
-    public Integer getID() {
+    public String getID() {
         return ID;
     }
 
-    public void setID(Integer ID) {
+    public void setID(String ID) {
         this.ID = ID;
+    }
+
+    public Integer getNACHRICHTIDINTERN() {
+        return NACHRICHTIDINTERN;
+    }
+
+    public void setNACHRICHTIDINTERN(Integer NACHRICHTIDINTERN) {
+        this.NACHRICHTIDINTERN = NACHRICHTIDINTERN;
     }
 
     public String getENTRANCEDATE() {

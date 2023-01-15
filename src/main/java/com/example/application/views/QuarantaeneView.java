@@ -7,9 +7,12 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.data.renderer.LitRenderer;
+import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,24 +50,36 @@ public class QuarantaeneView extends VerticalLayout {
 
         comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
 
-        qgrid.addColumn(Quarantine::getID).setHeader("Nachricht Extern-ID");
-        qgrid.addColumn(Quarantine::getENTRANCEDATE).setHeader("Entrance-Date");
-        qgrid.addColumn(Quarantine::getCREATIONDATE).setHeader("Creation-Date");
-        qgrid.addColumn(Quarantine::getPOBOX).setHeader("POSTBOX");
-        qgrid.addColumn(Quarantine::getEXCEPTIONCODE).setHeader("Exception-Code");
-        qgrid.addColumn(Quarantine::getRECEIVERID).setHeader("Receiver-ID");
-        qgrid.addColumn(Quarantine::getRECEIVERNAME).setHeader("Receiver-Name");
-        qgrid.addColumn(Quarantine::getSENDERID).setHeader("Sender-ID");
-        qgrid.addColumn(Quarantine::getSENDERNAME).setHeader("Sender-Name");
-        qgrid.addColumn(Quarantine::getART).setHeader("ART");
-        qgrid.addColumn(Quarantine::getFEHLERTAG).setHeader("Fehlertag");
-        qgrid.addColumn(Quarantine::getVERARBEITET).setHeader("Verarbeitet");
-        qgrid.addColumn(Quarantine::getLOESCHTAG).setHeader("Löschtag");
+        qgrid.addColumn(createNachrichtIDRenderer()).setHeader("Nachricht-ID").setAutoWidth(true).setSortable(true).setResizable(true);
+        qgrid.addColumn(Quarantine::getEXCEPTIONCODE).setHeader("Exception-Code").setAutoWidth(true).setResizable(true).setSortable(true);
+        qgrid.addColumn(createDateRenderer()).setHeader("Date").setAutoWidth(true).setSortable(true).setResizable(true);
+
+//        qgrid.addColumn(Quarantine::getID).setHeader("Nachricht Extern-ID").setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+//        qgrid.addColumn(Quarantine::getNACHRICHTIDINTERN).setHeader("Nachricht-ID Intern").setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+
+//        qgrid.addColumn(Quarantine::getENTRANCEDATE).setHeader("Entrance-Date").setAutoWidth(true).setResizable(true).setSortable(true);
+//        qgrid.addColumn(Quarantine::getCREATIONDATE).setHeader("Creation-Date").setAutoWidth(true).setResizable(true).setSortable(true);
+        qgrid.addColumn(Quarantine::getPOBOX).setHeader("POSTBOX").setAutoWidth(true).setResizable(true).setSortable(true);
+
+        qgrid.addColumn(createReceiverRenderer()).setHeader("Receiver").setAutoWidth(true).setSortable(true).setResizable(true);
+        qgrid.addColumn(createSenderRenderer()).setHeader("Sender").setAutoWidth(true).setSortable(true).setResizable(true);
+
+        //qgrid.addColumn(Quarantine::getRECEIVERID).setHeader("Receiver-ID").setAutoWidth(true).setResizable(true).setSortable(true);
+        //qgrid.addColumn(Quarantine::getRECEIVERNAME).setHeader("Receiver-Name").setAutoWidth(true).setResizable(true).setSortable(true);
+        //qgrid.addColumn(Quarantine::getSENDERID).setHeader("Sender-ID").setAutoWidth(true).setResizable(true).setSortable(true);
+        //qgrid.addColumn(Quarantine::getSENDERNAME).setHeader("Sender-Name").setAutoWidth(true).setResizable(true).setSortable(true);
+     //   qgrid.addColumn(Quarantine::getART).setHeader("ART").setAutoWidth(true).setResizable(true).setSortable(true);
+        qgrid.addColumn(Quarantine::getFEHLERTAG).setHeader("Im FH").setAutoWidth(true).setResizable(true).setSortable(true);
+      //  qgrid.addColumn(Quarantine::getVERARBEITET).setHeader("Verarbeitet").setAutoWidth(true).setResizable(true).setSortable(true);
+      //  qgrid.addColumn(Quarantine::getLOESCHTAG).setHeader("Löschtag").setAutoWidth(true).setResizable(true).setSortable(true);
+
+        qgrid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+
 
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox,button);
         hl.setAlignItems(Alignment.BASELINE);
-
+        setSizeFull();
       //  add(comboBox, button, paragraph, qgrid);
         add(hl, qgrid);
 
@@ -108,6 +123,55 @@ public class QuarantaeneView extends VerticalLayout {
         });
 
 
+    }
+
+    private static Renderer<Quarantine> createNachrichtIDRenderer() {
+        return LitRenderer.<Quarantine> of(
+                   "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
+                                + "    <span> ${item.NachrichtIDExtern} </span>"
+                                + "    <span style=\"font-size: var(--lumo-font-size-s); color: var(--lumo-secondary-text-color);\">"
+                                + "      ${item.NachrichtIDIntern}" + "    </span>"
+                                + "  </vaadin-vertical-layout>"
+                                )
+                .withProperty("NachrichtIDIntern", Quarantine::getNACHRICHTIDINTERN)
+                .withProperty("NachrichtIDExtern", Quarantine::getID);
+    }
+
+
+    private static Renderer<Quarantine> createDateRenderer() {
+        return LitRenderer.<Quarantine> of(
+                        "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
+                                + "    <span> ${item.EntranceDate} </span>"
+                                + "    <span style=\"font-size: var(--lumo-font-size-s); color: var(--lumo-secondary-text-color);\">"
+                                + "      ${item.CreationDate}" + "    </span>"
+                                + "  </vaadin-vertical-layout>"
+                )
+                .withProperty("EntranceDate", Quarantine::getENTRANCEDATE)
+                .withProperty("CreationDate", Quarantine::getCREATIONDATE);
+    }
+
+    private static Renderer<Quarantine> createReceiverRenderer() {
+        return LitRenderer.<Quarantine> of(
+                        "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
+                                + "    <span> ${item.ReceiverName} </span>"
+                                + "    <span style=\"font-size: var(--lumo-font-size-s); color: var(--lumo-secondary-text-color);\">"
+                                + "      ${item.ReceiverID}" + "    </span>"
+                                + "  </vaadin-vertical-layout>"
+                )
+                .withProperty("ReceiverName", Quarantine::getRECEIVERNAME)
+                .withProperty("ReceiverID", Quarantine::getRECEIVERID);
+    }
+
+    private static Renderer<Quarantine> createSenderRenderer() {
+        return LitRenderer.<Quarantine> of(
+                        "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
+                                + "    <span> ${item.SenderName} </span>"
+                                + "    <span style=\"font-size: var(--lumo-font-size-s); color: var(--lumo-secondary-text-color);\">"
+                                + "      ${item.SenderID}" + "    </span>"
+                                + "  </vaadin-vertical-layout>"
+                )
+                .withProperty("SenderName", Quarantine::getSENDERNAME)
+                .withProperty("SenderID", Quarantine::getSENDERID);
     }
 
     private List<Quarantine> getQuarantaene() {
