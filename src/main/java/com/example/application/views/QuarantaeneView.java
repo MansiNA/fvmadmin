@@ -20,6 +20,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -34,9 +35,10 @@ public class QuarantaeneView extends VerticalLayout {
 
     Button button = new Button("Refresh");
     Integer ret = 0;
+    Integer Anzahl = 0;
     Grid<Quarantine> qgrid = new Grid<>(Quarantine.class, false);
 
-    List<Quarantine> lq;
+    List<Quarantine> lq = new ArrayList<>();
 
     public QuarantaeneView(ConfigurationService service) {
         this.service = service;
@@ -50,9 +52,9 @@ public class QuarantaeneView extends VerticalLayout {
 
         comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
 
-        qgrid.addColumn(createNachrichtIDRenderer()).setHeader("Nachricht-ID").setAutoWidth(true).setSortable(true).setResizable(true);
+        qgrid.addColumn(createNachrichtIDRenderer()).setHeader("Nachricht-ID").setAutoWidth(true).setSortable(true).setResizable(true).setComparator(Quarantine::getID).setFooter(String.format("%s gesamt",Anzahl));
         qgrid.addColumn(Quarantine::getEXCEPTIONCODE).setHeader("Exception-Code").setAutoWidth(true).setResizable(true).setSortable(true);
-        qgrid.addColumn(createDateRenderer()).setHeader("Date").setAutoWidth(true).setSortable(true).setResizable(true);
+        qgrid.addColumn(createDateRenderer()).setHeader("Date").setAutoWidth(true).setSortable(true).setResizable(true).setComparator(Quarantine::getENTRANCEDATE);
 
 //        qgrid.addColumn(Quarantine::getID).setHeader("Nachricht Extern-ID").setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
 //        qgrid.addColumn(Quarantine::getNACHRICHTIDINTERN).setHeader("Nachricht-ID Intern").setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
@@ -116,6 +118,7 @@ public class QuarantaeneView extends VerticalLayout {
                         return;
                     }
                     qgrid.setItems(lq);
+                    Anzahl = lq.size();
                 });
             });
 
