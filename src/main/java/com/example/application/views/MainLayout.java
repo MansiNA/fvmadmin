@@ -1,6 +1,6 @@
 package com.example.application.views;
 
-import com.example.application.uils.OSInfoUtil;
+import com.example.application.utils.OSInfoUtil;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.html.H1;

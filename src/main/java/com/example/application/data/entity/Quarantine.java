@@ -2,45 +2,151 @@ package com.example.application.data.entity;
 
 public class Quarantine {
 
-    private String Tag;
-    private String ExceptionCode;
-    private Integer Anzahl;
+    private Integer ID;
 
-    private Integer AnzahlInFH;
+    private String ENTRANCEDATE;
 
-    public Quarantine(String tag, String exceptioncode, int anzahl, Integer AnzahlInFH) {
-    }
+    private String CREATIONDATE;
+
+    private String POBOX;
+
+    private String EXCEPTIONCODE;
+    private String RECEIVERID;
+
+    private String RECEIVERNAME;
+
+    private String SENDERID;
+
+    private String SENDERNAME;
+
+    private String ART;
+
+    private String FEHLERTAG;
+
+    private String VERARBEITET;
+
+    private String LOESCHTAG;
 
     public Quarantine() {
     }
 
-    public String getTag() {
-        return Tag;
+    public Quarantine(Integer ID, String ENTRANCEDATE, String CREATIONDATE, String POBOX, String EXCEPTIONCODE, String RECEIVERID, String RECEIVERNAME, String SENDERID, String SENDERNAME, String ART, String FEHLERTAG, String VERARBEITET, String LOESCHTAG) {
+        this.ID = ID;
+        this.ENTRANCEDATE = ENTRANCEDATE;
+        this.CREATIONDATE = CREATIONDATE;
+        this.POBOX = POBOX;
+        this.EXCEPTIONCODE = EXCEPTIONCODE;
+        this.RECEIVERID = RECEIVERID;
+        this.RECEIVERNAME = RECEIVERNAME;
+        this.SENDERID = SENDERID;
+        this.SENDERNAME = SENDERNAME;
+        this.ART = ART;
+        this.FEHLERTAG = FEHLERTAG;
+        this.VERARBEITET = VERARBEITET;
+        this.LOESCHTAG = LOESCHTAG;
     }
 
-    public void setTag(String tag) {
-        Tag = tag;
+    public Integer getID() {
+        return ID;
     }
 
-    public String getExceptionCode() {
-        return ExceptionCode;
+    public void setID(Integer ID) {
+        this.ID = ID;
     }
 
-    public void setExceptionCode(String exceptionCode) {
-        ExceptionCode = exceptionCode;
+    public String getENTRANCEDATE() {
+        return ENTRANCEDATE;
     }
 
-    public Integer getAnzahl() {
-        return Anzahl;
+    public void setENTRANCEDATE(String ENTRANCEDATE) {
+        this.ENTRANCEDATE = ENTRANCEDATE;
     }
 
-    public void setAnzahl(Integer anzahl) {
-        Anzahl = anzahl;
+    public String getCREATIONDATE() {
+        return CREATIONDATE;
     }
 
-    public Integer getAnzahlInFH(){ return AnzahlInFH;}
+    public void setCREATIONDATE(String CREATIONDATE) {
+        this.CREATIONDATE = CREATIONDATE;
+    }
 
-    public void setAnzahlInFH(Integer anzahl) {
-        AnzahlInFH = anzahl;
+    public String getPOBOX() {
+        return POBOX;
+    }
+
+    public void setPOBOX(String POBOX) {
+        this.POBOX = POBOX;
+    }
+
+    public String getEXCEPTIONCODE() {
+        return EXCEPTIONCODE;
+    }
+
+    public void setEXCEPTIONCODE(String EXCEPTIONCODE) {
+        this.EXCEPTIONCODE = EXCEPTIONCODE;
+    }
+
+    public String getRECEIVERID() {
+        return RECEIVERID;
+    }
+
+    public void setRECEIVERID(String RECEIVERID) {
+        this.RECEIVERID = RECEIVERID;
+    }
+
+    public String getRECEIVERNAME() {
+        return RECEIVERNAME;
+    }
+
+    public void setRECEIVERNAME(String RECEIVERNAME) {
+        this.RECEIVERNAME = RECEIVERNAME;
+    }
+
+    public String getSENDERID() {
+        return SENDERID;
+    }
+
+    public void setSENDERID(String SENDERID) {
+        this.SENDERID = SENDERID;
+    }
+
+    public String getSENDERNAME() {
+        return SENDERNAME;
+    }
+
+    public void setSENDERNAME(String SENDERNAME) {
+        this.SENDERNAME = SENDERNAME;
+    }
+
+    public String getART() {
+        return ART;
+    }
+
+    public void setART(String ART) {
+        this.ART = ART;
+    }
+
+    public String getFEHLERTAG() {
+        return FEHLERTAG;
+    }
+
+    public void setFEHLERTAG(String FEHLERTAG) {
+        this.FEHLERTAG = FEHLERTAG;
+    }
+
+    public String getVERARBEITET() {
+        return VERARBEITET;
+    }
+
+    public void setVERARBEITET(String VERARBEITET) {
+        this.VERARBEITET = VERARBEITET;
+    }
+
+    public String getLOESCHTAG() {
+        return LOESCHTAG;
+    }
+
+    public void setLOESCHTAG(String LOESCHTAG) {
+        this.LOESCHTAG = LOESCHTAG;
     }
 }

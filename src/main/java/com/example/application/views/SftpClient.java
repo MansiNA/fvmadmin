@@ -1,7 +1,6 @@
 package com.example.application.views;
 import com.jcraft.jsch.*;
-
-
+import com.example.application.utils.Util;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -90,12 +89,11 @@ public final class SftpClient {
             var name        = file.getFilename();
             var attrs       = file.getAttrs();
             var permissions = attrs.getPermissionsString();
-        //    var size        = Util.humanReadableByteCount(attrs.getSize());
-        //    if (attrs.isDir()) {
-        //        size = "PRE";
-        //    }
-        //    System.out.printf("[%s] %s(%s)%n", permissions, name, size);
-            System.out.printf("[%s] (%s)", permissions, name);
+            var size        = Util.humanReadableByteCount(attrs.getSize());
+            if (attrs.isDir()) {
+                size = "PRE";
+            }
+            System.out.printf("[%s] %s(%s)%n", permissions, name, size);
         }
     }
 

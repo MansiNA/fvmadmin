@@ -1,4 +1,4 @@
-package com.example.application.uils;
+package com.example.application.utils;
 
 import java.io.Serializable;
 

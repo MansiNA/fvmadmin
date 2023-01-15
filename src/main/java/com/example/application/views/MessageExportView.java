@@ -4,7 +4,7 @@ import com.example.application.DownloadLinksArea;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.ValueBlob;
 import com.example.application.data.service.ConfigurationService;
-import com.example.application.uils.DateiZippen;
+import com.example.application.utils.DateiZippen;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
