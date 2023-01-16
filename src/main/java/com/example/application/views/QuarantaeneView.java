@@ -187,15 +187,15 @@ public class QuarantaeneView extends VerticalLayout {
 
 
 
-        Integer anz_MessageIncomplete = 0;
+        Integer anz_MessageCheckFilenames = 0;
 
         for ( Quarantine item: lq){
-            if (item.getEXCEPTIONCODE().contains("erger")){
-                anz_MessageIncomplete++;
+            if (item.getEXCEPTIONCODE().contains("CHECK_FILENAMES")){
+                anz_MessageCheckFilenames++;
             }
         }
 
-        qgrid.getFooterRows().get(0).getCell(qgrid.getColumnByKey("ID")).setText(String.format("Anzahl Einträge: %s", lq.size() ) + "Anzahl Incomplete: " + anz_MessageIncomplete);
+        qgrid.getFooterRows().get(0).getCell(qgrid.getColumnByKey("ID")).setText(String.format("Gesamt: %s", lq.size() ) + "  Anzahl CheckFilenames: " + anz_MessageCheckFilenames);
 
 //        qgrid.getDataProvider().refreshAll();
 
