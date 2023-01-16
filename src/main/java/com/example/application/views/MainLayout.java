@@ -50,6 +50,7 @@ public class MainLayout extends AppLayout {
         RouterLink tableExport = new RouterLink ("Table Export", TableExportView.class);
         RouterLink quarantaeneView = new RouterLink ("Quarantäne Info", QuarantaeneView.class);
         RouterLink metadatenView = new RouterLink ("METADATEN", MetadatenView.class);
+        RouterLink hangingMessagesView = new RouterLink ("Hängende Nachrichten (geplant)", HangingMessagesView.class);
         RouterLink tableView = new RouterLink ("Table Viewer", TableView.class);
         RouterLink DashboardView = new RouterLink ("Dashboard (geplant)", DashboardView.class);
         RouterLink fileBrowserView = new RouterLink ("LogFileBrowser (geplant)", FileBrowserView.class);
@@ -65,6 +66,7 @@ public class MainLayout extends AppLayout {
                 MessageExport,
                 mailboxConfig,
                 quarantaeneView,
+                hangingMessagesView,
                 fileBrowserView,
                 elaFavoriten,
                 DashboardView
