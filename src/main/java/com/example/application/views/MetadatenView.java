@@ -13,6 +13,7 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.ItemClickEvent;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -55,7 +56,7 @@ public class MetadatenView extends VerticalLayout {
 
         this.service = service;
 
-        add(new H3("Metadaten Viewer"));
+        add(new H3("Metadaten / Ablaufdaten Viewer"));
 
         comboBox = new ComboBox<>("Verbindung");
         comboBox.setItems(service.findMessageConfigurations());

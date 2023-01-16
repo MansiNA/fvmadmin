@@ -87,7 +87,7 @@ public class QuarantaeneView extends VerticalLayout {
 
         button.addClickListener(clickEvent -> {
 
-            Notification.show("hole Daten...");
+            Notification.show("hole Daten...",2000, Notification.Position.TOP_END);
             qgrid.setItems();
 
             UI ui = UI.getCurrent();
@@ -183,7 +183,7 @@ public class QuarantaeneView extends VerticalLayout {
     }
 
     private void refreshGrid(){
-        Notification.show("Daten wurden aktualisiert");
+        Notification.show("Daten wurden aktualisiert",3000, Notification.Position.TOP_END);
 
 
 
