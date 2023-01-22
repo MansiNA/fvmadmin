@@ -2,24 +2,31 @@ package com.example.application.views;
 
 import com.example.application.data.entity.Ablaufdaten;
 import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.Journal;
 import com.example.application.data.entity.Metadaten;
 import com.example.application.data.service.ConfigurationService;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.contextmenu.ContextMenu;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.ItemClickEvent;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.html.H4;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -28,6 +35,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
@@ -42,21 +50,23 @@ public class MetadatenView extends VerticalLayout {
     private ConfigurationService service;
     private ComboBox<Configuration> comboBox;
     Grid<Metadaten> grid = new Grid<>(Metadaten.class, false);
+    Grid<Journal> gridEGVP = new Grid<>(Journal.class, false);
     //Grid<Ablaufdaten> gridAblaufdaten = new Grid<>(Ablaufdaten.class, false);
     Grid<Ablaufdaten> gridAblaufdaten = new Grid<>(Ablaufdaten.class, false);
 
     TextField filterText = new TextField();
     Integer ret = 0;
-    Button button = new Button("Refresh");
+    Button button = new Button("Suche");
     List<Metadaten> metadaten;
     List<Ablaufdaten> ablaufdaten;
+    List<Journal> journal;
     GridListDataView<Metadaten> dataView=grid.setItems();
-
+    TextField searchField = new TextField();
     public MetadatenView (ConfigurationService service){
 
         this.service = service;
 
-        add(new H3("Metadaten / Ablaufdaten Viewer"));
+        add(new H3("Anzeige von Meta- und Ablaufdaten sowie der Journal Einträge"));
 
         comboBox = new ComboBox<>("Verbindung");
         comboBox.setItems(service.findMessageConfigurations());
@@ -64,11 +74,7 @@ public class MetadatenView extends VerticalLayout {
 
         comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
 
-        HorizontalLayout hl = new HorizontalLayout();
-        hl.add(comboBox,button);
-        hl.setAlignItems(FlexComponent.Alignment.BASELINE);
-
-        add(hl);
+        add(comboBox);
 
         addClassName("list-view");
       //  setSizeFull();
@@ -76,17 +82,32 @@ public class MetadatenView extends VerticalLayout {
         gridAblaufdaten.addColumn(Ablaufdaten::getNAME_NLS).setHeader("NAME_NLS").setSortable(true).setResizable(true);
         gridAblaufdaten.addColumn(Ablaufdaten::getNAME).setHeader("NAME").setSortable(true).setResizable(true);
         gridAblaufdaten.addColumn(Ablaufdaten::getTYP).setHeader("TYP").setSortable(true).setResizable(true);
-        gridAblaufdaten.addColumn(Ablaufdaten::getSTART_DATUM).setHeader("Start").setSortable(true).setResizable(true);
+        Grid.Column<Ablaufdaten> date = gridAblaufdaten.addColumn(Ablaufdaten::getSTART_DATUM).setHeader("Start").setSortable(true).setResizable(true);
         gridAblaufdaten.addColumn(Ablaufdaten::getENDE_DATUM).setHeader("Ende").setSortable(true).setResizable(true);
         gridAblaufdaten.addColumn(Ablaufdaten::getTIMESTAMPVERSION).setHeader("Timestamp").setSortable(true).setResizable(true);
         gridAblaufdaten.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         gridAblaufdaten.addThemeVariants(GridVariant.LUMO_COMPACT);
+        gridAblaufdaten.getStyle().set("resize", "vertical");
+        gridAblaufdaten.getStyle().set("overflow", "auto");
+        gridAblaufdaten.setHeight("200px");
+
+
+        GridSortOrder<Ablaufdaten> order = new GridSortOrder<>(date, SortDirection.DESCENDING);
+
+        gridAblaufdaten.sort(Arrays.asList(order));
+
 
         grid.addColumn(Metadaten::getNACHRICHTIDEXTERN).setHeader("NachrichtID-Extern")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
-        grid.addColumn(Metadaten::getEINGANGSDATUMSERVER).setHeader("Eingangsdatum")
+        grid.addColumn(Metadaten::getNACHRICHTIDINTERN).setHeader("NachrichtID-Intern")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
-        grid.addColumn(Metadaten::getVERARBEITET).setHeader("Verarbeitet")
+        Grid.Column<Metadaten> loeschtagColumn = grid.addColumn(Metadaten::getLOESCHTAG).setHeader("Löschtag")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> fachverfahrenColumn = grid.addColumn(Metadaten::getFACHVERFAHREN).setHeader("Fachverfahren")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> eingangsdatumServerColumn = grid.addColumn(Metadaten::getEINGANGSDATUMSERVER).setHeader("Eingangsdatum")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> verarbeitetColumn = grid.addColumn(Metadaten::getVERARBEITET).setHeader("Verarbeitet")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
 
        // grid.setItemDetailsRenderer(createPersonDetailsRenderer());
@@ -97,12 +118,43 @@ public class MetadatenView extends VerticalLayout {
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
       //  GridListDataView<Metadaten> dataView =grid.setItems();
 
-        TextField searchField = new TextField();
-        searchField.setWidth("50%");
-        searchField.setPlaceholder("Suchen");
+        grid.setHeight("200px");
+        grid.getStyle().set("resize", "vertical");
+        grid.getStyle().set("overflow", "auto");
+
+
+        Button menuButton = new Button("Show/Hide Columns");
+        menuButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        ColumnToggleContextMenu columnToggleContextMenu = new ColumnToggleContextMenu(
+                menuButton);
+        columnToggleContextMenu.addColumnToggleItem("Löschtag",
+                loeschtagColumn);
+        columnToggleContextMenu.addColumnToggleItem("Eingangsdatum-Server",
+                eingangsdatumServerColumn);
+        columnToggleContextMenu.addColumnToggleItem("Fachverfahren",
+                fachverfahrenColumn);
+        columnToggleContextMenu.addColumnToggleItem("Verarbeitet",
+                verarbeitetColumn);
+
+
+
+
+        gridEGVP.addColumn(Journal::getDDATE).setHeader("Datum")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        gridEGVP.addColumn(Journal::getA).setHeader("Aktion")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        gridEGVP.addColumn(Journal::getDauer).setHeader("Laufzeit")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        gridEGVP.getStyle().set("resize", "vertical");
+        gridEGVP.getStyle().set("overflow", "auto");
+        gridEGVP.setHeight("200px");
+
+
+        searchField.setWidth("500px");
+        searchField.setPlaceholder("NachrichtID");
         searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
         searchField.setValueChangeMode(ValueChangeMode.LAZY);
-        searchField.addValueChangeListener(e -> {
+        /*searchField.addValueChangeListener(e -> {
                                                     System.out.println("Suche nach: " + searchField.getValue());
                                                    // metadaten=getMailboxes(searchField.getValue());
                                                    // grid.setItems(metadaten);
@@ -114,17 +166,29 @@ public class MetadatenView extends VerticalLayout {
                                                         System.out.println("Keine Eintrag gefunden..." + exception.getMessage());
                                                     }
 
-                                                });
+                                                });*/
 
 
 
-        VerticalLayout layout = new VerticalLayout(searchField, grid);
+        HorizontalLayout layout = new HorizontalLayout(searchField,button );
         layout.setPadding(false);
 
-        add(layout);
+        HorizontalLayout hl = new HorizontalLayout();
+        hl.add(layout);
+        hl.setAlignItems(FlexComponent.Alignment.BASELINE);
+
+        add(hl);
+
+        Span title = new Span("Metadaten");
+        title.getStyle().set("font-weight", "bold");
+        HorizontalLayout headerLayout = new HorizontalLayout(title, menuButton);
+        headerLayout.setAlignItems(FlexComponent.Alignment.BASELINE);
+        headerLayout.setFlexGrow(1, title);
+
+        add(headerLayout,grid);
 
 
-        add(gridAblaufdaten);
+        add(gridAblaufdaten,gridEGVP);
         button.addClickListener(clickEvent -> {
 
             UI ui = UI.getCurrent();
@@ -176,12 +240,32 @@ public class MetadatenView extends VerticalLayout {
 
     }
 
+    private static class ColumnToggleContextMenu extends ContextMenu {
+        public ColumnToggleContextMenu(Component target) {
+            super(target);
+            setOpenOnClick(true);
+        }
+
+        void addColumnToggleItem(String label, Grid.Column<Metadaten> column) {
+            MenuItem menuItem = this.addItem(label, e -> {
+                column.setVisible(e.getSource().isChecked());
+            });
+            menuItem.setCheckable(true);
+            menuItem.setChecked(column.isVisible());
+        }
+    }
+
    // private void showAblaufdaten(ItemDoubleClickEvent<Metadaten> e) {
    private void showAblaufdaten(ItemClickEvent<Metadaten> e) {
 
         System.out.println(("Aktualisiere Ablaufdaten Grid für NachrichtidIntern: " +  e.getItem().getNACHRICHTIDINTERN()));
         gridAblaufdaten.setItems();
+        gridEGVP.setItems();
         gridAblaufdaten.setItems(getAblaufdaten(e.getItem().getNACHRICHTIDINTERN().toString()));
+
+        gridEGVP.setItems((getJournal(e.getItem().getNACHRICHTIDEXTERN().toString())));
+
+
     }
 
     //  private static ComponentRenderer<PersonDetailsFormLayout, Metadaten> createPersonDetailsRenderer() {
@@ -284,9 +368,11 @@ public class MetadatenView extends VerticalLayout {
                 "       VERARBEITET,\n" +
                 "       LOESCHTAG\n" +
                 "from EKP.Metadaten \n " +
-                "where nachrichtidextern is not null and (eingangsdatumserver is null or eingangsdatumserver > sysdate -1)";
+                //"where nachrichtidextern is not null and (eingangsdatumserver is null or eingangsdatumserver > sysdate -1)";
+                "where nachrichtidextern like '" + searchField.getValue() + "' or nachrichtidextern = '" + searchField.getValue() + "'";
 
-        System.out.println("Abfrage EKP.Metadaten (MetadatenView.java)");
+        System.out.println("Abfrage EKP.Metadaten (MetadatenView.java): ");
+        System.out.println(sql);
 
         DriverManagerDataSource ds = new DriverManagerDataSource();
         Configuration conf;
@@ -346,6 +432,49 @@ public class MetadatenView extends VerticalLayout {
         }
 
         return ablaufdaten;
+    }
+
+    private List<Journal> getJournal(String nachrichtidextern) {
+
+      //  String sql = "select * from EKP.Ablaufdaten where Nachrichtidintern ='" + nachrichtidintern +"'";
+
+
+        String sql = "select ddate,a,ddate - lead(ddate) over (partition by j.pid order by ddate desc)  as dauer  \n" +
+                "from egvp.journal@egvp j\n" +
+                "inner join EGVP.PRotocol@EGVP p\n" +
+                "on j.PID=p.PID\n" +
+                "where p.customid='" + nachrichtidextern + "'\n" +
+                "or p.MESSAGEID='" + nachrichtidextern + "'\n" +
+                "order by 1 desc\n";
+
+
+        System.out.println("(MetadatenView.java) Hole Journal Einträge für  " + nachrichtidextern );
+
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        Configuration conf;
+        conf = comboBox.getValue();
+
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(conf.getPassword());
+
+        try {
+
+            jdbcTemplate.setDataSource(ds);
+
+            journal = jdbcTemplate.query(
+                    sql,
+                    new BeanPropertyRowMapper(Journal.class));
+
+
+
+            System.out.println("Journal eingelesen");
+
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+
+        return journal;
     }
 
     private static class PersonDetailsFormLayout extends FormLayout {
