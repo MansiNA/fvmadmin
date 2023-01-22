@@ -66,7 +66,7 @@ public class MetadatenView extends VerticalLayout {
 
         this.service = service;
 
-        add(new H3("Anzeige von Meta- und Ablaufdaten sowie der Journal Einträge"));
+        add(new H3("Anzeige von Metadaten, sowie der jeweils zugehörigen Ablaufdaten und Journal Einträge"));
 
         comboBox = new ComboBox<>("Verbindung");
         comboBox.setItems(service.findMessageConfigurations());
@@ -99,7 +99,7 @@ public class MetadatenView extends VerticalLayout {
 
         grid.addColumn(Metadaten::getNACHRICHTIDEXTERN).setHeader("NachrichtID-Extern")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
-        grid.addColumn(Metadaten::getNACHRICHTIDINTERN).setHeader("NachrichtID-Intern")
+        Grid.Column<Metadaten> nachrichtidinternColumn = grid.addColumn(Metadaten::getNACHRICHTIDINTERN).setHeader("NachrichtID-Intern")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         Grid.Column<Metadaten> loeschtagColumn = grid.addColumn(Metadaten::getLOESCHTAG).setHeader("Löschtag")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
@@ -109,6 +109,22 @@ public class MetadatenView extends VerticalLayout {
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         Grid.Column<Metadaten> verarbeitetColumn = grid.addColumn(Metadaten::getVERARBEITET).setHeader("Verarbeitet")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> statusColumn = grid.addColumn(Metadaten::getSTATUS).setHeader("Status")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> nachrichttypColumn = grid.addColumn(Metadaten::getNACHRICHTTYP).setHeader("Nachricht-Typ")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> bearbeiternameColumn = grid.addColumn(Metadaten::getBEARBEITERNAME).setHeader("Bearbeitername")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> papiervorgangColumn = grid.addColumn(Metadaten::getPAPIERVORGANG).setHeader("Papiervorgang")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+
+        nachrichttypColumn.setVisible(false);
+        nachrichtidinternColumn.setVisible(false);
+        bearbeiternameColumn.setVisible(false);
+        papiervorgangColumn.setVisible(false);
+        fachverfahrenColumn.setVisible(false);
+        nachrichttypColumn.setVisible(false);
+
 
        // grid.setItemDetailsRenderer(createPersonDetailsRenderer());
        // grid.addItemDoubleClickListener(e->showAblaufdaten(e));
@@ -135,8 +151,16 @@ public class MetadatenView extends VerticalLayout {
                 fachverfahrenColumn);
         columnToggleContextMenu.addColumnToggleItem("Verarbeitet",
                 verarbeitetColumn);
-
-
+        columnToggleContextMenu.addColumnToggleItem("Status",
+                statusColumn);
+        columnToggleContextMenu.addColumnToggleItem("NachrichtTyp",
+                nachrichttypColumn);
+        columnToggleContextMenu.addColumnToggleItem("NachrichtID-intern",
+                nachrichtidinternColumn);
+        columnToggleContextMenu.addColumnToggleItem("Bearbeitername",
+                bearbeiternameColumn);
+        columnToggleContextMenu.addColumnToggleItem("Papiervorgang",
+        papiervorgangColumn);
 
 
         gridEGVP.addColumn(Journal::getDDATE).setHeader("Datum")
@@ -187,8 +211,13 @@ public class MetadatenView extends VerticalLayout {
 
         add(headerLayout,grid);
 
+        Span title2 = new Span("Ablaufdaten");
+        title2.getStyle().set("font-weight", "bold");
 
-        add(gridAblaufdaten,gridEGVP);
+        Span title3 = new Span("EGVP-E Journal");
+        title3.getStyle().set("font-weight", "bold");
+
+        add(title2, gridAblaufdaten,title3, gridEGVP);
         button.addClickListener(clickEvent -> {
 
             UI ui = UI.getCurrent();
