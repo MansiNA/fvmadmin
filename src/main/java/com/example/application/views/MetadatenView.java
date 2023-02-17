@@ -103,6 +103,8 @@ public class MetadatenView extends VerticalLayout {
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         Grid.Column<Metadaten> loeschtagColumn = grid.addColumn(Metadaten::getLOESCHTAG).setHeader("Löschtag")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> fehlertagColumn = grid.addColumn(Metadaten::getFEHLERTAG).setHeader("Fehlertag")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         Grid.Column<Metadaten> fachverfahrenColumn = grid.addColumn(Metadaten::getFACHVERFAHREN).setHeader("Fachverfahren")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         Grid.Column<Metadaten> eingangsdatumServerColumn = grid.addColumn(Metadaten::getEINGANGSDATUMSERVER).setHeader("Eingangsdatum")
@@ -117,6 +119,12 @@ public class MetadatenView extends VerticalLayout {
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         Grid.Column<Metadaten> papiervorgangColumn = grid.addColumn(Metadaten::getPAPIERVORGANG).setHeader("Papiervorgang")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> transportversionColumn = grid.addColumn(Metadaten::getTRANSPORTVERSION).setHeader("Transportversion")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> artColumn = grid.addColumn(Metadaten::getART).setHeader("Art")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> senderColumn = grid.addColumn(Metadaten::getSENDER).setHeader("Sender")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
 
         nachrichttypColumn.setVisible(false);
         nachrichtidinternColumn.setVisible(false);
@@ -124,6 +132,9 @@ public class MetadatenView extends VerticalLayout {
         papiervorgangColumn.setVisible(false);
         fachverfahrenColumn.setVisible(false);
         nachrichttypColumn.setVisible(false);
+        transportversionColumn.setVisible(false);
+        artColumn.setVisible(false);
+        senderColumn.setVisible(false);
 
 
        // grid.setItemDetailsRenderer(createPersonDetailsRenderer());
@@ -161,6 +172,15 @@ public class MetadatenView extends VerticalLayout {
                 bearbeiternameColumn);
         columnToggleContextMenu.addColumnToggleItem("Papiervorgang",
         papiervorgangColumn);
+        columnToggleContextMenu.addColumnToggleItem("Transportversion",
+                transportversionColumn);
+        columnToggleContextMenu.addColumnToggleItem("Art",
+                artColumn);
+        columnToggleContextMenu.addColumnToggleItem("Sender",
+                senderColumn);
+        columnToggleContextMenu.addColumnToggleItem("Fehlertag",
+                fehlertagColumn);
+
 
 
         gridEGVP.addColumn(Journal::getDDATE).setHeader("Datum")
@@ -352,6 +372,7 @@ public class MetadatenView extends VerticalLayout {
 
     private List<Metadaten> getMailboxes() {
 
+
         String sql = "select TIMESTAMPVERSION,\n" +
                 "       SENDERROLLEN,\n" +
                 "       ID,\n" +
@@ -396,9 +417,20 @@ public class MetadatenView extends VerticalLayout {
                 "       PAPIERVORGANG,\n" +
                 "       VERARBEITET,\n" +
                 "       LOESCHTAG\n" +
-                "from EKP.Metadaten \n " +
+                "from EKP.Metadaten \n ";
                 //"where nachrichtidextern is not null and (eingangsdatumserver is null or eingangsdatumserver > sysdate -1)";
-                "where nachrichtidextern like '" + searchField.getValue() + "' or nachrichtidextern = '" + searchField.getValue() + "'";
+
+        if (searchField.getValue().isEmpty())
+        {
+            sql = sql + "where lower(nachrichtidextern) like '%' and rownum < 500";
+        }
+        else
+        {
+            sql = sql + "where lower(nachrichtidextern) like '%" + searchField.getValue().toLowerCase() + "%'" +
+            "\nor nachrichtidintern=" + tryParseInt(searchField.getValue(),0);
+        }
+
+//                + "or nachrichtidintern=" + Search;
 
         System.out.println("Abfrage EKP.Metadaten (MetadatenView.java): ");
         System.out.println(sql);
@@ -428,6 +460,14 @@ public class MetadatenView extends VerticalLayout {
         }
 
         return metadaten;
+    }
+
+    public int tryParseInt(String value, int defaultVal) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return defaultVal;
+        }
     }
 
     private List<Ablaufdaten> getAblaufdaten(String nachrichtidintern) {

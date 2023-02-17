@@ -278,6 +278,10 @@ public class TableView extends VerticalLayout {
             //   grid2.setAllRowsVisible(true);
             grid2.setPageSize(50);
             grid2.setHeight("800px");
+
+            grid2.getStyle().set("resize", "vertical");
+            grid2.getStyle().set("overflow", "auto");
+
             //grid2.setPaginatorSize(5);
             // Add the grid to the page
 
