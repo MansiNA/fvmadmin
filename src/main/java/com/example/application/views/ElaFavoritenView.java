@@ -2,9 +2,14 @@ package com.example.application.views;
 
 import com.example.application.DownloadLinksArea;
 import com.example.application.UploadArea;
+import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.ElaFavoriten;
+import com.example.application.data.service.ConfigurationService;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -33,7 +38,30 @@ import java.util.List;
 public class ElaFavoritenView extends VerticalLayout {
     @Autowired
     JdbcTemplate jdbcTemplate;
-    public ElaFavoritenView(){
+
+    private ComboBox<Configuration> comboBox;
+    Button button = new Button("Refresh");
+
+    private ConfigurationService service;
+
+    public ElaFavoritenView(ConfigurationService service){
+
+        this.service = service;
+
+        comboBox = new ComboBox<>("Ziel-Datenbank");
+        comboBox.setItems(service.findMessageConfigurations());
+        comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
+
+        comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
+        comboBox.setPlaceholder("Select Database");
+        //comboBox.addValueChangeListener(e -> textField.setValue(String.valueOf(e.getValue())));
+
+        HorizontalLayout hl = new HorizontalLayout();
+        hl.add(comboBox);
+        hl.setAlignItems(FlexComponent.Alignment.BASELINE);
+        setSizeFull();
+        add(hl);
+
 
         add(new H2("Upload neuer ELA-Favoriten Excel Datei"));
 
@@ -109,65 +137,71 @@ private void upload() throws SQLException, IOException, ClassNotFoundException {
     HSSFSheet my_worksheet = my_xls_workbook.getSheetAt(0);
     // we loop through and insert data
     Iterator<Row> rowIterator = my_worksheet.iterator();
-    ElaFavoriten elaFavoriten = new ElaFavoriten();
+
     List<ElaFavoriten> elaFavoritenListe = new ArrayList<ElaFavoriten>();
 
     Integer RowNumber=0;
 
     while(rowIterator.hasNext())
     {
-    //        System.out.println("----------------------");
+            ElaFavoriten elaFavoriten = new ElaFavoriten();
             Row row = rowIterator.next();
             RowNumber++;
-            //row = rowIterator.next();
+         //   System.out.println("Zeile:" + RowNumber.toString());
             Iterator<Cell> cellIterator = row.cellIterator();
             while(cellIterator.hasNext()) {
+
+                if(RowNumber==1) //Überschrift nicht betrachten
+                {
+                    break;
+                }
+
+
                 Cell cell = cellIterator.next();
 
-                elaFavoriten.setID(Integer.parseInt(checkCell(cell, RowNumber,"ID", Cell.CELL_TYPE_NUMERIC)));
+                elaFavoriten.setID(checkCellNumeric(cell, RowNumber,"ID"));
 
                 cell = cellIterator.next();
 
-                elaFavoriten.setBENUTZER_KENNUNG(checkCell(cell, RowNumber,"Benutzer-Kennung", Cell.CELL_TYPE_STRING));
+                elaFavoriten.setBENUTZER_KENNUNG(checkCellString(cell, RowNumber,"Benutzer-Kennung"));
 
                 cell = cellIterator.next();
 
-                elaFavoriten.setNUTZER_ID(checkCell(cell, RowNumber,"Nutzer-ID", Cell.CELL_TYPE_STRING));
+                elaFavoriten.setNUTZER_ID(checkCellString(cell, RowNumber,"Nutzer-ID"));
 
                 cell = cellIterator.next();
 
-                elaFavoriten.setNAME(checkCell(cell, RowNumber,"Name", Cell.CELL_TYPE_STRING));
+                elaFavoriten.setNAME(checkCellString(cell, RowNumber,"Name"));
 
                 cell = cellIterator.next();
 
-                elaFavoriten.setVORNAME(checkCell(cell, RowNumber,"Vorname", Cell.CELL_TYPE_STRING));
+                elaFavoriten.setVORNAME(checkCellString(cell, RowNumber,"Vorname"));
 
                 cell = cellIterator.next();
 
-                elaFavoriten.setORT(checkCell(cell, RowNumber,"Ort", Cell.CELL_TYPE_STRING));
+                elaFavoriten.setORT(checkCellString(cell, RowNumber,"Ort"));
 
                 cell = cellIterator.next();
 
-                elaFavoriten.setPLZ(checkCell(cell, RowNumber,"PLZ", Cell.CELL_TYPE_STRING));
+                elaFavoriten.setPLZ(checkCellString(cell, RowNumber,"PLZ"));
 
                 cell = cellIterator.next();
 
-                elaFavoriten.setSTRASSE(checkCell(cell, RowNumber,"Strasse", Cell.CELL_TYPE_STRING));
+                elaFavoriten.setSTRASSE(checkCellString(cell, RowNumber,"Strasse"));
 
                 cell = cellIterator.next();
 
-                elaFavoriten.setHAUSNUMMER(checkCell(cell, RowNumber,"Hausnummer", Cell.CELL_TYPE_STRING));
+                elaFavoriten.setHAUSNUMMER(checkCellString(cell, RowNumber,"Hausnummer"));
 
                 cell = cellIterator.next();
 
-                elaFavoriten.setORGANISATION(checkCell(cell, RowNumber,"Organisation", Cell.CELL_TYPE_STRING));
+                elaFavoriten.setORGANISATION(checkCellString(cell, RowNumber,"Organisation"));
 
                 cell = cellIterator.next();
 
-                elaFavoriten.setVERSION(Integer.parseInt(checkCell(cell, RowNumber,"Version", Cell.CELL_TYPE_NUMERIC)));
+                elaFavoriten.setVERSION(checkCellNumeric(cell, RowNumber,"Version"));
 
                 elaFavoritenListe.add(elaFavoriten);
-
 
             }
 
@@ -177,9 +211,17 @@ private void upload() throws SQLException, IOException, ClassNotFoundException {
 
     try {
     DriverManagerDataSource ds = new DriverManagerDataSource();
-    ds.setUrl("jdbc:oracle:thin:@//37.120.189.200:1521/xe");
-    ds.setUsername("SYSTEM");
-    ds.setPassword("Michael123");
+//    ds.setUrl("jdbc:oracle:thin:@//37.120.189.200:1521/xe");
+//    ds.setUsername("SYSTEM");
+//    ds.setPassword("Michael123");
+
+        Configuration conf;
+        conf = comboBox.getValue();
+
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(conf.getPassword());
+
     jdbcTemplate.setDataSource(ds);
     jdbcTemplate.batchUpdate("INSERT INTO EKP.ELA_FAVORITEN_NEU (ID,BENUTZER_KENNUNG,NUTZER_ID,NAME,VORNAME,ORT,PLZ,STRASSE,HAUSNUMMER,ORGANISATION,VERSION) " +
                     "VALUES (?, ?, ?,?, ?, ?,?, ?, ?, ?, ?)",
@@ -216,25 +258,36 @@ private void upload() throws SQLException, IOException, ClassNotFoundException {
 
 }
 
-    private String checkCell(Cell cell, Integer zeile, String spalte, Integer typ) {
+    private String checkCellString(Cell cell, Integer zeile, String spalte) {
 
-        if (cell.getCellType()!=typ)
+        if (cell.getCellType()!=Cell.CELL_TYPE_STRING && !cell.getStringCellValue().isEmpty())
         {
-            System.out.println("Zeile " + zeile.toString() + ", Spalte " + spalte + " konnte nicht gelesen werden!");
-            return "gg";
+            System.out.println("Zeile " + zeile.toString() + ", Spalte " + spalte + " konnte nicht gelesen werden, da ExcelTyp Numeric!");
+            return "";
         }
         else
         {
-            if (cell.getCellType()==Cell.CELL_TYPE_NUMERIC)
+            if (cell.getStringCellValue().isEmpty())
             {
-                Double dd = cell.getNumericCellValue();
-                return  dd.toString();
+                System.out.println("Info: Zeile " + zeile.toString() + ", Spalte " + spalte + " ist leer");
             }
-            else
-            {
-                return  cell.getStringCellValue();
-            }
+            return  cell.getStringCellValue();
 
+        }
+
+    }
+
+
+    private Integer checkCellNumeric(Cell cell, Integer zeile, String spalte) {
+
+        if (cell.getCellType()!=Cell.CELL_TYPE_NUMERIC)
+        {
+            System.out.println("Zeile " + zeile.toString() + ", Spalte " + spalte + " konnte nicht gelesen werden, da ExcelTyp nicht numerisch!");
+            return 0;
+        }
+        else
+        {
+            return  (int) cell.getNumericCellValue();
         }
 
     }
