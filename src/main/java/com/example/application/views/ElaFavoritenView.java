@@ -5,12 +5,15 @@ import com.example.application.UploadArea;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.ElaFavoriten;
 import com.example.application.data.service.ConfigurationService;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
@@ -31,6 +34,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 
 @PageTitle("Upload ELA-Favoriten | by DBUSS GmbH")
@@ -38,11 +42,12 @@ import java.util.List;
 public class ElaFavoritenView extends VerticalLayout {
     @Autowired
     JdbcTemplate jdbcTemplate;
-
+    ProgressBar spinner = new ProgressBar();
     private ComboBox<Configuration> comboBox;
     Button button = new Button("Refresh");
-
     private ConfigurationService service;
+    TextArea textArea = new TextArea();
+    Integer ret=0;
 
     public ElaFavoritenView(ConfigurationService service){
 
@@ -55,6 +60,15 @@ public class ElaFavoritenView extends VerticalLayout {
         comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
         comboBox.setPlaceholder("Select Database");
         //comboBox.addValueChangeListener(e -> textField.setValue(String.valueOf(e.getValue())));
+
+
+        textArea.setWidthFull();
+        textArea.setHeight("400px");
+        //textArea.setLabel("Info");
+        textArea.setValue("wait for File");
+        textArea.setReadOnly((Boolean.TRUE));
+        textArea.getStyle().set("background-color", "#f0eeec");
+        textArea.getStyle().set("border", "none");
 
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox);
@@ -91,6 +105,11 @@ public class ElaFavoritenView extends VerticalLayout {
 
         add(button);
 
+        spinner.setIndeterminate(true);
+        spinner.setVisible(false);
+
+        add(spinner,textArea);
+
     }
 
 
@@ -124,11 +143,8 @@ private void upload() throws SQLException, IOException, ClassNotFoundException {
 
     System.out.println("Excel import ");
 
-    Class.forName ("oracle.jdbc.OracleDriver");
-    Connection conn = DriverManager.getConnection("jdbc:oracle:thin:@//37.120.189.200:1521/xe", "SYSTEM", "Michael123");
-    PreparedStatement sql_statement = null;
-    String jdbc_insert_sql = "INSERT INTO EKP.ELA_FAVORITEN"  + "(ID,BENUTZER_KENNUNG,NUTZER_ID,NAME,VORNAME,ORT,PLZ,STRASSE,HAUSNUMMER,ORGANISATION,VERSION) VALUES"  + "(?,?,?,?,?,?,?,?,?,?,?)";
-    sql_statement = conn.prepareStatement(jdbc_insert_sql);
+
+
     /* We should now load excel objects and loop through the worksheet data */
     FileInputStream input_document = new FileInputStream(new File("C:\\tmp\\ELA_FAVORITEN.XLS"));
     /* Load workbook */
@@ -207,56 +223,109 @@ private void upload() throws SQLException, IOException, ClassNotFoundException {
 
     }
 
+    textArea.setValue("Anzahl Zeilen im Excel: " + elaFavoritenListe.size());
+    textArea.setValue(textArea.getValue() + "\nStart Upload to DB");
     System.out.println("Anzahl Zeilen im Excel: " + elaFavoritenListe.size());
 
-    try {
-    DriverManagerDataSource ds = new DriverManagerDataSource();
+    UI ui = UI.getCurrent();
+    // Instruct client side to poll for changes and show spinner
+    ui.setPollInterval(500);
+
+    spinner.setVisible(true);
+
+    /* Close input stream */
+    input_document.close();
+
+    CompletableFuture.runAsync(() -> {
+
+        // Do some long running task
+        try {
+           ret = write2DB(elaFavoritenListe);
+
+              if(ret==1){
+                System.out.println("Fehlgeschlagen! " );
+            }
+            Thread.sleep(20); //2 Sekunden warten
+
+
+        } catch (InterruptedException | SQLException | ClassNotFoundException e) {
+            e.printStackTrace();
+            spinner.setVisible(false);
+        }
+
+        // Need to use access() when running from background thread
+        ui.access(() -> {
+            // Stop polling and hide spinner
+            ui.setPollInterval(-1);
+            spinner.setVisible(false);
+            textArea.setValue(textArea.getValue() + "\nEnde Upload to DB");
+        });
+    });
+
+
+
+}
+
+
+
+    private Integer write2DB(List<ElaFavoriten> elaFavoritenListe) throws ClassNotFoundException, SQLException {
+
+        Class.forName ("oracle.jdbc.OracleDriver");
+        Connection conn = DriverManager.getConnection("jdbc:oracle:thin:@//37.120.189.200:1521/xe", "SYSTEM", "Michael123");
+        PreparedStatement sql_statement = null;
+        String jdbc_insert_sql = "INSERT INTO EKP.ELA_FAVORITEN"  + "(ID,BENUTZER_KENNUNG,NUTZER_ID,NAME,VORNAME,ORT,PLZ,STRASSE,HAUSNUMMER,ORGANISATION,VERSION) VALUES"  + "(?,?,?,?,?,?,?,?,?,?,?)";
+        sql_statement = conn.prepareStatement(jdbc_insert_sql);
+
+        try {
+            DriverManagerDataSource ds = new DriverManagerDataSource();
 //    ds.setUrl("jdbc:oracle:thin:@//37.120.189.200:1521/xe");
 //    ds.setUsername("SYSTEM");
 //    ds.setPassword("Michael123");
 
-        Configuration conf;
-        conf = comboBox.getValue();
+            Configuration conf;
+            conf = comboBox.getValue();
 
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+            ds.setUrl(conf.getDb_Url());
+            ds.setUsername(conf.getUserName());
+            ds.setPassword(conf.getPassword());
 
-    jdbcTemplate.setDataSource(ds);
-    jdbcTemplate.batchUpdate("INSERT INTO EKP.ELA_FAVORITEN_NEU (ID,BENUTZER_KENNUNG,NUTZER_ID,NAME,VORNAME,ORT,PLZ,STRASSE,HAUSNUMMER,ORGANISATION,VERSION) " +
-                    "VALUES (?, ?, ?,?, ?, ?,?, ?, ?, ?, ?)",
-            elaFavoritenListe,
-            100,
-            (PreparedStatement ps, ElaFavoriten elaFavoriten1) -> {
-                ps.setInt(1, elaFavoriten1.getID());
-                ps.setString(2, elaFavoriten1.getBENUTZER_KENNUNG());
-                ps.setString(3, elaFavoriten1.getNUTZER_ID());
-                ps.setString(4, elaFavoriten1.getNAME());
-                ps.setString(5, elaFavoriten1.getVORNAME());
-                ps.setString(6, elaFavoriten1.getORT());
-                ps.setString(7, elaFavoriten1.getPLZ());
-                ps.setString(8, elaFavoriten1.getSTRASSE());
-                ps.setString(9, elaFavoriten1.getHAUSNUMMER());
-                ps.setString(10, elaFavoriten1.getORGANISATION());
-                ps.setInt(11, elaFavoriten1.getVERSION());
+            jdbcTemplate.setDataSource(ds);
+            jdbcTemplate.batchUpdate("INSERT INTO EKP.ELA_FAVORITEN_NEU (ID,BENUTZER_KENNUNG,NUTZER_ID,NAME,VORNAME,ORT,PLZ,STRASSE,HAUSNUMMER,ORGANISATION,VERSION) " +
+                            "VALUES (?, ?, ?,?, ?, ?,?, ?, ?, ?, ?)",
+                    elaFavoritenListe,
+                    100,
+                    (PreparedStatement ps, ElaFavoriten elaFavoriten1) -> {
+                        ps.setInt(1, elaFavoriten1.getID());
+                        ps.setString(2, elaFavoriten1.getBENUTZER_KENNUNG());
+                        ps.setString(3, elaFavoriten1.getNUTZER_ID());
+                        ps.setString(4, elaFavoriten1.getNAME());
+                        ps.setString(5, elaFavoriten1.getVORNAME());
+                        ps.setString(6, elaFavoriten1.getORT());
+                        ps.setString(7, elaFavoriten1.getPLZ());
+                        ps.setString(8, elaFavoriten1.getSTRASSE());
+                        ps.setString(9, elaFavoriten1.getHAUSNUMMER());
+                        ps.setString(10, elaFavoriten1.getORGANISATION());
+                        ps.setInt(11, elaFavoriten1.getVERSION());
 
-            });
+                    });
+         //   textArea.setValue(textArea.getValue() + "\nIn DB gespeichert.");
+        } catch (Exception e) {
+         //   textArea.setValue(textArea.getValue() + "\nFehler beim Speichern in DB!");
+            System.out.println("Exception: " + e.getMessage());
+        }
 
-    } catch (Exception e) {
-        System.out.println("Exception: " + e.getMessage());
-    }
 
-    /* Close input stream */
-            input_document.close();
-    /* Close prepared statement */
-            sql_statement.close();
-    /* COMMIT transaction */
+        /* Close prepared statement */
+        sql_statement.close();
+        /* COMMIT transaction */
 
 //            conn.commit();
-    /* Close connection */
-            conn.close();
+        /* Close connection */
+        conn.close();
 
-}
+return 0;
+
+    }
 
     private String checkCellString(Cell cell, Integer zeile, String spalte) {
 
