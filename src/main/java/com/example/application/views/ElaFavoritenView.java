@@ -1,19 +1,20 @@
 package com.example.application.views;
 
-import com.example.application.DownloadLinksArea;
-import com.example.application.UploadArea;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.ElaFavoriten;
 import com.example.application.data.service.ConfigurationService;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.messages.MessageListItem;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.upload.Upload;
+import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
@@ -25,12 +26,16 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -44,10 +49,26 @@ public class ElaFavoritenView extends VerticalLayout {
     JdbcTemplate jdbcTemplate;
     ProgressBar spinner = new ProgressBar();
     private ComboBox<Configuration> comboBox;
-    Button button = new Button("Refresh");
+
+    Button button = new Button("Hochladen");
     private ConfigurationService service;
     TextArea textArea = new TextArea();
+    File uploadFolder = getUploadFolder();
+//    UploadArea uploadArea = new UploadArea(uploadFolder);
+
+    MemoryBuffer memoryBuffer = new MemoryBuffer();
+    Upload singleFileUpload = new Upload(memoryBuffer);
+
+    String fileName="";
+    long contentLength=0;
+    String mimeType="";
+    InputStream fileData;
+
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+//    MessageList list = new MessageList();
+
     Integer ret=0;
+  //  private TextField textField = new TextField();
 
     public ElaFavoritenView(ConfigurationService service){
 
@@ -77,22 +98,40 @@ public class ElaFavoritenView extends VerticalLayout {
         add(hl);
 
 
-        add(new H2("Upload neuer ELA-Favoriten Excel Datei"));
+        singleFileUpload.addSucceededListener(event -> {
+            // Get information about the uploaded file
+            fileData = memoryBuffer.getInputStream();
+            fileName = event.getFileName();
+            contentLength = event.getContentLength();
+            mimeType = event.getMIMEType();
 
-        File uploadFolder = getUploadFolder();
-        UploadArea uploadArea = new UploadArea(uploadFolder);
-        DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
-
-        uploadArea.getUploadField().addSucceededListener(e -> {
-            uploadArea.hideErrorField();
-            linksArea.refreshFileLinks();
+            // Do something with the file data
+            // processFile(fileData, fileName, contentLength, mimeType);
         });
 
-        add(uploadArea);
 
-        Button button = new Button("Button");
+
+        Instant yesterday = LocalDateTime.now(ZoneOffset.UTC).minusDays(1).toInstant(ZoneOffset.UTC);
+        MessageListItem message1 = new MessageListItem("Linsey, could you check if the details with the order are okay?", yesterday, "Matt Mambo");
+//        message1.setUserColorIndex(1);
+        message1.addThemeNames("current-user");
+        message1.setUserColorIndex(2);
+
+        spinner.setIndeterminate(true);
+        spinner.setVisible(false);
+
+     //   add(new H2("Upload neuer ELA-Favoriten Excel Datei"));
+
+
+      //  DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
+
+
+        button.setWidth("250px");
+        button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
         button.addClickListener(clickEvent -> {
             try {
+                button.setEnabled(false);
                 upload();
             } catch (SQLException e) {
                 throw new RuntimeException(e);
@@ -100,55 +139,47 @@ public class ElaFavoritenView extends VerticalLayout {
                 throw new RuntimeException(e);
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         });
 
-        add(button);
+        HorizontalLayout horl = new HorizontalLayout();
+        //horl.setWidthFull();
+        horl.setWidth("600px");
+     //   horl.setJustifyContentMode(JustifyContentMode.START);
 
-        spinner.setIndeterminate(true);
-        spinner.setVisible(false);
+       VerticalLayout verl = new VerticalLayout();
+       verl.add(button,spinner);
 
-        add(spinner,textArea);
+        horl.add(singleFileUpload,verl);
+        horl.setAlignItems(Alignment.CENTER);
+
+        add(horl,textArea);
 
     }
 
 
-//    DriverManagerDataSource ds = new DriverManagerDataSource();
-//    Configuration conf;
-//    conf = comboBox.getValue();
-//
-//        ds.setUrl(conf.getDb_Url());
-//        ds.setUsername(conf.getUserName());
-//        ds.setPassword(conf.getPassword());
-//
-//        try {
-//
-//        jdbcTemplate.setDataSource(ds);
-//
-//        mailboxen = jdbcTemplate.query(
-//                sql,
-//                new BeanPropertyRowMapper(Mailbox.class));
-//
-//
-//
-//        System.out.println("MAILBOX_CONFIG eingelesen");
-//
-//    } catch (Exception e) {
-//        System.out.println("Exception: " + e.getMessage());
-//    }
+
+private void upload() throws SQLException, IOException, ClassNotFoundException, InterruptedException {
 
 
-private void upload() throws SQLException, IOException, ClassNotFoundException {
+    System.out.println("Excel import: "+  fileName + " => Mime-Type: " + mimeType  + " Größe " + contentLength + " Byte");
+
+    textArea.setValue(LocalDateTime.now().format(formatter) + ": Info: Verarbeite Datei: " + fileName + " (" + contentLength + " Byte)");
 
 
-    System.out.println("Excel import ");
+    if(!mimeType.contains("application/vnd.ms-excel"))
+    {
+        textArea.setValue(LocalDateTime.now().format(formatter) + ": Error: ungültiges Dateiformat!");
+    }
 
-
-
-    /* We should now load excel objects and loop through the worksheet data */
-    FileInputStream input_document = new FileInputStream(new File("C:\\tmp\\ELA_FAVORITEN.XLS"));
+ //   FileInputStream input_document = new FileInputStream(new File("C:\\tmp\\ELA_FAVORITEN.XLS"));
     /* Load workbook */
-    HSSFWorkbook my_xls_workbook = new HSSFWorkbook(input_document);
+
+
+    HSSFWorkbook my_xls_workbook = new HSSFWorkbook(fileData);
+//    HSSFWorkbook my_xls_workbook = new HSSFWorkbook(input_document);
     /* Load worksheet */
     HSSFSheet my_worksheet = my_xls_workbook.getSheetAt(0);
     // we loop through and insert data
@@ -164,6 +195,7 @@ private void upload() throws SQLException, IOException, ClassNotFoundException {
             Row row = rowIterator.next();
             RowNumber++;
          //   System.out.println("Zeile:" + RowNumber.toString());
+
             Iterator<Cell> cellIterator = row.cellIterator();
             while(cellIterator.hasNext()) {
 
@@ -223,18 +255,23 @@ private void upload() throws SQLException, IOException, ClassNotFoundException {
 
     }
 
-    textArea.setValue("Anzahl Zeilen im Excel: " + elaFavoritenListe.size());
-    textArea.setValue(textArea.getValue() + "\nStart Upload to DB");
+
+    //textArea.setValue(textArea.getValue() + "\n" + Instant.now() + ": Start Upload to DB");
+
+    textArea.setValue(textArea.getValue() + "\n" + LocalDateTime.now().format(formatter) + ": Info: Anzahl Zeilen: " + elaFavoritenListe.size());
+    textArea.setValue(textArea.getValue() + "\n" + LocalDateTime.now().format(formatter) + ": Info: Start Upload to DB");
+
     System.out.println("Anzahl Zeilen im Excel: " + elaFavoritenListe.size());
 
     UI ui = UI.getCurrent();
     // Instruct client side to poll for changes and show spinner
     ui.setPollInterval(500);
 
+    //spinner.setValue(0.5);
     spinner.setVisible(true);
 
     /* Close input stream */
-    input_document.close();
+//    input_document.close();
 
     CompletableFuture.runAsync(() -> {
 
@@ -242,9 +279,7 @@ private void upload() throws SQLException, IOException, ClassNotFoundException {
         try {
            ret = write2DB(elaFavoritenListe);
 
-              if(ret==1){
-                System.out.println("Fehlgeschlagen! " );
-            }
+
             Thread.sleep(20); //2 Sekunden warten
 
 
@@ -257,8 +292,17 @@ private void upload() throws SQLException, IOException, ClassNotFoundException {
         ui.access(() -> {
             // Stop polling and hide spinner
             ui.setPollInterval(-1);
+//            spinner.setValue(1);
+            button.setEnabled(true);
             spinner.setVisible(false);
-            textArea.setValue(textArea.getValue() + "\nEnde Upload to DB");
+            if(ret!=0){
+                System.out.println("Fehlgeschlagen! " );
+                textArea.setValue(textArea.getValue() + "\n" + LocalDateTime.now().format(formatter) + ": Error: Upload to DB fehlgeschlagen!");
+            }
+            else {
+                textArea.setValue(textArea.getValue() + "\n" + LocalDateTime.now().format(formatter) + ": Info: Ende Upload to DB erfolgreich");
+            }
+
         });
     });
 
@@ -312,6 +356,7 @@ private void upload() throws SQLException, IOException, ClassNotFoundException {
         } catch (Exception e) {
          //   textArea.setValue(textArea.getValue() + "\nFehler beim Speichern in DB!");
             System.out.println("Exception: " + e.getMessage());
+            return -1;
         }
 
 
@@ -332,6 +377,7 @@ return 0;
         if (cell.getCellType()!=Cell.CELL_TYPE_STRING && !cell.getStringCellValue().isEmpty())
         {
             System.out.println("Zeile " + zeile.toString() + ", Spalte " + spalte + " konnte nicht gelesen werden, da ExcelTyp Numeric!");
+            textArea.setValue(textArea.getValue() + "\n" + LocalDateTime.now().format(formatter) + ": Error: Zeile " + zeile.toString() + ", Spalte " + spalte + " konnte nicht gelesen werden, da ExcelTyp Numeric!");
             return "";
         }
         else
@@ -339,6 +385,7 @@ return 0;
             if (cell.getStringCellValue().isEmpty())
             {
                 System.out.println("Info: Zeile " + zeile.toString() + ", Spalte " + spalte + " ist leer");
+                textArea.setValue(textArea.getValue() + "\n" + LocalDateTime.now().format(formatter) + ": Info: Zeile " + zeile.toString() + ", Spalte " + spalte + " ist leer");
             }
             return  cell.getStringCellValue();
 
@@ -352,6 +399,7 @@ return 0;
         if (cell.getCellType()!=Cell.CELL_TYPE_NUMERIC)
         {
             System.out.println("Zeile " + zeile.toString() + ", Spalte " + spalte + " konnte nicht gelesen werden, da ExcelTyp nicht numerisch!");
+            textArea.setValue(textArea.getValue() + "\n" + LocalDateTime.now().format(formatter) + ": Error: Zeile " + zeile.toString() + ", Spalte " + spalte + " konnte nicht gelesen werden, da ExcelTyp nicht Numeric!");
             return 0;
         }
         else
