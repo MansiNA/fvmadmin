@@ -12,9 +12,12 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import javax.annotation.security.PermitAll;
+
 
 @PageTitle("Info | by DBUSS GmbH")
 @Route(value = "demo", layout= MainLayout.class)
+@PermitAll
 //@Route(value = "")
 public class ListView extends VerticalLayout {
 

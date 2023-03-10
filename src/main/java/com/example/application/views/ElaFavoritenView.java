@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+import javax.annotation.security.PermitAll;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,6 +48,7 @@ import java.util.concurrent.CompletableFuture;
 
 @PageTitle("Upload ELA-Favoriten | by DBUSS GmbH")
 @Route(value = "ela-upload", layout= MainLayout.class)
+@PermitAll
 public class ElaFavoritenView extends VerticalLayout {
     @Autowired
     JdbcTemplate jdbcTemplate;

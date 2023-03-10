@@ -1,8 +1,10 @@
 package com.example.application.views;
 
+import com.example.application.security.SecurityService;
 import com.example.application.utils.OSInfoUtil;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -14,22 +16,25 @@ import com.vaadin.flow.router.RouterLink;
 //@Route(value = "")
 public class MainLayout extends AppLayout {
 
-
-    public MainLayout(){
+    private final SecurityService securityService;
+    public MainLayout(SecurityService securityService){
         createHeader();
         createDrawer();
+        this.securityService = securityService;
     }
 
     private void createHeader() {
         H1 logo = new H1("FVM Admin Tool");
         logo.addClassNames("text-l","m-m");
 
+        Button logout = new Button("Log out", e -> securityService.logout());
+
 
         Image image = new Image("images/dataport.png", "Dataport Image");
 
         System.out.println("Betriebssystem: " + OSInfoUtil.getOsName());
 
-        HorizontalLayout header= new HorizontalLayout(new DrawerToggle(),logo);
+        HorizontalLayout header= new HorizontalLayout(new DrawerToggle(),logo, logout);
         header.add(image);
 
 

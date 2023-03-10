@@ -28,6 +28,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.support.lob.DefaultLobHandler;
 import org.springframework.jdbc.support.lob.LobHandler;
 
+import javax.annotation.security.PermitAll;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,6 +43,7 @@ import java.util.concurrent.CompletableFuture;
 
 @PageTitle("MessageExport")
 @Route(value = "messageexport", layout= MainLayout.class)
+@PermitAll
 public class MessageExportView extends VerticalLayout {
 
     @Autowired

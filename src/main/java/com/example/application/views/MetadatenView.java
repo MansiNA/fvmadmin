@@ -35,6 +35,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+import javax.annotation.security.PermitAll;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -42,6 +43,7 @@ import java.util.stream.Stream;
 
 @PageTitle("Tabelle Metadaten")
 @Route(value = "metadaten", layout= MainLayout.class)
+@PermitAll
 //@Route(value = "")
 public class MetadatenView extends VerticalLayout {
 

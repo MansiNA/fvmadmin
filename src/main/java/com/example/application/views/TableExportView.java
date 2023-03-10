@@ -22,6 +22,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
+import javax.annotation.security.PermitAll;
 import java.io.*;
 import java.sql.*;
 import java.util.Iterator;
@@ -31,6 +32,7 @@ import java.util.Properties;
 @PageTitle("Table Export")
 @Route(value = "table-export", layout= MainLayout.class)
 @ConfigurationPropertiesScan
+@PermitAll
 public class TableExportView extends VerticalLayout {
 
   //  @Value("${export.tables}")

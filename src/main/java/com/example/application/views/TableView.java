@@ -29,12 +29,14 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 
+import javax.annotation.security.PermitAll;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
 
 @PageTitle("Table Export")
 @Route(value = "table-view", layout= MainLayout.class)
+@PermitAll
 public class TableView extends VerticalLayout {
 
     public static Connection conn;
