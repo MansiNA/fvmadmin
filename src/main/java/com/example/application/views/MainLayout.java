@@ -12,6 +12,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.HighlightConditions;
 import com.vaadin.flow.router.RouterLink;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 //@Route(value = "")
 public class MainLayout extends AppLayout {
@@ -27,8 +29,10 @@ public class MainLayout extends AppLayout {
         H1 logo = new H1("FVM Admin Tool");
         logo.addClassNames("text-l","m-m");
 
-        Button logout = new Button("Log out", e -> securityService.logout());
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUserName = authentication.getName();
 
+        Button logout = new Button("Log out " + currentUserName, e -> securityService.logout());
 
         Image image = new Image("images/dataport.png", "Dataport Image");
 

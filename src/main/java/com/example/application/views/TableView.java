@@ -77,7 +77,7 @@ public class TableView extends VerticalLayout {
         //ComponentEventListener<ClickEvent<MenuItem>> listener = e -> selected.setText(e.getSource().getText());
 
         //Read File for SQLs
-        File text = new File("C:\\tmp\\sql.txt");
+        File text = new File("sql.txt");
         //Creating Scanner instance to read File in Java
         Scanner scnr = new Scanner(text);
 
