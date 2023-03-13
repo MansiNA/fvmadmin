@@ -1,12 +1,15 @@
 package com.example.application.views;
 
+import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.QSql;
 import com.example.application.data.entity.TableInfo;
+import com.example.application.data.service.ConfigurationService;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.grid.Grid;
@@ -15,6 +18,7 @@ import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.BoxSizing;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -28,6 +32,7 @@ import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.annotation.security.PermitAll;
 import java.io.*;
@@ -39,6 +44,8 @@ import java.util.*;
 @PermitAll
 public class TableView extends VerticalLayout {
 
+    private ConfigurationService service;
+    private ComboBox<Configuration> comboBox;
     public static Connection conn;
     private ResultSet resultset;
     private Button smallButton = new Button("Export");
@@ -54,22 +61,48 @@ public class TableView extends VerticalLayout {
     private static String user;
     private static String password;
 
-    public TableView() throws SQLException, IOException {
+    public TableView(ConfigurationService service) throws SQLException, IOException {
         //add(new H1("Table View"));
 
         anchor.getElement().setAttribute("download",true);
         anchor.setEnabled(false);
         smallButton.setVisible(false);
 
+        comboBox = new ComboBox<>("Verbindung");
+        comboBox.setItems(service.findMessageConfigurations());
+        comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
+
+        comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
+
+        HorizontalLayout hl = new HorizontalLayout();
+        hl.add(comboBox);
+        hl.setAlignItems(FlexComponent.Alignment.BASELINE);
+        setSizeFull();
+       // add(hl);
+
+
         MenuBar menuBar = new MenuBar();
 
-        Properties properties = new Properties();
-        BufferedInputStream stream = new BufferedInputStream(new FileInputStream("config.properties"));
-        properties.load(stream);
-        stream.close();
+     /*   Properties properties = new Properties();
+        BufferedInputStream stream = null;
+        try {
+            stream = new BufferedInputStream(new FileInputStream("config.properties"));
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            properties.load(stream);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        try {
+            stream.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         url = properties.getProperty("tableview.url");
         user = properties.getProperty("tableview.user");
-        password = properties.getProperty("tableview.password");
+        password = properties.getProperty("tableview.password");*/
 
 
 
@@ -79,7 +112,12 @@ public class TableView extends VerticalLayout {
         //Read File for SQLs
         File text = new File("sql.txt");
         //Creating Scanner instance to read File in Java
-        Scanner scnr = new Scanner(text);
+        Scanner scnr = null;
+        try {
+            scnr = new Scanner(text);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
 
         List<QSql> aList = new ArrayList<QSql>();
 
@@ -211,7 +249,7 @@ public class TableView extends VerticalLayout {
         horizontalLayout.setPadding(true);
        // horizontalLayout.setMargin(true);
 
-        horizontalLayout.add(TableChooser);
+        horizontalLayout.add(hl,TableChooser);
         horizontalLayout.add(smallButton);
         horizontalLayout.add(anchor);
 
@@ -225,7 +263,7 @@ public class TableView extends VerticalLayout {
         horizontalLayout.setFlexGrow(1,TableChooser);
         add(horizontalLayout);
 
-        show_grid("select 'Choose Table first!' as Info from dual");
+        //show_grid("select 'Choose Table first!' as Info from dual");
 
         add(grid2);
 
@@ -302,8 +340,6 @@ public class TableView extends VerticalLayout {
     public List<LinkedHashMap<String,Object>> retrieveRows(String queryString) throws SQLException, IOException {
 
 
-
-
         List<LinkedHashMap<String, Object>> rows = new LinkedList<LinkedHashMap<String, Object>>();
 
         PreparedStatement s = null;
@@ -314,10 +350,14 @@ public class TableView extends VerticalLayout {
         //    String user="SYSTEM";
         //    String password="Michael123";
 
+            DriverManagerDataSource ds = new DriverManagerDataSource();
+            Configuration conf;
+            conf = comboBox.getValue();
+
             Class.forName("oracle.jdbc.driver.OracleDriver");
 
-            //   DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
-            Connection conn=DriverManager.getConnection(url, user, password);
+        //    Connection conn=DriverManager.getConnection(url, user, password);
+            Connection conn=DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), conf.getPassword());
 
 
             s = conn.prepareStatement(queryString);
@@ -348,7 +388,10 @@ public class TableView extends VerticalLayout {
             }
         } catch (SQLException | IllegalArgumentException  | SecurityException e) {
            // e.printStackTrace();
-            add(new Text(e.getMessage()));
+           // add(new Text(e.getMessage()));
+
+            Notification notification = Notification.show(e.getMessage());
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
 
             return Collections.emptyList();
         } catch (ClassNotFoundException e) {

@@ -26,11 +26,11 @@ public class SecurityConfig extends VaadinWebSecurity {
     private static class SimpleInMemoryUserDetailsManager extends InMemoryUserDetailsManager {
         public SimpleInMemoryUserDetailsManager() {
             createUser(new User("user",
-                    "{noop}userpass",
+                    "{noop}user#01",
                     Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"))
             ));
             createUser(new User("admin",
-                    "{noop}userpass",
+                    "{noop}admin#01",
                     Collections.singleton(new SimpleGrantedAuthority("ROLE_ADMIN"))
             ));
         }
