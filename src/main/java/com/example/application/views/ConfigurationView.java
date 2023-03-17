@@ -1,7 +1,6 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
-import com.example.application.data.entity.Contact;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.views.list.ConfigForm;
 import com.vaadin.flow.component.Component;
@@ -14,8 +13,11 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import javax.annotation.security.RolesAllowed;
+
 @PageTitle("Configuration")
 @Route(value = "config", layout= MainLayout.class)
+@RolesAllowed("ADMIN")
 public class ConfigurationView extends VerticalLayout {
     ConfigForm cf;
     Configuration config;

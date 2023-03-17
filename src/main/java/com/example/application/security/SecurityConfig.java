@@ -8,7 +8,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.provisioning.UserDetailsManager;
 
 import java.util.Collections;
 
@@ -47,10 +49,39 @@ public class SecurityConfig extends VaadinWebSecurity {
 
     }
 
+/*
     @Bean
     public InMemoryUserDetailsManager userDetailsService() {
         return new SimpleInMemoryUserDetailsManager();
-
-
     }
+*/
+
+    @Bean
+    public UserDetailsManager userDetailsService() {
+        UserDetails user =
+                User.withUsername("user")
+                        .password("{noop}user")
+                        .roles("USER")
+                        .build();
+        UserDetails admin =
+                User.withUsername("admin")
+                        .password("{noop}admin")
+                        .roles("ADMIN")
+                        .build();
+        return new InMemoryUserDetailsManager(user, admin);
+    }
+
+
+ /*   @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception
+    {
+        http
+                .authorizeHttpRequests(
+                        authorizeHttpRequest -> authorizeHttpRequest.regexMatchers("/tip").permitAll()
+                                .anyRequest().authenticated()
+                ).formLogin(Customizer.withDefaults())
+                .httpBasic(Customizer.withDefaults());
+        return http.build();
+    }
+*/
 }

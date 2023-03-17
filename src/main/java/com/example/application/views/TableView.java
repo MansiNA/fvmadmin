@@ -32,6 +32,7 @@ import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.annotation.security.PermitAll;
@@ -44,8 +45,11 @@ import java.util.*;
 @PermitAll
 public class TableView extends VerticalLayout {
 
+    private String exportPath;
+    String myPath;
+
     private ConfigurationService service;
-    private ComboBox<Configuration> comboBox;
+    private static ComboBox<Configuration> comboBox;
     public static Connection conn;
     private ResultSet resultset;
     private Button smallButton = new Button("Export");
@@ -61,9 +65,10 @@ public class TableView extends VerticalLayout {
     private static String user;
     private static String password;
 
-    public TableView(ConfigurationService service) throws SQLException, IOException {
+    public TableView(@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service) throws SQLException, IOException {
         //add(new H1("Table View"));
-
+        this.exportPath=p_exportPath;
+        System.out.println("Export Path: " + exportPath);
         anchor.getElement().setAttribute("download",true);
         anchor.setEnabled(false);
         smallButton.setVisible(false);
@@ -138,6 +143,8 @@ public class TableView extends VerticalLayout {
 //        };
 
             System.out.println("Ausgewählt: " + e.getSource().getText());
+
+            System.out.println("Export-Path: " + exportPath);
 
             for (QSql line : aList){
                 if(e.getSource().getText().contains(line.Name))
@@ -216,9 +223,9 @@ public class TableView extends VerticalLayout {
             Notification.show("Exportiere " + aktuelle_Tabelle);
             //System.out.println("aktuelle_SQL:" + aktuelle_SQL);
             try {
-                generateExcel("c:\\tmp\\" + aktuelle_Tabelle + ".xls",aktuelle_SQL);
+                generateExcel(exportPath + aktuelle_Tabelle + ".xls",aktuelle_SQL);
 
-                File file= new File("c:\\tmp\\" + aktuelle_Tabelle +".xls");
+                File file= new File(exportPath + aktuelle_Tabelle +".xls");
                 StreamResource streamResource = new StreamResource(file.getName(),()->getStream(file));
 
                 anchor.setHref(streamResource);
@@ -269,6 +276,7 @@ public class TableView extends VerticalLayout {
 
 
     }
+
 
     private InputStream getStream(File file) {
         FileInputStream stream = null;
@@ -409,15 +417,23 @@ public class TableView extends VerticalLayout {
     }
 
     private static void generateExcel(String file, String query) throws IOException {
+        Configuration conf;
+        conf = comboBox.getValue();
+
         try {
             //String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
             //String user="SYSTEM";
             //String password="Michael123";
 
+
+
+
             Class.forName("oracle.jdbc.driver.OracleDriver");
 
+            //    Connection conn=DriverManager.getConnection(url, user, password);
+            Connection conn=DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), conf.getPassword());
+
             //   DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
-            Connection conn=DriverManager.getConnection(url, user, password);
 
 
             PreparedStatement stmt=null;
@@ -525,11 +541,8 @@ public class TableView extends VerticalLayout {
             fileOut.close();
 
 
-
-
-
         } catch (SQLException | FileNotFoundException e) {
-            // TODO Auto-generated catch block
+            System.out.println("Error in Method generateExcel(String file, String query) file: " + file + " query: "  + query);
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);

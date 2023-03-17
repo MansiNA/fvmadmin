@@ -5,17 +5,15 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import org.springframework.beans.factory.annotation.Value;
-
-import javax.annotation.security.PermitAll;
+import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 @PageTitle("FVM-Admin Tool")
 @Route(value = "", layout= MainLayout.class)
-@PermitAll
+@AnonymousAllowed
 public class InfoView extends VerticalLayout {
 
-    @Value("${ldap.urls}")
-    private String ldapUrls;
+   // @Value("${ldap.urls}")
+    //private String ldapUrls;
 
     public InfoView(){
 

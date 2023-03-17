@@ -8,11 +8,11 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
-import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 
 @PageTitle("FileBrowser")
 @Route(value = "filebrowser", layout= MainLayout.class)
-@PermitAll
+@RolesAllowed("ADMIN")
 public class FileBrowserView extends VerticalLayout {
 
     public FileBrowserView (ConfigurationService service) throws JSchException, SftpException {

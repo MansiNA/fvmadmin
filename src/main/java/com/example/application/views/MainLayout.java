@@ -29,14 +29,38 @@ public class MainLayout extends AppLayout {
         H1 logo = new H1("FVM Admin Tool");
         logo.addClassNames("text-l","m-m");
 
+      /*  String principal = "Michael@dbuss.de";
+        String credentials ="gfdgfd";
+        Authentication user= new UsernamePasswordAuthenticationToken(principal, credentials);
+        SecurityContextHolder.getContext().setAuthentication(user);*/
+
+
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUserName = authentication.getName();
 
         Button logout = new Button("Log out " + currentUserName, e -> securityService.logout());
 
+        if (currentUserName=="anonymousUser")
+        {
+            logout.setVisible(false);
+        }
+        else
+        {
+            logout.setVisible(true);
+        }
+
+
+
+
+
         Image image = new Image("images/dataport.png", "Dataport Image");
 
         System.out.println("Betriebssystem: " + OSInfoUtil.getOsName());
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        System.out.println("angemeldeter User: " + auth.getName());
 
         HorizontalLayout header= new HorizontalLayout(new DrawerToggle(),logo, logout);
         header.add(image);

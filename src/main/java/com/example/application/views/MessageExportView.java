@@ -23,12 +23,13 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.support.lob.DefaultLobHandler;
 import org.springframework.jdbc.support.lob.LobHandler;
 
-import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -43,9 +44,10 @@ import java.util.concurrent.CompletableFuture;
 
 @PageTitle("MessageExport")
 @Route(value = "messageexport", layout= MainLayout.class)
-@PermitAll
+@RolesAllowed("ADMIN")
 public class MessageExportView extends VerticalLayout {
-
+    @Value("${messages_exportPath}")
+    private String exportPath;
     @Autowired
     JdbcTemplate jdbcTemplate;
     private TextField textField = new TextField();
@@ -58,14 +60,14 @@ public class MessageExportView extends VerticalLayout {
     private RawHtml rawHtmlml = new RawHtml();
     //VerticalLayout infoBox = new VerticalLayout();
     Details details = new Details("Dateiübersicht", rawHtmlml);
-    File uploadFolder = getUploadFolder();
+    File uploadFolder;
     private final VerticalLayout live_content;
     private final VerticalLayout archive_content;
 
     private final VerticalLayout main_content;
 
     private Integer NachrichtID;
-    DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
+    DownloadLinksArea linksArea;
     public LobHandler lobHandler;
 
     private  ComboBox<Configuration> comboBox;
@@ -73,9 +75,17 @@ public class MessageExportView extends VerticalLayout {
     private final Tab archive;
     private ConfigurationService service;
     Integer ret=0;
-    public MessageExportView(ConfigurationService service) {
+    public MessageExportView(@Value("${messages_exportPath}") String p_exportPath, ConfigurationService service) {
 
         this.service=service;
+        this.exportPath=p_exportPath;
+
+        System.out.println("Message Export Path: " + exportPath);
+
+        uploadFolder = new File(exportPath);
+        linksArea = new DownloadLinksArea(uploadFolder);
+
+
 
         live = new Tab("Prod");
         archive = new Tab("Archive");
@@ -105,6 +115,9 @@ public class MessageExportView extends VerticalLayout {
         comboBox.setItems(service.findMessageConfigurations());
         comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
 
+
+
+        uploadFolder = getUploadFolder();
 
         Button button = new Button("Start Export");
         Paragraph info = new Paragraph(infoText());
@@ -164,7 +177,12 @@ public class MessageExportView extends VerticalLayout {
 
                     String csvData= "";
 
-                    String InfoFile="c:/tmp/messages/"+ NachrichtID.toString() +"/eKP_ZIP_Protokoll.html";
+                    //String InfoFile="c:/tmp/messages/"+ NachrichtID.toString() +"/eKP_ZIP_Protokoll.html";
+
+
+                    String InfoFile=exportPath + NachrichtID.toString() +"/eKP_ZIP_Protokoll.html";
+
+                    System.out.println("Suche ekp_ZIP_Protokoll.html unter " + InfoFile );
 
                     Path filePath = Path.of(InfoFile);
 
@@ -173,6 +191,7 @@ public class MessageExportView extends VerticalLayout {
                         byte[] bytes = Files.readAllBytes(Paths.get(filePath.toUri()));
                         csvData = new String (bytes);
                     } catch (IOException e) {
+
                         System.out.println("InfoFile >" + InfoFile +"< nicht gefunden:" + e.getMessage());
                         //handle exception
                     }
@@ -183,7 +202,9 @@ public class MessageExportView extends VerticalLayout {
                     details.setVisible(true);
                     info.setVisible(false);
 
-                    ZipMessage("c:/tmp/messages/", NachrichtID);
+                 //   ZipMessage("c:/tmp/messages/", NachrichtID);
+                    ZipMessage(exportPath , NachrichtID);
+
                     linksArea.refreshFileLinks();
                 });
             });
@@ -236,6 +257,11 @@ public class MessageExportView extends VerticalLayout {
 
     }
 
+    private void read_parameter() {
+
+        System.out.println("Export Path: " + exportPath);
+    }
+
     private void setContent(Tab tab) {
         main_content.removeAll();
         if (tab == null) {
@@ -257,8 +283,11 @@ public class MessageExportView extends VerticalLayout {
     }
 
 
-    private static File getUploadFolder() {
-        File folder = new File("c:\\tmp\\messages");
+    private File getUploadFolder() {
+        //File folder = new File("c:\\tmp\\messages");
+
+        File folder = new File(exportPath);
+
         if (!folder.exists()) {
             folder.mkdirs();
         }
@@ -316,13 +345,15 @@ public class MessageExportView extends VerticalLayout {
         // In values stehen jetzt die Dateien mit namen und Pfad
         // Schreiben in Dateisystem:
 
-
+        String targetfolder="";
         //values.forEach(x->System.out.println(x.getName()));
-        String targetfolder="c:\\tmp\\messages\\";
+
+        targetfolder=exportPath;
+
 
         for(ValueBlob val : values)
         {
-            String MyFile= targetfolder + nachrichtid + "\\"+ val.getPfad() +  val.getName();
+            String MyFile= targetfolder + nachrichtid + val.getPfad() +  val.getName();
             //String MyFile= "c:\\tmp\\tmp_exportMS\\"+ val.getPfad() +  val.getName();
             System.out.println("Schreibe File: " + MyFile);
 
@@ -335,7 +366,6 @@ public class MessageExportView extends VerticalLayout {
 
 
         }
-
 
         return 0;
 

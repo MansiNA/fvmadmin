@@ -24,13 +24,13 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
-import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @PageTitle("Mailbox Verwaltung")
 @Route(value = "mailbox-config", layout= MainLayout.class)
-@PermitAll
+@RolesAllowed("ADMIN")
 public class MailboxConfigView  extends VerticalLayout {
     @Autowired
     JdbcTemplate jdbcTemplate;

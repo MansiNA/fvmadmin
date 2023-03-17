@@ -5,9 +5,11 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.auth.AnonymousAllowed;
 
 @PageTitle("Dashboard | by DBUSS GmbH")
 @Route(value = "dashboard", layout= MainLayout.class)
+@AnonymousAllowed
 public class DashboardView extends VerticalLayout{
 
     private CrmService service;
