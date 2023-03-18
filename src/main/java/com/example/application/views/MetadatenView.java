@@ -133,7 +133,6 @@ public class MetadatenView extends VerticalLayout {
         bearbeiternameColumn.setVisible(false);
         papiervorgangColumn.setVisible(false);
         fachverfahrenColumn.setVisible(false);
-        nachrichttypColumn.setVisible(false);
         transportversionColumn.setVisible(false);
         artColumn.setVisible(false);
         senderColumn.setVisible(false);

@@ -3,9 +3,13 @@ package com.example.application.views;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.Mailbox;
 import com.example.application.data.service.ConfigurationService;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.contextmenu.ContextMenu;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
@@ -38,7 +42,8 @@ public class MailboxConfigView  extends VerticalLayout {
     private ComboBox<Configuration> comboBox;
     Grid<Mailbox> grid = new Grid<>(Mailbox.class, false);
     Integer ret = 0;
-    Button button = new Button("Refresh");
+   // Button button = new Button("load");
+    Button refresh = new Button("refresh");
     List<Mailbox> mailboxen;
 
     public MailboxConfigView(ConfigurationService service)  {
@@ -51,17 +56,28 @@ public class MailboxConfigView  extends VerticalLayout {
 
         comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
 
+
+
         HorizontalLayout hl = new HorizontalLayout();
-        hl.add(comboBox,button);
+     //   hl.add(comboBox,button,refresh);
+        hl.add(comboBox,refresh);
         hl.setAlignItems(FlexComponent.Alignment.BASELINE);
         setSizeFull();
         add(hl);
 
 
        // grid.setSelectionMode(Grid.SelectionMode.MULTI);
-        grid.addColumn(createEmployeeTemplateRenderer()).setHeader("Postfach")
+        grid.addColumn(createEmployeeTemplateRenderer()).setHeader("Name des Postfachs")
                 .setAutoWidth(true).setResizable(true);
-        grid.addColumn(Mailbox::getKONVERTIERUNGSDIENSTE).setHeader("hat Konvertierungsdienst")
+        grid.addColumn((Mailbox::getIn_egvp_wartend)).setHeader("wartend in EGVP-E")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
+        Grid.Column<Mailbox> inVerarbeitungColumn = grid.addColumn((Mailbox::getAktuell_in_eKP_verarbeitet)).setHeader("in eKP Verarbeitung")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
+        Grid.Column<Mailbox> haengendColumn = grid.addColumn((Mailbox::getIn_ekp_haengend)).setHeader("in eKP hängend")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
+        Grid.Column<Mailbox> FHColumn = grid.addColumn((Mailbox::getIn_ekp_fehlerhospital)).setHeader("im FH")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
+        Grid.Column<Mailbox> KONVERTIERUNGSDIENSTEColumn = grid.addColumn(Mailbox::getKONVERTIERUNGSDIENSTE).setHeader("hat Konvertierungsdienst")
                 .setAutoWidth(true).setResizable(true).setSortable(true);
         grid.addColumn(createStatusComponentRenderer()).setHeader("Status")
                 .setAutoWidth(true).setResizable(true);
@@ -89,12 +105,35 @@ public class MailboxConfigView  extends VerticalLayout {
                         })
         );
 
+        inVerarbeitungColumn.setVisible(false);
+        haengendColumn.setVisible(false);
+        FHColumn.setVisible(false);
+        KONVERTIERUNGSDIENSTEColumn.setVisible(false);
+
+        Button menuButton = new Button("Show/Hide Columns");
+        menuButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        ColumnToggleContextMenu columnToggleContextMenu = new ColumnToggleContextMenu(menuButton);
+        columnToggleContextMenu.addColumnToggleItem("in Verarbeitung", inVerarbeitungColumn);
+        columnToggleContextMenu.addColumnToggleItem("hängende Nachrichten", haengendColumn);
+        columnToggleContextMenu.addColumnToggleItem("im Fehlerhospital", FHColumn);
+        columnToggleContextMenu.addColumnToggleItem("Konvertierungsdienste", KONVERTIERUNGSDIENSTEColumn);
+
       //  updateList();
 
       //  grid.setItems(mailboxen);
-        add(grid);
+        Span title = new Span("Postfächer");
+        title.getStyle().set("font-weight", "bold");
+        HorizontalLayout headerLayout = new HorizontalLayout(title, menuButton);
+        headerLayout.setAlignItems(FlexComponent.Alignment.BASELINE);
+        headerLayout.setFlexGrow(1, title);
 
-        button.addClickListener(clickEvent -> {
+        add(headerLayout,grid);
+
+        refresh.addClickListener(e -> updateList());
+
+       // button.addClickListener(clickEvent -> {
+        comboBox.addValueChangeListener(event->{
 
             UI ui = UI.getCurrent();
             grid.setItems();
@@ -113,8 +152,8 @@ public class MailboxConfigView  extends VerticalLayout {
                     //Thread.sleep(2000); //2 Sekunden warten
                     Thread.sleep(20); //2 Sekunden warten
 
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
                 }
 
                 // Need to use access() when running from background thread
@@ -141,6 +180,21 @@ public class MailboxConfigView  extends VerticalLayout {
 
     }
 
+    private static class ColumnToggleContextMenu extends ContextMenu {
+        public ColumnToggleContextMenu(Component target) {
+            super(target);
+            setOpenOnClick(true);
+        }
+
+        void addColumnToggleItem(String label, Grid.Column<Mailbox> column) {
+            MenuItem menuItem = this.addItem(label, e -> {
+                column.setVisible(e.getSource().isChecked());
+            });
+            menuItem.setCheckable(true);
+            menuItem.setChecked(column.isVisible());
+        }
+    }
+
     private void updateMessageBox(Mailbox mb, String i) {
         DriverManagerDataSource ds = new DriverManagerDataSource();
         Configuration conf;
@@ -163,7 +217,11 @@ public class MailboxConfigView  extends VerticalLayout {
 
     private List<Mailbox> getMailboxes() {
 
-        String sql = "select name,court_id,quantifier, user_id,typ,konvertierungsdienste from EKP.MAILBOX_CONFIG";
+        //String sql = "select name,court_id,quantifier, user_id,typ,konvertierungsdienste from EKP.MAILBOX_CONFIG";
+
+        //String sql = "select name,court_id,quantifier, user_id,typ,konvertierungsdienste from EKP.MAILBOX_CONFIG";
+
+        String sql="select Name,user_id,court_id,typ,konvertierungsdienste,in_egvp_wartend,quantifier,aktuell_in_eKP_verarbeitet,in_ekp_haengend,in_ekp_warteschlange,in_ekp_fehlerhospital from EKP.v_Postfach_Incoming_Status";
 
         System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
 
@@ -226,7 +284,7 @@ public class MailboxConfigView  extends VerticalLayout {
                 ;
     }
 
-    private static final SerializableBiConsumer<Span, Mailbox> statusComponentUpdater = (span, Mailbox) -> {
+  /*  private static final SerializableBiConsumer<Span, Mailbox> statusComponentUpdater = (span, Mailbox) -> {
 
         if (Mailbox.getQUANTIFIER()==0){
             String theme = String.format("badge %s", "error");
@@ -246,6 +304,27 @@ public class MailboxConfigView  extends VerticalLayout {
 
     private static ComponentRenderer<Span, Mailbox> createStatusComponentRenderer() {
         return new ComponentRenderer<>(Span::new, statusComponentUpdater);
-    }
+    }*/
 
+    private static final SerializableBiConsumer<Button, Mailbox> statusComponentUpdater = (button, Mailbox) -> {
+
+        if (Mailbox.getQUANTIFIER()==0){
+            String theme = String.format("badge %s", "error");
+            button.getElement().setAttribute("theme", theme);
+            button.setText("offline");
+        }
+        else
+        {
+            String theme = String.format("badge %s", "success");
+            button.getElement().setAttribute("theme", theme);
+            button.setText("online");
+        }
+
+
+
+    };
+
+    private static ComponentRenderer<Button, Mailbox> createStatusComponentRenderer() {
+        return new ComponentRenderer<>(Button::new, statusComponentUpdater);
+    }
 }
