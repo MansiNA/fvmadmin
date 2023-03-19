@@ -10,12 +10,17 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.NativeButtonRenderer;
@@ -31,6 +36,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import javax.annotation.security.RolesAllowed;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 @PageTitle("Mailbox Verwaltung")
 @Route(value = "mailbox-config", layout= MainLayout.class)
@@ -54,8 +60,8 @@ public class MailboxConfigView  extends VerticalLayout {
         comboBox.setItems(service.findMessageConfigurations());
         comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
 
-        comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
-
+    //    comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
+        comboBox.setPlaceholder("auswählen");
 
 
         HorizontalLayout hl = new HorizontalLayout();
@@ -67,20 +73,32 @@ public class MailboxConfigView  extends VerticalLayout {
 
 
        // grid.setSelectionMode(Grid.SelectionMode.MULTI);
-        grid.addColumn(createEmployeeTemplateRenderer()).setHeader("Name des Postfachs")
-                .setAutoWidth(true).setResizable(true);
+
+        //grid.addColumn(createEmployeeTemplateRenderer()).setHeader("Name des Postfachs")
+        //        .setAutoWidth(true).setResizable(true);
+
+        grid.addColumn(Mailbox::getNAME).setHeader("Name")
+                .setWidth("22em").setFlexGrow(0).setResizable(true).setSortable(true);
+
         grid.addColumn((Mailbox::getIn_egvp_wartend)).setHeader("wartend in EGVP-E")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
-        Grid.Column<Mailbox> inVerarbeitungColumn = grid.addColumn((Mailbox::getAktuell_in_eKP_verarbeitet)).setHeader("in eKP Verarbeitung")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
-        Grid.Column<Mailbox> haengendColumn = grid.addColumn((Mailbox::getIn_ekp_haengend)).setHeader("in eKP hängend")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+                .setWidth("10em").setFlexGrow(0).setResizable(true).setSortable(true);
+            //    .setWidth("4em").setFlexGrow(0);
+        Grid.Column<Mailbox> inVerarbeitungColumn = grid.addColumn((Mailbox::getAktuell_in_eKP_verarbeitet)).setHeader("in Verarbeitung")
+                .setWidth("10em").setFlexGrow(0).setResizable(true).setSortable(true);
+        Grid.Column<Mailbox> haengendColumn = grid.addColumn((Mailbox::getIn_ekp_haengend)).setHeader("hängend")
+                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
         Grid.Column<Mailbox> FHColumn = grid.addColumn((Mailbox::getIn_ekp_fehlerhospital)).setHeader("im FH")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+                .setWidth("6em").setFlexGrow(0).setResizable(true).setSortable(true);
         Grid.Column<Mailbox> KONVERTIERUNGSDIENSTEColumn = grid.addColumn(Mailbox::getKONVERTIERUNGSDIENSTE).setHeader("hat Konvertierungsdienst")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
-        grid.addColumn(createStatusComponentRenderer()).setHeader("Status")
-                .setAutoWidth(true).setResizable(true);
+                .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
+//        grid.addColumn(createStatusComponentRenderer()).setHeader("Status")
+//                .setAutoWidth(true).setResizable(true);
+
+
+        grid.addComponentColumn(mb -> createStatusIcon(mb.getQUANTIFIER()))
+                //.setTooltipGenerator(person -> person.getStatus())
+                .setWidth("4em").setFlexGrow(0)
+                .setHeader("Status");
 
         grid.addColumn(
                 new NativeButtonRenderer<>("Switch",
@@ -105,7 +123,13 @@ public class MailboxConfigView  extends VerticalLayout {
                         })
         );
 
-        inVerarbeitungColumn.setVisible(false);
+
+
+
+        grid.setItemDetailsRenderer(createPersonDetailsRenderer());
+        grid.addThemeVariants(GridVariant.LUMO_COMPACT);
+
+      //  inVerarbeitungColumn.setVisible(false);
         haengendColumn.setVisible(false);
         FHColumn.setVisible(false);
         KONVERTIERUNGSDIENSTEColumn.setVisible(false);
@@ -122,7 +146,7 @@ public class MailboxConfigView  extends VerticalLayout {
       //  updateList();
 
       //  grid.setItems(mailboxen);
-        Span title = new Span("Postfächer");
+        Span title = new Span("Übersicht der Postfächer");
         title.getStyle().set("font-weight", "bold");
         HorizontalLayout headerLayout = new HorizontalLayout(title, menuButton);
         headerLayout.setAlignItems(FlexComponent.Alignment.BASELINE);
@@ -180,6 +204,22 @@ public class MailboxConfigView  extends VerticalLayout {
 
     }
 
+    private Icon createStatusIcon(Integer quantifier) {
+        //boolean isAvailable = "Available".equals(status);
+
+        Icon icon;
+        if (quantifier == 1) {
+            icon = VaadinIcon.CHECK.create();
+            icon.getElement().getThemeList().add("badge success");
+        } else {
+            icon = VaadinIcon.CLOSE_SMALL.create();
+            icon.getElement().getThemeList().add("badge error");
+        }
+        icon.getStyle().set("padding", "var(--lumo-space-xs");
+        return icon;
+    }
+
+
     private static class ColumnToggleContextMenu extends ContextMenu {
         public ColumnToggleContextMenu(Component target) {
             super(target);
@@ -211,9 +251,12 @@ public class MailboxConfigView  extends VerticalLayout {
 
         } catch (Exception e) {
         System.out.println("Exception: " + e.getMessage());
-    }
+        }
 
     }
+
+
+
 
     private List<Mailbox> getMailboxes() {
 
@@ -221,7 +264,7 @@ public class MailboxConfigView  extends VerticalLayout {
 
         //String sql = "select name,court_id,quantifier, user_id,typ,konvertierungsdienste from EKP.MAILBOX_CONFIG";
 
-        String sql="select Name,user_id,court_id,typ,konvertierungsdienste,in_egvp_wartend,quantifier,aktuell_in_eKP_verarbeitet,in_ekp_haengend,in_ekp_warteschlange,in_ekp_fehlerhospital from EKP.v_Postfach_Incoming_Status";
+        String sql="select Name,user_id,court_id,typ,konvertierungsdienste,max_message_count,in_egvp_wartend,quantifier,aktuell_in_eKP_verarbeitet,in_ekp_haengend,in_ekp_warteschlange,in_ekp_fehlerhospital from EKP.v_Postfach_Incoming_Status";
 
         System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
 
@@ -262,7 +305,7 @@ public class MailboxConfigView  extends VerticalLayout {
     }
 
     private static Renderer<Mailbox> createEmployeeTemplateRenderer() {
-        return LitRenderer.<Mailbox>of(
+  /*      return LitRenderer.<Mailbox>of(
                         "<vaadin-horizontal-layout style=\"align-items: center;\" theme=\"spacing\">"
                                 + "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
                                 + "    <h4> ${item.Name} </h4>"
@@ -282,6 +325,23 @@ public class MailboxConfigView  extends VerticalLayout {
                 .withProperty("Typ", Mailbox::getTYP)
                 .withProperty("Konvertierungsdienste", Mailbox::getKONVERTIERUNGSDIENSTE)
                 ;
+*/
+        return LitRenderer.<Mailbox>of(
+                        "<vaadin-horizontal-layout style=\"align-items: center;\" theme=\"spacing\">"
+                                + "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
+                                + "    <h4> ${item.Name} </h4>"
+                                + "    <span style=\"font-size: var(--lumo-font-size-s); color: var(--lumo-secondary-text-color);\">"
+                                + "      (${item.User_ID})" + "    </span>"
+                                + "  </vaadin-vertical-layout>"
+                                + "</vaadin-horizontal-layout>")
+                .withProperty("Name", Mailbox::getNAME)
+                .withProperty("User_ID", Mailbox::getUSER_ID)
+                .withProperty("Court_ID", Mailbox::getCOURT_ID)
+                .withProperty("Quantifier", Mailbox::getQUANTIFIER)
+                .withProperty("Typ", Mailbox::getTYP)
+                .withProperty("Konvertierungsdienste", Mailbox::getKONVERTIERUNGSDIENSTE)
+                ;
+
     }
 
   /*  private static final SerializableBiConsumer<Span, Mailbox> statusComponentUpdater = (span, Mailbox) -> {
@@ -326,5 +386,37 @@ public class MailboxConfigView  extends VerticalLayout {
 
     private static ComponentRenderer<Button, Mailbox> createStatusComponentRenderer() {
         return new ComponentRenderer<>(Button::new, statusComponentUpdater);
+    }
+
+
+    private static ComponentRenderer<PersonDetailsFormLayout, Mailbox> createPersonDetailsRenderer() {
+        return new ComponentRenderer<>(PersonDetailsFormLayout::new,
+                PersonDetailsFormLayout::setPerson);
+    }
+    private static class PersonDetailsFormLayout extends FormLayout {
+        private final TextField safeIDField = new TextField("Safe-ID");
+        private final TextField courtIDField = new TextField("Court-ID");
+        private final TextField TypField = new TextField("Typ");
+        private final TextField MaxMessageCountField = new TextField("Max_Message_Count");
+
+        public PersonDetailsFormLayout() {
+            Stream.of(safeIDField, courtIDField, TypField,MaxMessageCountField).forEach(field -> {
+                field.setReadOnly(true);
+                add(field);
+            });
+
+            setResponsiveSteps(new ResponsiveStep("0", 4));
+            //setColspan(safeIDField, 2);
+            //setColspan(courtIDField, 2);
+            //setColspan(TypField, 2);
+        }
+
+        public void setPerson(Mailbox mailbox) {
+            safeIDField.setValue(mailbox.getUSER_ID());
+            courtIDField.setValue(mailbox.getCOURT_ID());
+            TypField.setValue(mailbox.getTYP());
+            MaxMessageCountField.setValue(mailbox.getMAX_MESSAGE_COUNT());
+
+        }
     }
 }

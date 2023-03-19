@@ -66,7 +66,7 @@ public class MessageExportView extends VerticalLayout {
 
     private final VerticalLayout main_content;
 
-    private Integer NachrichtID;
+    private String NachrichtID;
     DownloadLinksArea linksArea;
     public LobHandler lobHandler;
 
@@ -103,8 +103,8 @@ public class MessageExportView extends VerticalLayout {
 
         archive_content.add(new H6("Archive Nachrichten-Export"));
 
-        textField.setLabel("NachrichtIdIntern:");
-        textField.setValue("576757");
+        textField.setLabel("Nachricht-ID");
+//        textField.setValue("576757");
         textField.setClearButtonVisible(true);
 
 //        ComboBox<String> comboBox = new ComboBox<>("Verbindung");
@@ -135,7 +135,8 @@ public class MessageExportView extends VerticalLayout {
             spinner.setVisible(true);
 
            // NachrichtID=576757;
-            NachrichtID= Integer.valueOf(textField.getValue());
+          //  NachrichtID= Integer.valueOf(textField.getValue());
+            NachrichtID= textField.getValue();
             // Start background task
             CompletableFuture.runAsync(() -> {
 
@@ -294,11 +295,23 @@ public class MessageExportView extends VerticalLayout {
         return folder;
     }
 
-    private Integer exportMessage(int nachrichtid) throws IOException {
+    private Integer exportMessage(String nachrichtid) throws IOException {
 
+        Integer intNachrichtID;
         System.out.println("Exportiere: " + nachrichtid);
 
-        String sql = "select a.Name NAME,a.Relativerpfad PFAD,v.Value BVAL from ekp.anhang a inner join ekp.value_blob v on a.INHALT=v.ID  and nachrichtidintern= " + nachrichtid;
+        try{
+            intNachrichtID= Integer.valueOf(nachrichtid);
+        }
+        catch(Exception ex){
+            intNachrichtID=-99;
+        }
+
+      //  String sql = "select a.Name NAME,a.Relativerpfad PFAD,v.Value BVAL from ekp.anhang a inner join ekp.value_blob v on a.INHALT=v.ID  and nachrichtidintern= " + nachrichtid;
+
+        String sql = "select a.Name NAME,a.Relativerpfad PFAD,v.Value BVAL from ekp.anhang a inner join ekp.value_blob v on a.INHALT=v.ID inner join ekp.metadaten m on a.nachrichtidintern=m.nachrichtidintern  where m.nachrichtidintern=" + intNachrichtID  + " or m.Nachrichtidextern= '" + nachrichtid +"'";
+
+        System.out.println("SQL: " + sql);
 
         DriverManagerDataSource ds = new DriverManagerDataSource();
         Configuration conf;
@@ -371,7 +384,7 @@ public class MessageExportView extends VerticalLayout {
 
     }
 
-    private void ZipMessage(String targetfolder, Integer nachrichtid){
+    private void ZipMessage(String targetfolder, String nachrichtid){
            DateiZippen dateiZippen = new DateiZippen();
            dateiZippen.createZipOfFolder(targetfolder + nachrichtid);
     }

@@ -8,6 +8,15 @@ public class Mailbox {
     private String USER_ID;
     private String TYP;
     private String KONVERTIERUNGSDIENSTE;
+    private String MAX_MESSAGE_COUNT;
+
+    public String getMAX_MESSAGE_COUNT() {
+        return MAX_MESSAGE_COUNT;
+    }
+
+    public void setMAX_MESSAGE_COUNT(String MAX_MESSAGE_COUNT) {
+        this.MAX_MESSAGE_COUNT = MAX_MESSAGE_COUNT;
+    }
 
     private String in_egvp_wartend;
     private String aktuell_in_eKP_verarbeitet;
