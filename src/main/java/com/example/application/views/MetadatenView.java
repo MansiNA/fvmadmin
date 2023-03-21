@@ -12,6 +12,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridSortOrder;
@@ -35,6 +36,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.annotation.security.PermitAll;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -60,6 +63,8 @@ public class MetadatenView extends VerticalLayout {
     Button searchBtn = new Button("Suche");
     Button searchOldMsgBtn = new Button("alle obsolete Nachrichten");
 
+    DateTimePicker startDateTimePicker;
+    DateTimePicker endDateTimePicker;
 
     List<Metadaten> metadaten;
     List<Ablaufdaten> ablaufdaten;
@@ -78,10 +83,27 @@ public class MetadatenView extends VerticalLayout {
 
         comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
 
-        add(comboBox);
+
 
         addClassName("list-view");
       //  setSizeFull();
+
+        startDateTimePicker = new DateTimePicker(
+                "Start date and time");
+        //startDateTimePicker.setValue(LocalDateTime.of(2020, 8, 25, 20, 0, 0));
+        startDateTimePicker.setValue(LocalDateTime.now(ZoneId.systemDefault()).minusDays(1));
+
+        endDateTimePicker = new DateTimePicker(
+                "End date and time");
+        //endDateTimePicker.setValue(LocalDateTime.of(2020, 9, 1, 20, 0, 0));
+        endDateTimePicker.setValue(LocalDateTime.now(ZoneId.systemDefault()));
+        startDateTimePicker.addValueChangeListener(
+                e -> endDateTimePicker.setMin(e.getValue()));
+
+        HorizontalLayout hl = new HorizontalLayout();
+        hl.add(comboBox,startDateTimePicker, endDateTimePicker);
+
+        add(hl);
 
         gridAblaufdaten.addColumn(Ablaufdaten::getNAME_NLS).setHeader("NAME_NLS").setSortable(true).setResizable(true);
      //   gridAblaufdaten.addColumn(Ablaufdaten::getNAME).setHeader("NAME").setSortable(true).setResizable(true);
@@ -218,15 +240,20 @@ public class MetadatenView extends VerticalLayout {
                                                 });*/
 
 
+        searchOldMsgBtn.getElement().setProperty("title","Zeigt alle Nachrichten, mit EingangsdatumServer älter 60 Tage");
+        searchBtn.getElement().setProperty("title","Zeigt die Metadaten zu der gewünschten ID. Falls keine ID angegeben, werden die letzten 500 Einträge ausgegeben.");
+
+        searchBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+        searchOldMsgBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
 
         HorizontalLayout layout = new HorizontalLayout(searchField,searchBtn,searchOldMsgBtn );
         layout.setPadding(false);
 
-        HorizontalLayout hl = new HorizontalLayout();
-        hl.add(layout);
-        hl.setAlignItems(FlexComponent.Alignment.BASELINE);
+        HorizontalLayout hl1 = new HorizontalLayout();
+        hl1.add(layout);
+        hl1.setAlignItems(FlexComponent.Alignment.BASELINE);
 
-        add(hl);
+        add(hl1);
 
         Span title = new Span("Metadaten");
         title.getStyle().set("font-weight", "bold");
@@ -315,7 +342,7 @@ public class MetadatenView extends VerticalLayout {
                     System.out.println("Hole Mailbox Infos");
 
                     //metadaten=getMailboxes();
-                    metadaten=getMailboxes();
+                    metadaten=getMailboxesoldMsg();
 
 
                     //Thread.sleep(2000); //2 Sekunden warten
@@ -575,6 +602,8 @@ public class MetadatenView extends VerticalLayout {
 //                + "or nachrichtidintern=" + Search;
 
         System.out.println("Abfrage EKP.Metadaten (MetadatenView.java): ");
+        System.out.println("Von: " + startDateTimePicker.getValue());
+        System.out.println("Bis: " + endDateTimePicker.getValue());
         System.out.println(sql);
 
         DriverManagerDataSource ds = new DriverManagerDataSource();
