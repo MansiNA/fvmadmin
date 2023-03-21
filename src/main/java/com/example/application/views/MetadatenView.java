@@ -27,7 +27,6 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.SortDirection;
-import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +57,10 @@ public class MetadatenView extends VerticalLayout {
 
     TextField filterText = new TextField();
     Integer ret = 0;
-    Button button = new Button("Suche");
+    Button searchBtn = new Button("Suche");
+    Button searchOldMsgBtn = new Button("alle obsolete Nachrichten");
+
+
     List<Metadaten> metadaten;
     List<Ablaufdaten> ablaufdaten;
     List<Journal> journal;
@@ -82,7 +84,7 @@ public class MetadatenView extends VerticalLayout {
       //  setSizeFull();
 
         gridAblaufdaten.addColumn(Ablaufdaten::getNAME_NLS).setHeader("NAME_NLS").setSortable(true).setResizable(true);
-        gridAblaufdaten.addColumn(Ablaufdaten::getNAME).setHeader("NAME").setSortable(true).setResizable(true);
+     //   gridAblaufdaten.addColumn(Ablaufdaten::getNAME).setHeader("NAME").setSortable(true).setResizable(true);
         gridAblaufdaten.addColumn(Ablaufdaten::getTYP).setHeader("TYP").setSortable(true).setResizable(true);
         Grid.Column<Ablaufdaten> date = gridAblaufdaten.addColumn(Ablaufdaten::getSTART_DATUM).setHeader("Start").setSortable(true).setResizable(true);
         gridAblaufdaten.addColumn(Ablaufdaten::getENDE_DATUM).setHeader("Ende").setSortable(true).setResizable(true);
@@ -196,10 +198,12 @@ public class MetadatenView extends VerticalLayout {
 
 
         searchField.setWidth("500px");
-        searchField.setPlaceholder("NachrichtID");
+        searchField.setPlaceholder("Nachricht-ID");
         searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
-        searchField.setValueChangeMode(ValueChangeMode.LAZY);
-        /*searchField.addValueChangeListener(e -> {
+        searchField.setClearButtonVisible(true);
+
+        /*searchField.setValueChangeMode(ValueChangeMode.LAZY);
+        searchField.addValueChangeListener(e -> {
                                                     System.out.println("Suche nach: " + searchField.getValue());
                                                    // metadaten=getMailboxes(searchField.getValue());
                                                    // grid.setItems(metadaten);
@@ -215,7 +219,7 @@ public class MetadatenView extends VerticalLayout {
 
 
 
-        HorizontalLayout layout = new HorizontalLayout(searchField,button );
+        HorizontalLayout layout = new HorizontalLayout(searchField,searchBtn,searchOldMsgBtn );
         layout.setPadding(false);
 
         HorizontalLayout hl = new HorizontalLayout();
@@ -239,12 +243,16 @@ public class MetadatenView extends VerticalLayout {
         title3.getStyle().set("font-weight", "bold");
 
         add(title2, gridAblaufdaten,title3, gridEGVP);
-        button.addClickListener(clickEvent -> {
+        searchBtn.addClickListener(clickEvent -> {
 
             UI ui = UI.getCurrent();
             dataView = grid.setItems();
             dataView.refreshAll();
             metadaten=null;
+
+            gridAblaufdaten.setItems();
+            gridEGVP.setItems();
+
             // Instruct client side to poll for changes and show spinner
             ui.setPollInterval(500);
             // Start background task
@@ -254,6 +262,59 @@ public class MetadatenView extends VerticalLayout {
                 try {
                     System.out.println("Hole Mailbox Infos");
 
+                    metadaten=getMailboxes();
+
+
+                    //Thread.sleep(2000); //2 Sekunden warten
+                    Thread.sleep(20); //2 Sekunden warten
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                // Need to use access() when running from background thread
+                ui.access(() -> {
+                    // Stop polling and hide spinner
+                    ui.setPollInterval(-1);
+
+                    if (ret != 0) {
+                        System.out.println("Keine Mailbox Infos gefunden!");
+                        dataView = grid.setItems();
+                        dataView.refreshAll();
+
+                        return;
+                    }
+                    else{
+                        //grid.setItems(metadaten);
+                        dataView =grid.setItems(metadaten);
+                        dataView.refreshAll();
+                    }
+
+                });
+            });
+
+
+        });
+        searchOldMsgBtn.addClickListener(clickEvent -> {
+
+            UI ui = UI.getCurrent();
+            dataView = grid.setItems();
+            dataView.refreshAll();
+            metadaten=null;
+
+            gridAblaufdaten.setItems();
+            gridEGVP.setItems();
+
+            // Instruct client side to poll for changes and show spinner
+            ui.setPollInterval(500);
+            // Start background task
+            CompletableFuture.runAsync(() -> {
+
+                // Do some long running task
+                try {
+                    System.out.println("Hole Mailbox Infos");
+
+                    //metadaten=getMailboxes();
                     metadaten=getMailboxes();
 
 
@@ -312,7 +373,6 @@ public class MetadatenView extends VerticalLayout {
         gridAblaufdaten.setItems();
         gridEGVP.setItems();
         gridAblaufdaten.setItems(getAblaufdaten(e.getItem().getNACHRICHTIDINTERN().toString()));
-
         gridEGVP.setItems((getJournal(e.getItem().getNACHRICHTIDEXTERN().toString())));
 
 
@@ -371,6 +431,87 @@ public class MetadatenView extends VerticalLayout {
         return metadaten;
     }
 
+    private List<Metadaten> getMailboxesoldMsg() {
+
+
+        String sql = "select TIMESTAMPVERSION,\n" +
+                "       SENDERROLLEN,\n" +
+                "       ID,\n" +
+                "       nvl(to_char(EINGANGSDATUMSERVER,'dd.MM.YYYY HH24:MI'),'unbekannt') as EINGANGSDATUMSERVER,\n" +
+                "       NACHRICHTIDINTERN,\n" +
+                "       NACHRICHTIDEXTERN,\n" +
+                "       STATUS,\n" +
+                "       NACHRICHTTYP,\n" +
+                "       TRANSPORTART,\n" +
+                "       TRANSPORTVERSION,\n" +
+                "       ART,\n" +
+                "       SENDER,\n" +
+                "       SENDERAKTENZEICHEN,\n" +
+                "       SENDERGOVELLOID,\n" +
+                "       SENDERPOSTFACHNAME,\n" +
+                "       SENDERGESCHAEFTSZEICHEN,\n" +
+                "       EMPFAENGER,\n" +
+                "       EMPFAENGERAKTENZEICHEN,\n" +
+                "       EMPFAENGERGOVELLOID,\n" +
+                "       EMPFAENGERPOSTFACHNAME,\n" +
+                "       WEITERLEITUNGGOVELLOID,\n" +
+                "       WEITERLEITUNGPOSTFACHNAME,\n" +
+                "       BETREFF,\n" +
+                "       BEMERKUNG,\n" +
+                "       ERSTELLUNGSDATUM,\n" +
+                "       ABHOLDATUM,\n" +
+                "       VERFALLSDATUM,\n" +
+                "       SIGNATURPRUEFUNGSDATUM,\n" +
+                "       VALIDIERUNGSDATUM,\n" +
+                "       SIGNATURSTATUS,\n" +
+                "       FACHVERFAHREN,\n" +
+                "       FACHBEREICH,\n" +
+                "       SACHGEBIET,\n" +
+                "       ABTEILUNGE1,\n" +
+                "       ABTEILUNGE2,\n" +
+                "       PRIO,\n" +
+                "       XJUSTIZVERSION,\n" +
+                "       MANUELLBEARBEITETFLAG,\n" +
+                "       BEARBEITERNAME,\n" +
+                "       BEARBEITERKENNUNG,\n" +
+                "       FEHLERTAG,\n" +
+                "       PAPIERVORGANG,\n" +
+                "       VERARBEITET,\n" +
+                "       LOESCHTAG\n" +
+                "from EKP.Metadaten \n " +
+        "where verarbeitet=1 and loeschtag=0\n" +
+                "and eingangsdatumserver < sysdate -60\n" +
+                "or (eingangsdatumserver is null and timestampversion < sysdate -60)\n";
+
+        System.out.println("Abfrage EKP.Metadaten (MetadatenView.java) auf oldMsg: ");
+        System.out.println(sql);
+
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        Configuration conf;
+        conf = comboBox.getValue();
+
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(conf.getPassword());
+
+        try {
+
+            jdbcTemplate.setDataSource(ds);
+
+            metadaten = jdbcTemplate.query(
+                    sql,
+                    new BeanPropertyRowMapper(Metadaten.class));
+
+
+
+            System.out.println("Metadaten eingelesen");
+
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+
+        return metadaten;
+    }
     private List<Metadaten> getMailboxes() {
 
 
