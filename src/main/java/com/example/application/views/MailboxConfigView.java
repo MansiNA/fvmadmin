@@ -80,6 +80,12 @@ public class MailboxConfigView  extends VerticalLayout {
         grid.addColumn(Mailbox::getNAME).setHeader("Name")
                 .setWidth("22em").setFlexGrow(0).setResizable(true).setSortable(true);
 
+        Grid.Column<Mailbox> DaystoExpireColumn = grid.addColumn((Mailbox::getDAYSTOEXPIRE)).setHeader("Zert. Ablauf")
+                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
+        Grid.Column<Mailbox> RoleIDColumn = grid.addColumn((Mailbox::getROLEID)).setHeader("Role ID")
+                .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
+        Grid.Column<Mailbox> EgvpPFColumn = grid.addColumn((Mailbox::getStatus)).setHeader("EGVP-E PF Status")
+                .setWidth("10em").setFlexGrow(0).setResizable(true).setSortable(true);
         grid.addColumn((Mailbox::getIn_egvp_wartend)).setHeader("wartend in EGVP-E")
                 .setWidth("10em").setFlexGrow(0).setResizable(true).setSortable(true);
             //    .setWidth("4em").setFlexGrow(0);
@@ -130,6 +136,10 @@ public class MailboxConfigView  extends VerticalLayout {
         grid.addThemeVariants(GridVariant.LUMO_COMPACT);
 
       //  inVerarbeitungColumn.setVisible(false);
+        RoleIDColumn.setVisible(false);
+        EgvpPFColumn.setVisible(false);
+        DaystoExpireColumn.setVisible(false);
+
         haengendColumn.setVisible(false);
         FHColumn.setVisible(false);
         KONVERTIERUNGSDIENSTEColumn.setVisible(false);
@@ -138,6 +148,9 @@ public class MailboxConfigView  extends VerticalLayout {
         menuButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
         ColumnToggleContextMenu columnToggleContextMenu = new ColumnToggleContextMenu(menuButton);
+        columnToggleContextMenu.addColumnToggleItem("Zert. Ablauf", DaystoExpireColumn);
+        columnToggleContextMenu.addColumnToggleItem("Role-ID", RoleIDColumn);
+        columnToggleContextMenu.addColumnToggleItem("EGVP PF Status", EgvpPFColumn);
         columnToggleContextMenu.addColumnToggleItem("in Verarbeitung", inVerarbeitungColumn);
         columnToggleContextMenu.addColumnToggleItem("hängende Nachrichten", haengendColumn);
         columnToggleContextMenu.addColumnToggleItem("im Fehlerhospital", FHColumn);
@@ -264,7 +277,7 @@ public class MailboxConfigView  extends VerticalLayout {
 
         //String sql = "select name,court_id,quantifier, user_id,typ,konvertierungsdienste from EKP.MAILBOX_CONFIG";
 
-        String sql="select Name,user_id,court_id,typ,konvertierungsdienste,max_message_count,in_egvp_wartend,quantifier,aktuell_in_eKP_verarbeitet,in_ekp_haengend,in_ekp_warteschlange,in_ekp_fehlerhospital from EKP.v_Postfach_Incoming_Status";
+        String sql="select Name,user_id,court_id,typ,konvertierungsdienste,max_message_count,DAYSTOEXPIRE,ROLEID,STATUS,in_egvp_wartend,quantifier,aktuell_in_eKP_verarbeitet,in_ekp_haengend,in_ekp_warteschlange,in_ekp_fehlerhospital from EKP.v_Postfach_Incoming_Status";
 
         System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
 

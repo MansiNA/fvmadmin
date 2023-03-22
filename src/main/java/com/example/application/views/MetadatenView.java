@@ -38,6 +38,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import javax.annotation.security.PermitAll;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -589,9 +590,30 @@ public class MetadatenView extends VerticalLayout {
                 "from EKP.Metadaten \n ";
                 //"where nachrichtidextern is not null and (eingangsdatumserver is null or eingangsdatumserver > sysdate -1)";
 
+        DateTimeFormatter formatters = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+        LocalDateTime fromDate = null;
+        LocalDateTime toDate = null;
+        String sd = null;
+        try {
+            fromDate = LocalDateTime.from(startDateTimePicker.getValue());
+            toDate = LocalDateTime.from(endDateTimePicker.getValue());
+            //sd = new SimpleDateFormat("dd.MM.yyyy hh24:mm:ss").format(startDateTimePicker.getValue());
+        }
+        catch (Exception ex)
+        {
+            System.out.println(ex.getMessage());
+        }
+      //  java.sql.Date sqlfromDate = java.sql.Date.valueOf(String.valueOf(fromDate));
+
+      //  LocalDate toDate = LocalDate.from(endDateTimePicker.getValue());
+      //  java.sql.Date sqltoDate = java.sql.Date.valueOf(toDate);
+
         if (searchField.getValue().isEmpty())
         {
-            sql = sql + "where lower(nachrichtidextern) like '%' and rownum < 500";
+        //    sql = sql + "where lower(nachrichtidextern) like '%' and rownum < 500";
+            sql = sql + "where eingangsdatumserver >= to_date('" + fromDate.format(formatters) + "','DD.MM.YYYY HH24:MI:SS')";
+            sql = sql + " and eingangsdatumserver <= to_date('" + toDate.format(formatters) + "','DD.MM.YYYY HH24:MI:SS')";
+         //   sql = sql + "where eingangsdatumserver >= to_date('" + sd + "','DD.MM.YYYY HH24:MI:SS')";
         }
         else
         {
@@ -604,6 +626,10 @@ public class MetadatenView extends VerticalLayout {
         System.out.println("Abfrage EKP.Metadaten (MetadatenView.java): ");
         System.out.println("Von: " + startDateTimePicker.getValue());
         System.out.println("Bis: " + endDateTimePicker.getValue());
+
+
+
+
         System.out.println(sql);
 
         DriverManagerDataSource ds = new DriverManagerDataSource();

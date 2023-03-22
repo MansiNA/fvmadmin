@@ -1,6 +1,14 @@
 package com.example.application.views;
-import com.jcraft.jsch.*;
+
+import com.example.application.data.entity.FTPFile;
 import com.example.application.utils.Util;
+import com.jcraft.jsch.*;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -93,8 +101,47 @@ public final class SftpClient {
             if (attrs.isDir()) {
                 size = "PRE";
             }
-            System.out.printf("[%s] %s(%s)%n", permissions, name, size);
+            System.out.printf("[%s] %s(%s) Atime: %s %n", permissions, name, size, localTimeUtc(Instant.ofEpochSecond(attrs.getMTime())));
         }
+    }
+
+
+    public List<FTPFile> getFiles(String remoteDir) throws SftpException, JSchException {
+        if (channel == null) {
+            throw new IllegalArgumentException("Connection is not available");
+        }
+        System.out.printf("Listing [%s]...%n", remoteDir);
+        channel.cd(remoteDir);
+
+        List<FTPFile>_files=new ArrayList<FTPFile>();
+
+        Vector<ChannelSftp.LsEntry> files = channel.ls(".");
+        for (ChannelSftp.LsEntry file : files) {
+            FTPFile f = new FTPFile();
+
+
+            var name        = file.getFilename();
+            var attrs       = file.getAttrs();
+            var permissions = attrs.getPermissionsString();
+            var size        = Util.humanReadableByteCount(attrs.getSize());
+
+            f.setSize(attrs.getSize());
+            f.setName(file.getFilename());
+            f.setErstellungszeit(localTimeUtc(Instant.ofEpochSecond(attrs.getMTime())));
+
+            if (attrs.isDir()) {
+                size = "PRE";
+            }
+        //    System.out.printf("[%s] %s(%s) Atime: %s %n", permissions, name, size, localTimeUtc(Instant.ofEpochSecond(attrs.getMTime())));
+            _files.add(f);
+        }
+
+        return _files;
+
+    }
+
+    public static LocalDateTime localTimeUtc(Instant instant) {
+        return LocalDateTime.ofInstant(instant, ZoneOffset.systemDefault());
     }
 
     /**

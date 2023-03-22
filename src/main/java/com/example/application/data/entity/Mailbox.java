@@ -10,6 +10,36 @@ public class Mailbox {
     private String KONVERTIERUNGSDIENSTE;
     private String MAX_MESSAGE_COUNT;
 
+    private String DAYSTOEXPIRE;
+
+    private String ROLEID;
+
+    private String Status;
+
+    public String getDAYSTOEXPIRE() {
+        return DAYSTOEXPIRE;
+    }
+
+    public void setDAYSTOEXPIRE(String DAYSTOEXPIRE) {
+        this.DAYSTOEXPIRE = DAYSTOEXPIRE;
+    }
+
+    public String getROLEID() {
+        return ROLEID;
+    }
+
+    public void setROLEID(String ROLEID) {
+        this.ROLEID = ROLEID;
+    }
+
+    public String getStatus() {
+        return Status;
+    }
+
+    public void setStatus(String status) {
+        Status = status;
+    }
+
     public String getMAX_MESSAGE_COUNT() {
         return MAX_MESSAGE_COUNT;
     }
