@@ -106,7 +106,7 @@ public final class SftpClient {
     }
 
 
-    public List<FTPFile> getFiles(String remoteDir) throws SftpException, JSchException {
+    public List<FTPFile> getFiles(String remoteDir, Long fromDate, Long toDate) throws SftpException, JSchException {
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
         }
@@ -130,10 +130,13 @@ public final class SftpClient {
             f.setErstellungszeit(localTimeUtc(Instant.ofEpochSecond(attrs.getMTime())));
 
             if (attrs.isDir()) {
-                size = "PRE";
+                size = "<DIR>";
             }
         //    System.out.printf("[%s] %s(%s) Atime: %s %n", permissions, name, size, localTimeUtc(Instant.ofEpochSecond(attrs.getMTime())));
-            _files.add(f);
+
+            if (attrs.getMTime() >= fromDate && attrs.getMTime()<= toDate) {
+                _files.add(f);
+            }
         }
 
         return _files;
