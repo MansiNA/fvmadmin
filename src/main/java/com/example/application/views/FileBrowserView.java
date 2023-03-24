@@ -16,6 +16,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.annotation.security.RolesAllowed;
 import java.io.IOException;
@@ -28,17 +29,26 @@ import java.util.List;
 @Route(value = "filebrowser", layout= MainLayout.class)
 @RolesAllowed("ADMIN")
 public class FileBrowserView extends VerticalLayout {
-
-    DateTimePicker startDateTimePicker;
+     DateTimePicker startDateTimePicker;
     DateTimePicker endDateTimePicker;
 
     Grid<FTPFile> grid;
     SftpClient cl;
+    String ftp_path_1;
+    String sSHHost;
+    String sSHKeyfile;
+    String sSHUser;
+    Integer sSHPort;
     Long von;
     Long bis;
 
-    public FileBrowserView (ConfigurationService service) throws JSchException, SftpException {
+    public FileBrowserView (@Value("${SSHHost}") String SSHHost ,@Value("${SSHPort}") Integer SSHPort, @Value("${SSHUser}") String SSHUser,@Value("${SSHKeyfile}") String SSHKeyfile,  @Value("${FTPPath_1}") String FTPPath_1, ConfigurationService service) throws JSchException, SftpException {
 
+        ftp_path_1=FTPPath_1;
+        sSHKeyfile=SSHKeyfile;
+        sSHHost=SSHHost;
+        sSHUser=SSHUser;
+        sSHPort=SSHPort;
 
         add(new H3("Logfile-Browser"));
 
@@ -148,21 +158,30 @@ public class FileBrowserView extends VerticalLayout {
 
     private void refresh() throws JSchException, SftpException {
 
+        System.out.println("FTPPath_1=" + ftp_path_1 );
+      System.out.println("sSHKeyfile=" + sSHKeyfile );
+        System.out.println("sSHHost=" + sSHHost );
+        System.out.println("sSHPort=" + sSHPort );
+        System.out.println("sSHUser=" + sSHUser );
+
         von = startDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC);
         bis = endDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC);
 
-        cl = new SftpClient("37.120.189.200",9021,"michael");
-        //cl.authPassword("7x24!admin4me");
-        cl.authKey("C:\\tmp\\id_rsa","");
+      //  cl = new SftpClient("37.120.189.200",9021,"michael");
+        cl = new SftpClient(sSHHost,sSHPort,sSHUser);
 
-        List<FTPFile> files = cl.getFiles("/tmp", von,bis);
+
+        //cl.authPassword("7x24!admin4me");
+        cl.authKey(sSHKeyfile,"");
+
+        List<FTPFile> files = cl.getFiles(ftp_path_1, von,bis);
         grid.setItems(files);
 
         cl.close();
     }
     private void getFile(String SourceFile, String TargetFile) throws JSchException, SftpException {
-        SftpClient cl = new SftpClient("37.120.189.200",9021,"michael");
-        cl.authKey("C:\\tmp\\id_rsa","");
+        cl = new SftpClient(sSHHost,sSHPort,sSHUser);
+        cl.authKey(sSHKeyfile,"");
         cl.downloadFile(SourceFile, TargetFile  );
         cl.close();
     }
