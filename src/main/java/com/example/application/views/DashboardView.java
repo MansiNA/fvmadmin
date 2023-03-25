@@ -1,6 +1,10 @@
 package com.example.application.views;
 
 import com.example.application.data.service.CrmService;
+import com.example.application.service.BackendService;
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.charts.Chart;
 import com.vaadin.flow.component.charts.model.*;
@@ -8,13 +12,19 @@ import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.IFrame;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
-import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
+
 
 @PageTitle("Dashboard | by DBUSS GmbH")
 @Route(value = "dashboard", layout= MainLayout.class)
@@ -22,10 +32,18 @@ import java.util.Random;
 @AnonymousAllowed
 public class DashboardView extends VerticalLayout{
 
+    private BackendService bk_service;
     private CrmService service;
+    private Span currentPrice = new Span();
 
-    public DashboardView(CrmService service){
+    final  ListSeries mySeries;
+    ListSeries series = new ListSeries("Speed", 139);
+
+    Chart chart1 = new Chart();
+
+    public DashboardView(CrmService service, BackendService bk_service){
         this.service = service;
+        this.bk_service=bk_service;
         //add(new H1("FVM-Status Dashboard"));
 
 
@@ -35,6 +53,18 @@ public class DashboardView extends VerticalLayout{
 
         add(paragraph);
 
+
+        HorizontalLayout header = new HorizontalLayout();
+        currentPrice.setText("Aktueller Wert: " + series.toString());
+
+
+        header.add(currentPrice);
+
+        add(header);
+
+
+
+
         //Iframe iframe = new Iframe();
 
         IFrame iframe = new IFrame();
@@ -42,10 +72,10 @@ public class DashboardView extends VerticalLayout{
         iframe.setWidthFull();
         iframe.setHeight("600px");
 
-        add(iframe);
+       // add(iframe);
 
         Anchor a = new Anchor("https:\\www.dbuss.de","DBUSS");
-        add(a);
+        //add(a);
 
   /*      Chart chart2 = new Chart();
         Configuration configuration2 = chart2.getConfiguration();
@@ -70,78 +100,38 @@ public class DashboardView extends VerticalLayout{
 
 
 
+       chart1 = build_chart(99);
 
 
 
-        final Random random = new Random(0);
-        final Chart chart1 = new Chart();
 
-        final Configuration configuration = chart1.getConfiguration();
-        configuration.getChart().setType(ChartType.GAUGE);
-        configuration.setTitle("Durchsatz");
-        configuration.getChart().setWidth(600);
 
-        Pane pane = configuration.getPane();
-        pane.setStartAngle(-150);
-        pane.setEndAngle(150);
 
-        YAxis yAxis = new YAxis();
-        yAxis.setTitle("Nachrichten/h");
-        yAxis.setMin(0);
-        yAxis.setMax(300);
-        yAxis.setTickLength(10);
-        yAxis.setTickPixelInterval(30);
-        yAxis.setTickPosition(TickPosition.INSIDE);
-        yAxis.setMinorTickLength(10);
-        yAxis.setMinorTickInterval("auto");
-        yAxis.setMinorTickPosition(TickPosition.INSIDE);
 
-        Labels labels = new Labels();
-        labels.setStep(2);
-        labels.setRotation("auto");
-        yAxis.setLabels(labels);
-
-        PlotBand[] bands = new PlotBand[3];
-        bands[0] = new PlotBand();
-        bands[0].setFrom(0);
-        bands[0].setTo(120);
-        bands[0].setClassName("band-0");
-        bands[1] = new PlotBand();
-        bands[1].setFrom(120);
-        bands[1].setTo(160);
-        bands[1].setClassName("band-1");
-        bands[2] = new PlotBand();
-        bands[2].setFrom(160);
-        bands[2].setTo(200);
-        bands[2].setClassName("band-2");
-        yAxis.setPlotBands(bands);
-
-        configuration.addyAxis(yAxis);
-
-        final ListSeries series = new ListSeries("Speed", 139);
-
-        PlotOptionsGauge plotOptionsGauge = new PlotOptionsGauge();
-        SeriesTooltip tooltip = new SeriesTooltip();
-        tooltip.setValueSuffix(" km/h");
-        plotOptionsGauge.setTooltip(tooltip);
-        series.setPlotOptions(plotOptionsGauge);
-
-        configuration.addSeries(series);
-
-    /*    runWhileAttached(chart, () -> {
+   /*     runWhileAttached(chart1, () -> {
             Integer oldValue = series.getData()[0].intValue();
             Integer newValue = (int) (oldValue + (random.nextDouble() - 0.5) * 20.0);
             series.updatePoint(0, newValue);
-        }, 5000, 12000);*/
+            }
+            , 5000
+            , 12000
+        );*/
+
+
 
         add(chart1);
 
         final TextField tf = new TextField("Enter a new value");
         add(tf);
 
+
+
+        mySeries=series;
+
+
         Button update = new Button("Update", (e) -> {
             Integer newValue = new Integer(tf.getValue());
-            series.updatePoint(0, newValue);
+            mySeries.updatePoint(0, newValue);
         });
         add(update);
 
@@ -405,12 +395,245 @@ public class DashboardView extends VerticalLayout{
 
 
 
+    }
 
+    private Chart build_chart(Integer wert) {
 
+        Chart chart = new Chart();
+        final Configuration configuration = chart.getConfiguration();
+        configuration.getChart().setType(ChartType.GAUGE);
+        configuration.setTitle("Durchsatz");
+        configuration.getChart().setWidth(600);
 
+        Pane pane = configuration.getPane();
+        pane.setStartAngle(-150);
+        pane.setEndAngle(150);
+
+        YAxis yAxis = new YAxis();
+        yAxis.setTitle("Nachrichten/h");
+        yAxis.setMin(0);
+        yAxis.setMax(300);
+        yAxis.setTickLength(10);
+        yAxis.setTickPixelInterval(30);
+        yAxis.setTickPosition(TickPosition.INSIDE);
+        yAxis.setMinorTickLength(10);
+        yAxis.setMinorTickInterval("auto");
+        yAxis.setMinorTickPosition(TickPosition.INSIDE);
+
+        Labels labels = new Labels();
+        labels.setStep(2);
+        labels.setRotation("auto");
+        yAxis.setLabels(labels);
+
+        PlotBand[] bands = new PlotBand[3];
+        bands[0] = new PlotBand();
+        bands[0].setFrom(0);
+        bands[0].setTo(120);
+        bands[0].setClassName("band-0");
+        bands[1] = new PlotBand();
+        bands[1].setFrom(120);
+        bands[1].setTo(160);
+        bands[1].setClassName("band-1");
+        bands[2] = new PlotBand();
+        bands[2].setFrom(160);
+        bands[2].setTo(200);
+        bands[2].setClassName("band-2");
+        yAxis.setPlotBands(bands);
+
+        configuration.addyAxis(yAxis);
+
+        series = new ListSeries("Speed", 139);
+
+        PlotOptionsGauge plotOptionsGauge = new PlotOptionsGauge();
+        SeriesTooltip tooltip = new SeriesTooltip();
+        tooltip.setValueSuffix(" km/h");
+        plotOptionsGauge.setTooltip(tooltip);
+        series.setPlotOptions(plotOptionsGauge);
+
+        configuration.addSeries(series);
+
+        return chart;
+    }
+
+    Timer timer = new Timer();
+
+    void refresh(Integer res){
+       // System.out.println(("Refresh wurde aufgerufen: Übergebener Wert" + res));
+
+        Configuration conf = chart1.getConfiguration();
+        series = new ListSeries("Speed", res);
+        conf.setSeries(series);
+        chart1.drawChart();
 
     }
 
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+
+        UI ui = attachEvent.getUI();
+        String session = VaadinSession.getCurrent().getSession().getId();
+        UI cui = UI.getCurrent();
+
+        System.out.println("In onAttache Methode, session=" + session);
+
+       // ui.access(()->currentPrice.setText("huhu"));
+
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+
+
+        bk_service.saveAsync("Huhu").addCallback(result -> {
+            ui.access(() -> {
+
+                Configuration configuration = chart1.getConfiguration();
+                configuration.setTitle("Durchsatz: " + result);
+
+                series = new ListSeries("Speed", result);
+                configuration.setSeries(series);
+               // configuration.addSeries(series);
+            //    System.out.println("In run Methode " + result);
+
+                currentPrice.setText("Wert:" + result);
+                cui.access(() -> refresh(result));
+             //   chart1.notify();
+
+
+
+            });
+        }, err -> {
+            ui.access(() -> Notification.show("BOO"));
+        });
+
+            }
+
+        }, 0, 50000);
+
+        /*
+
+        timer.schedule(new TimerTask() {
+            //@Override
+            public void run() {
+
+                ui.access(()->{
+
+                    final Integer z=readvalue();
+
+                    Configuration configuration = chart1.getConfiguration();
+                    configuration.setTitle("Durchsatz: " + z.toString());
+
+                    series = new ListSeries("Speed", z);
+                    configuration.setSeries(series);
+
+                  try {
+                      ui.access(()->chart1.notify());
+                  }
+                  catch(Exception ex)
+                  {
+                      System.out.println(ex.getMessage());
+                  }
+                    System.out.println("In run Methode z= " + z.toString() );
+
+
+                });
+
+
+
+            }
+        }, 0, 5000);
+
+        */
+
+    //    series.addData(price)
+
+        // Hook up to service for live updates
+    /*    subscription =
+                service
+                        .getStockPrice(ticker)
+                        .subscribe(
+                                price -> {
+                                    ui.access(
+                                            () -> {
+                                                currentPrice.setText("$" + price);
+                                                series.addData(price);
+                                            }
+                                    );
+                                }
+                        );*/
+    }
+
+/*    private Integer readvalue() {
+
+        Random random = new Random();
+        int i = random.nextInt(300);
+        return i;
+    }*/
+
+ /*   @Async
+    public ListenableFuture<Integer> readvalue() {
+        int i=0;
+        try {
+            Random random = new Random();
+            i = random.nextInt(300);
+            // pretend to save
+            Thread.sleep(6000);
+        } catch (InterruptedException e) {
+            return AsyncResult.forExecutionException(new RuntimeException("Error"));
+        }
+
+        return AsyncResult.forValue(i);
+    }*/
+
+
+
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        // Cancel subscription when the view is detached
+       // subscription.dispose();
+        System.out.println("In onDetache Methode");
+        timer.cancel();
+        timer.purge();
+        super.onDetach(detachEvent);
+    }
+
+  /*  public static void runWhileAttached(final Component component,
+                                        final Runnable task, final int interval, final int initialPause) {
+        // Until reliable push available in our demo servers
+        UI.getCurrent().setPollInterval(interval);
+
+        final Thread thread = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(initialPause);
+                    while (component.getUI() != null) {
+                        Future<Void> future = component.getUI().access(task);
+                        future.get();
+                        Thread.sleep(interval);
+                    }
+                } catch (InterruptedException e) {
+                } catch (ExecutionException e) {
+                    Logger.getLogger(this.getClass().getName())
+                            .log(Level.WARNING,
+                                    "Stopping repeating command due to an exception",
+                                    e);
+                } catch (com.vaadin.ui.UIDetachedException e) {
+                } catch (Exception e) {
+                    Logger.getLogger(this.getClass().getName())
+                            .log(Level.WARNING,
+                                    "Unexpected exception while running scheduled update",
+                                    e);
+                }
+                Logger.getLogger(this.getClass().getName()).log(Level.INFO,
+                        "Thread stopped");
+            }
+
+            ;
+        };
+        thread.start();
+    }*/
 
 
 }
