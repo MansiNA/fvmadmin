@@ -1,5 +1,7 @@
 package com.example.application.views;
 
+import com.example.application.data.entity.Durchsatz;
+import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.CrmService;
 import com.example.application.service.BackendService;
 import com.vaadin.flow.component.AttachEvent;
@@ -8,6 +10,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.charts.Chart;
 import com.vaadin.flow.component.charts.model.*;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.IFrame;
@@ -21,9 +24,16 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.AsyncResult;
+import org.springframework.util.concurrent.ListenableFuture;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.time.*;
+import java.util.*;
 
 
 @PageTitle("Dashboard | by DBUSS GmbH")
@@ -31,19 +41,34 @@ import java.util.TimerTask;
 @CssImport(value="./styles/Gauge.css", themeFor = "vaadin-chart", include = "vaadin-chart-default-theme")
 @AnonymousAllowed
 public class DashboardView extends VerticalLayout{
-
+    @Autowired
+    JdbcTemplate jdbcTemplate;
     private BackendService bk_service;
     private CrmService service;
     private Span currentPrice = new Span();
 
-    final  ListSeries mySeries;
+    private ComboBox<com.example.application.data.entity.Configuration> comboBox;
+
+    ListSeries mySeries;
     ListSeries series = new ListSeries("Speed", 139);
 
     Chart chart1 = new Chart();
+    Chart line1;
 
-    public DashboardView(CrmService service, BackendService bk_service){
+    public DashboardView(CrmService service, BackendService bk_service, ConfigurationService conf_service){
         this.service = service;
         this.bk_service=bk_service;
+
+        this.service = service;
+
+        comboBox = new ComboBox<>("Verbindung");
+        comboBox.setItems(conf_service.findMessageConfigurations());
+        comboBox.setItemLabelGenerator(com.example.application.data.entity.Configuration::get_Message_Connection);
+
+        //    comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
+        comboBox.setPlaceholder("auswählen");
+
+
         //add(new H1("FVM-Status Dashboard"));
 
 
@@ -51,7 +76,7 @@ public class DashboardView extends VerticalLayout{
         paragraph.setMaxHeight("400px");
 
 
-        add(paragraph);
+        add(paragraph,comboBox);
 
 
         HorizontalLayout header = new HorizontalLayout();
@@ -101,37 +126,62 @@ public class DashboardView extends VerticalLayout{
 
 
        chart1 = build_chart(99);
+       add(chart1);
+
+
+        line1 = new Chart();
+        final Random random = new Random();
+        final Configuration configuration = line1.getConfiguration();
+        configuration.getChart().setType(ChartType.SPLINE);
+        configuration.getTitle().setText("Historie");
+
+        XAxis xAxis = configuration.getxAxis();
+        xAxis.setType(AxisType.DATETIME);
+        xAxis.setTickPixelInterval(150);
+
+        YAxis yAxis = configuration.getyAxis();
+        yAxis.setTitle(new AxisTitle("Anzahl"));
+
+        configuration.getTooltip().setEnabled(false);
+        configuration.getLegend().setEnabled(false);
+
+        DataSeries line_series = new DataSeries();
+        line_series.setPlotOptions(new PlotOptionsSpline());
+        line_series.setName("Random data");
+       /* for (int i = -19; i <= 0; i++) {
+            line_series.add(new DataSeriesItem(System.currentTimeMillis() + i * 1000, random.nextDouble()));
+        }*/
+
+     //   TimeZone berlinTimeZone = TimeZone.getTimeZone("Europe/Berlin");
+        TimeZone berlinTimeZone = TimeZone.getTimeZone("GMT+2:00");
+        Date now = new Date();
+        long nowInBerlin = now.getTime() + berlinTimeZone.getRawOffset();
+
+
+        line_series.add(new DataSeriesItem(nowInBerlin, 0));
+
+
+        configuration.setSeries(line_series);
+
+        add(line1);
 
 
 
 
-
-
-
-   /*     runWhileAttached(chart1, () -> {
-            Integer oldValue = series.getData()[0].intValue();
-            Integer newValue = (int) (oldValue + (random.nextDouble() - 0.5) * 20.0);
-            series.updatePoint(0, newValue);
-            }
-            , 5000
-            , 12000
-        );*/
-
-
-
-        add(chart1);
 
         final TextField tf = new TextField("Enter a new value");
         add(tf);
 
 
-
-        mySeries=series;
-
-
         Button update = new Button("Update", (e) -> {
-            Integer newValue = new Integer(tf.getValue());
-            mySeries.updatePoint(0, newValue);
+            Integer newValue = Integer.valueOf(tf.getValue());
+            Configuration conf = chart1.getConfiguration();
+          //  List<Series> xx = conf.getSeries();
+
+            series = new ListSeries("Speed", newValue);
+
+            conf.setSeries(series);
+            chart1.drawChart();
         });
         add(update);
 
@@ -465,6 +515,54 @@ public class DashboardView extends VerticalLayout{
         conf.setSeries(series);
         chart1.drawChart();
 
+// Line-Chart:
+
+        Configuration line_conf = line1.getConfiguration();
+
+        List<DataSeries> line_series = new ArrayList<>();
+
+        ZoneId berlinZone = ZoneId.of("Europe/Berlin");
+        LocalTime localTime = LocalTime.now(berlinZone);
+
+        TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"));
+
+        //var currentTime = new Date().getTime();
+
+        //TimeZone berlinTimeZone = TimeZone.getTimeZone("Europe/Berlin");
+        TimeZone berlinTimeZone = TimeZone.getTimeZone("GMT+2:00");
+        Date now = new Date();
+        long nowInBerlin = now.getTime() + berlinTimeZone.getRawOffset();
+
+
+        System.out.println(("Refresh wurde aufgerufen: Werte: " + nowInBerlin  + " => " + res));
+        //line_series.add(new DataSeriesItem(System.currentTimeMillis() * 1000, 99));
+
+        try{
+
+            DataSeries existingDataSeries = (DataSeries) line1.getConfiguration().getSeries().get(0);
+
+          //  existingDataSeries.add(new DataSeriesItem(System.currentTimeMillis() * 1000, res));
+        //    existingDataSeries.add(new DataSeriesItem(new Date().getTime(), res));
+            existingDataSeries.add(new DataSeriesItem(nowInBerlin, res));
+        }
+        catch(Exception e)
+        {
+            System.out.println("Ermittlung der bisherigen Serie nicht erfolgreich! " + e.getMessage());
+        }
+
+
+       // line_series.add(new DataSeriesItem(new Date() , res));
+
+//        line_series = (DataSeries) line_conf.getSeries();
+  //      line_series.setName("Random data");
+    //    line_series.add(new DataSeriesItem(System.currentTimeMillis() * 1000, res));
+        //ss.add(new DataSeriesItem(System.currentTimeMillis() * 1000, res));
+
+     //   line_conf.setSeries(line_series);
+       // line_conf.setSeries(line_series);
+        line1.drawChart();
+
+
     }
 
     @Override
@@ -483,7 +581,44 @@ public class DashboardView extends VerticalLayout{
             @Override
             public void run() {
 
+                DriverManagerDataSource ds = new DriverManagerDataSource();
+                com.example.application.data.entity.Configuration conf;
+                conf = comboBox.getValue();
 
+                if (conf == null)
+                {
+                    return;
+                }
+
+                LoadDurchsatzAsync(conf).addCallback(result -> {
+                    ui.access(() -> {
+
+                        Integer Anzahl = result.stream().findFirst().get().getAnzahl();
+
+                        Configuration configuration = chart1.getConfiguration();
+                    //    configuration.setTitle("Durchsatz: " + result);
+
+                        series = new ListSeries("Speed", Anzahl);
+                        configuration.setSeries(series);
+                        // configuration.addSeries(series);
+                        //    System.out.println("In run Methode " + result);
+
+                        currentPrice.setText("Wert:" + Anzahl);
+                        cui.access(() -> refresh(Anzahl));
+                        //   chart1.notify();
+
+
+
+                    });
+                }, err -> {
+                    ui.access(() -> Notification.show("BOO"));
+                });
+
+
+
+
+
+/*
         bk_service.saveAsync("Huhu").addCallback(result -> {
             ui.access(() -> {
 
@@ -505,10 +640,12 @@ public class DashboardView extends VerticalLayout{
         }, err -> {
             ui.access(() -> Notification.show("BOO"));
         });
+*/
+
 
             }
 
-        }, 0, 50000);
+        }, 0, 10000);
 
         /*
 
@@ -634,6 +771,51 @@ public class DashboardView extends VerticalLayout{
         };
         thread.start();
     }*/
+
+
+    @Async
+    public ListenableFuture<List<Durchsatz>> LoadDurchsatzAsync(com.example.application.data.entity.Configuration conf) {
+
+        List<Durchsatz> dl = new ArrayList<Durchsatz>();
+
+
+        Durchsatz d = new Durchsatz();
+
+        d.setZeitpunkt(new Date());
+        d.setArt("incoming");
+        d.setAnzahl(250);
+        //    dl.add(d);
+
+
+        String sql = "select trunc(Eingangsdatumserver,'HH') Zeit, Art,count(*) Anzahl from ekp.metadaten group by trunc(Eingangsdatumserver,'HH')," +
+                      " Art order by 1 desc";
+
+        System.out.println("Info: Abfrage EKP.Metadaten");
+
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(conf.getPassword());
+
+
+        try {
+
+            jdbcTemplate.setDataSource(ds);
+
+            dl = jdbcTemplate.query(
+                    sql,
+                    new BeanPropertyRowMapper(Durchsatz.class));
+
+
+            System.out.println("Durchsatz eingelesen");
+
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+
+        return AsyncResult.forValue(dl);
+    }
 
 
 }

@@ -1,5 +1,7 @@
 package com.example.application.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
@@ -9,6 +11,10 @@ import java.util.Random;
 
 @Service
 public class BackendService {
+    @Autowired
+    static
+    JdbcTemplate jdbcTemplate;
+
 
     public void save(String name) {
         try {
@@ -28,4 +34,7 @@ public class BackendService {
 
         return AsyncResult.forValue(i);
     }
+
+
+
 }
