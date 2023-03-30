@@ -40,7 +40,7 @@ import java.io.*;
 import java.sql.*;
 import java.util.*;
 
-@PageTitle("Table Export")
+@PageTitle("Table Viewer")
 @Route(value = "table-view", layout= MainLayout.class)
 @PermitAll
 public class TableView extends VerticalLayout {
@@ -74,10 +74,14 @@ public class TableView extends VerticalLayout {
         smallButton.setVisible(false);
 
         comboBox = new ComboBox<>("Verbindung");
-        comboBox.setItems(service.findMessageConfigurations());
+
+        List<Configuration> configList = service.findMessageConfigurations();
+        comboBox.setItems(configList);
+        comboBox.setValue(configList.get(1) );
+
         comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
 
-        comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
+      //  comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
 
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox);

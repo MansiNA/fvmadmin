@@ -79,12 +79,15 @@ public class MetadatenView extends VerticalLayout {
         add(new H3("Anzeige von Metadaten, sowie der jeweils zugehörigen Ablaufdaten und Journal Einträge"));
 
         comboBox = new ComboBox<>("Verbindung");
-        comboBox.setItems(service.findMessageConfigurations());
+
+        List<Configuration> configList = service.findMessageConfigurations();
+
+        comboBox.setItems(configList);
         comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
 
         comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
 
-
+        comboBox.setValue(configList.get(1) );
 
         addClassName("list-view");
       //  setSizeFull();
@@ -124,19 +127,22 @@ public class MetadatenView extends VerticalLayout {
         gridAblaufdaten.sort(Arrays.asList(order));
 
 
-        grid.addColumn(Metadaten::getNACHRICHTIDEXTERN).setHeader("NachrichtID-Extern")
+
+        Grid.Column<Metadaten> nachrichtidexternColumn = grid.addColumn(Metadaten::getNACHRICHTIDEXTERN).setHeader("NachrichtID-Extern")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         Grid.Column<Metadaten> nachrichtidinternColumn = grid.addColumn(Metadaten::getNACHRICHTIDINTERN).setHeader("NachrichtID-Intern")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> fehlertagColumn = grid.addColumn(Metadaten::getFEHLERTAG).setHeader("Fehlertag")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+        Grid.Column<Metadaten> verarbeitetColumn = grid.addColumn(Metadaten::getVERARBEITET).setHeader("Verarbeitet")
+                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         Grid.Column<Metadaten> loeschtagColumn = grid.addColumn(Metadaten::getLOESCHTAG).setHeader("Löschtag")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
-        Grid.Column<Metadaten> fehlertagColumn = grid.addColumn(Metadaten::getFEHLERTAG).setHeader("Fehlertag")
+        Grid.Column<Metadaten> SENDERAKTENZEICHENColumn = grid.addColumn(Metadaten::getSENDERAKTENZEICHEN).setHeader("SENDERAKTENZEICHEN")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         Grid.Column<Metadaten> fachverfahrenColumn = grid.addColumn(Metadaten::getFACHVERFAHREN).setHeader("Fachverfahren")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         Grid.Column<Metadaten> eingangsdatumServerColumn = grid.addColumn(Metadaten::getEINGANGSDATUMSERVER).setHeader("Eingangsdatum")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
-        Grid.Column<Metadaten> verarbeitetColumn = grid.addColumn(Metadaten::getVERARBEITET).setHeader("Verarbeitet")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
         Grid.Column<Metadaten> statusColumn = grid.addColumn(Metadaten::getSTATUS).setHeader("Status")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
@@ -153,8 +159,10 @@ public class MetadatenView extends VerticalLayout {
         Grid.Column<Metadaten> senderColumn = grid.addColumn(Metadaten::getSENDER).setHeader("Sender")
                 .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
 
+        SENDERAKTENZEICHENColumn.setVisible(false);
+        nachrichtidexternColumn.setVisible(false);
         nachrichttypColumn.setVisible(false);
-        nachrichtidinternColumn.setVisible(false);
+     //   nachrichtidinternColumn.setVisible(false);
         bearbeiternameColumn.setVisible(false);
         papiervorgangColumn.setVisible(false);
         fachverfahrenColumn.setVisible(false);
@@ -186,6 +194,8 @@ public class MetadatenView extends VerticalLayout {
                 eingangsdatumServerColumn);
         columnToggleContextMenu.addColumnToggleItem("Fachverfahren",
                 fachverfahrenColumn);
+        columnToggleContextMenu.addColumnToggleItem("Senderaktenzeichen",
+                SENDERAKTENZEICHENColumn);
         columnToggleContextMenu.addColumnToggleItem("Verarbeitet",
                 verarbeitetColumn);
         columnToggleContextMenu.addColumnToggleItem("Status",
@@ -194,6 +204,8 @@ public class MetadatenView extends VerticalLayout {
                 nachrichttypColumn);
         columnToggleContextMenu.addColumnToggleItem("NachrichtID-intern",
                 nachrichtidinternColumn);
+        columnToggleContextMenu.addColumnToggleItem("NachrichtID-extern",
+                nachrichtidexternColumn);
         columnToggleContextMenu.addColumnToggleItem("Bearbeitername",
                 bearbeiternameColumn);
         columnToggleContextMenu.addColumnToggleItem("Papiervorgang",
@@ -705,14 +717,16 @@ public class MetadatenView extends VerticalLayout {
       //  String sql = "select * from EKP.Ablaufdaten where Nachrichtidintern ='" + nachrichtidintern +"'";
 
 
-        String sql = "select ddate,a,ddate - lead(ddate) over (partition by j.pid order by ddate desc)  as dauer  \n" +
+       /* String sql = "select ddate,a,ddate - lead(ddate) over (partition by j.pid order by ddate desc)  as dauer  \n" +
                 "from egvp.journal@egvp j\n" +
                 "inner join EGVP.PRotocol@EGVP p\n" +
                 "on j.PID=p.PID\n" +
                 "where p.customid='" + nachrichtidextern + "'\n" +
                 "or p.MESSAGEID='" + nachrichtidextern + "'\n" +
+                "order by 1 desc\n";*/
+        String sql = "select ddate,Customid, MessageID, a, dauer from ekp.v_egvp_info where customid='" + nachrichtidextern + "'\n" +
+                "or MESSAGEID='" + nachrichtidextern + "'\n" +
                 "order by 1 desc\n";
-
 
         System.out.println("(MetadatenView.java) Hole Journal Einträge für  " + nachrichtidextern );
 

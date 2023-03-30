@@ -1,5 +1,6 @@
 package com.example.application.views;
 
+import com.example.application.data.ExampleIndicator;
 import com.example.application.data.entity.Durchsatz;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.CrmService;
@@ -7,6 +8,7 @@ import com.example.application.service.BackendService;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.board.Board;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.charts.Chart;
 import com.vaadin.flow.component.charts.model.*;
@@ -14,7 +16,6 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.IFrame;
-import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -22,8 +23,6 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.server.VaadinSession;
-import com.vaadin.flow.server.auth.AnonymousAllowed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -32,34 +31,49 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.util.concurrent.ListenableFuture;
 
-import java.time.*;
+import javax.annotation.security.RolesAllowed;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalTime;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicReference;
 
 
 @PageTitle("Dashboard | by DBUSS GmbH")
 @Route(value = "dashboard", layout= MainLayout.class)
 @CssImport(value="./styles/Gauge.css", themeFor = "vaadin-chart", include = "vaadin-chart-default-theme")
-@AnonymousAllowed
+//@AnonymousAllowed
+@RolesAllowed("ADMIN")
 public class DashboardView extends VerticalLayout{
     @Autowired
     JdbcTemplate jdbcTemplate;
-    private BackendService bk_service;
-    private CrmService service;
+  //  private BackendService bk_service;
+  //  private CrmService service;
     private Span currentPrice = new Span();
 
-    private ComboBox<com.example.application.data.entity.Configuration> comboBox;
+   private ComboBox<com.example.application.data.entity.Configuration> comboBox;
 
     ListSeries mySeries;
     ListSeries series = new ListSeries("Speed", 139);
-
+    Integer refreshIntervall=10000;
+    Span clockLabel = new Span("...");
+    ScheduledExecutorService executor;
     Chart chart1 = new Chart();
     Chart line1;
 
-    public DashboardView(CrmService service, BackendService bk_service, ConfigurationService conf_service){
-        this.service = service;
-        this.bk_service=bk_service;
+    Timer timer= new Timer();
+    Integer AnzahlTimer=0;
 
-        this.service = service;
+    UI ui;
+
+
+    public DashboardView(CrmService service, BackendService bk_service, ConfigurationService conf_service) throws ParseException {
+    //    this.service = service;
+    //    this.bk_service=bk_service;
+
+    //    this.service = service;
 
         comboBox = new ComboBox<>("Verbindung");
         comboBox.setItems(conf_service.findMessageConfigurations());
@@ -72,20 +86,74 @@ public class DashboardView extends VerticalLayout{
         //add(new H1("FVM-Status Dashboard"));
 
 
-        Paragraph paragraph= new Paragraph("Hier ist die Anzeige von aktuellen Metriken aus der DB geplant");
-        paragraph.setMaxHeight("400px");
+      //  Paragraph paragraph= new Paragraph("Hier ist die Anzeige von aktuellen Metriken aus der DB geplant");
+      //  paragraph.setMaxHeight("400px");
+      //  add(paragraph,comboBox);
 
 
-        add(paragraph,comboBox);
+        ComboBox refreshCB = new ComboBox<>("Refresh Intervall");
+        refreshCB.setItems("5", "10", "15", "30");
+        refreshCB.setHelperText("Intervall in Minuten");
+        refreshCB.addValueChangeListener(value -> {
 
+            System.out.println("Refresh Intervall: " + value.getValue());
+            refreshIntervall= Integer.parseInt(value.getValue().toString()) * 1000;
+
+            System.out.println("Refresh Intervall: " + refreshIntervall.toString());
+
+
+
+            /*    try{
+                    timer.cancel();
+                    timer.purge();
+                }
+                catch (Exception e){
+                    System.out.println("Timer läuft aktuell nicht");
+                    //System.out.println(e.getMessage());
+
+                }*/
+
+
+
+            start_timer();
+
+            if (executor!= null &&  !executor.isShutdown())
+            {
+                executor.shutdown();
+            }
+
+
+
+            AtomicReference<Integer> rest= new AtomicReference<>(refreshIntervall);
+
+            executor = Executors.newSingleThreadScheduledExecutor();
+            executor.scheduleAtFixedRate(() -> {
+                rest.set(rest.get() - 1000);
+                if (rest.get() <= 0)
+                {
+                    rest.set(refreshIntervall);
+                }
+                //String currentTime = getCurrentTimeAsString() + " nächster Refresh in " + rest +" Sekunden" ;
+                String currentTime = getCurrentTimeAsString() + " Anzahl Timer Objekte: " + AnzahlTimer;
+
+
+                getUI().ifPresent(ui -> ui.access(() -> {
+                    clockLabel.setText(currentTime);
+                }));
+            }, 0, 1, java.util.concurrent.TimeUnit.SECONDS);
+
+
+        });
 
         HorizontalLayout header = new HorizontalLayout();
-        currentPrice.setText("Aktueller Wert: " + series.toString());
+      //  currentPrice.setText("Aktueller Wert: " + series.toString());
 
 
-        header.add(currentPrice);
+        header.add(comboBox,refreshCB);
 
         add(header);
+
+        add(clockLabel);
 
 
 
@@ -95,7 +163,7 @@ public class DashboardView extends VerticalLayout{
         IFrame iframe = new IFrame();
         iframe.setSrc("https:\\www.dbuss.de");
         iframe.setWidthFull();
-        iframe.setHeight("600px");
+        iframe.setHeight("400px");
 
        // add(iframe);
 
@@ -124,6 +192,17 @@ public class DashboardView extends VerticalLayout{
 
 
 
+        Board board = new Board();
+        board.addRow(new ExampleIndicator("Current users", "745", "+33.7"),
+                new ExampleIndicator("View events", "54.6k", "-112.45"),
+                new ExampleIndicator("Conversion rate", "18%", "+3.9"),
+                new ExampleIndicator("Custom metric", "-123.45"));
+      //  board.addRow(new ExampleChart());
+
+        add(board);
+        addClassName("basic-board");
+
+
 
        chart1 = build_chart(99);
        add(chart1);
@@ -133,7 +212,8 @@ public class DashboardView extends VerticalLayout{
         final Random random = new Random();
         final Configuration configuration = line1.getConfiguration();
         configuration.getChart().setType(ChartType.SPLINE);
-        configuration.getTitle().setText("Historie");
+        configuration.getTitle().setText("Tagseverlauf");
+
 
         XAxis xAxis = configuration.getxAxis();
         xAxis.setType(AxisType.DATETIME);
@@ -147,7 +227,7 @@ public class DashboardView extends VerticalLayout{
 
         DataSeries line_series = new DataSeries();
         line_series.setPlotOptions(new PlotOptionsSpline());
-        line_series.setName("Random data");
+      //  line_series.setName("Random data");
        /* for (int i = -19; i <= 0; i++) {
             line_series.add(new DataSeriesItem(System.currentTimeMillis() + i * 1000, random.nextDouble()));
         }*/
@@ -158,15 +238,15 @@ public class DashboardView extends VerticalLayout{
         long nowInBerlin = now.getTime() + berlinTimeZone.getRawOffset();
 
 
-        line_series.add(new DataSeriesItem(nowInBerlin, 0));
+        line_series=getDurchsatz();
 
-
-        configuration.setSeries(line_series);
+        if(line_series!=null)
+        {
+            configuration.setSeries(line_series);
+            line_series.setConfiguration (configuration);
+        }
 
         add(line1);
-
-
-
 
 
         final TextField tf = new TextField("Enter a new value");
@@ -184,11 +264,6 @@ public class DashboardView extends VerticalLayout{
             chart1.drawChart();
         });
         add(update);
-
-
-
-
-
 
 
 
@@ -442,8 +517,91 @@ public class DashboardView extends VerticalLayout{
 
 
 
+    }
+
+    private String getCurrentTimeAsString() {
+        LocalTime currentTime = LocalTime.now();
+        return String.format("%02d:%02d:%02d", currentTime.getHour(), currentTime.getMinute(), currentTime.getSecond());
+    }
+
+    private DataSeries getDurchsatz() throws ParseException {
+        com.example.application.data.entity.Configuration conf; // = new com.example.application.data.entity.Configuration("HH", "Prod", "SYSTEM", "Michael123", "jdbc:oracle:thin:@37.120.189.200:1521:xe" );
+        conf = comboBox.getValue();
+
+        DataSeries series = new DataSeries();
+
+        if (conf == null)
+        {
+            return null;
+        }
+
+        List<Durchsatz> dl = new ArrayList<Durchsatz>();
+
+        Durchsatz d = new Durchsatz();
 
 
+  //      String sql = "select trunc(Eingangsdatumserver,'HH') Zeitpunkt, Art,count(*) as Anzahl from ekp.metadaten where Eingangsdatumserver is not null and art='incoming' and Eingangsdatumserver > sysdate -3 group by trunc(Eingangsdatumserver,'HH') ,art order by 1 desc" ;
+        String sql = "select trunc(Eingangsdatumserver,'HH') Zeitpunkt, count(*) as Anzahl from ekp.metadaten where Eingangsdatumserver is not null and Eingangsdatumserver > sysdate -2 group by trunc(Eingangsdatumserver,'HH') order by 1 desc" ;
+
+        System.out.println("Info: Abfrage EKP.Metadaten");
+
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(conf.getPassword());
+
+        if (jdbcTemplate == null)
+        {
+            System.out.println("Achtung: jdbyTemplate in getDurchsatz ist NULL! Liefer default Werte...");
+
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+            series.add(new DataSeriesItem(sdf.parse("08:30:54"), 50));
+            series.add(new DataSeriesItem(sdf.parse("09:30:54"), 20));
+            series.add(new DataSeriesItem(sdf.parse("10:30:54"), 15));
+            series.add(new DataSeriesItem(sdf.parse("11:30:54"), 10));
+            series.add(new DataSeriesItem(sdf.parse("12:30:54"), 110));
+            series.add(new DataSeriesItem(sdf.parse("13:30:54"), 210));
+            return series;
+        }
+
+
+        try {
+
+
+
+            jdbcTemplate.setDataSource(ds);
+
+            dl = jdbcTemplate.query(
+                    sql,
+                    new BeanPropertyRowMapper(Durchsatz.class));
+
+
+            System.out.println("Durchsatz eingelesen");
+
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+
+
+        /*
+
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        series.add(new DataSeriesItem(sdf.parse("08:30:54"), 50));
+        series.add(new DataSeriesItem(sdf.parse("09:30:54"), 20));
+        series.add(new DataSeriesItem(sdf.parse("10:30:54"), 15));
+        series.add(new DataSeriesItem(sdf.parse("11:30:54"), 10));
+        series.add(new DataSeriesItem(sdf.parse("12:30:54"), 110));
+        series.add(new DataSeriesItem(sdf.parse("13:30:54"), 210));
+*/
+
+
+
+        for (Durchsatz obj : dl) {
+            series.add(new DataSeriesItem(obj.getZeitpunkt(), obj.getAnzahl()));
+        }
+
+        return series;
 
     }
 
@@ -452,7 +610,7 @@ public class DashboardView extends VerticalLayout{
         Chart chart = new Chart();
         final Configuration configuration = chart.getConfiguration();
         configuration.getChart().setType(ChartType.GAUGE);
-        configuration.setTitle("Durchsatz");
+        configuration.setTitle("aktueller Durchsatz");
         configuration.getChart().setWidth(600);
 
         Pane pane = configuration.getPane();
@@ -462,7 +620,7 @@ public class DashboardView extends VerticalLayout{
         YAxis yAxis = new YAxis();
         yAxis.setTitle("Nachrichten/h");
         yAxis.setMin(0);
-        yAxis.setMax(300);
+        yAxis.setMax(1600);
         yAxis.setTickLength(10);
         yAxis.setTickPixelInterval(30);
         yAxis.setTickPosition(TickPosition.INSIDE);
@@ -496,7 +654,7 @@ public class DashboardView extends VerticalLayout{
 
         PlotOptionsGauge plotOptionsGauge = new PlotOptionsGauge();
         SeriesTooltip tooltip = new SeriesTooltip();
-        tooltip.setValueSuffix(" km/h");
+        tooltip.setValueSuffix("N/h");
         plotOptionsGauge.setTooltip(tooltip);
         series.setPlotOptions(plotOptionsGauge);
 
@@ -505,45 +663,41 @@ public class DashboardView extends VerticalLayout{
         return chart;
     }
 
-    Timer timer = new Timer();
 
-    void refresh(Integer res){
+
+    void refresh(List<Durchsatz> res){
        // System.out.println(("Refresh wurde aufgerufen: Übergebener Wert" + res));
 
+        Integer Anzahl = res.stream().findFirst().get().getAnzahl();
+
         Configuration conf = chart1.getConfiguration();
-        series = new ListSeries("Speed", res);
+        series = new ListSeries("Speed", Anzahl);
         conf.setSeries(series);
         chart1.drawChart();
 
-// Line-Chart:
+// Ab hier für Line-Chart:
 
-        Configuration line_conf = line1.getConfiguration();
 
-        List<DataSeries> line_series = new ArrayList<>();
-
-        ZoneId berlinZone = ZoneId.of("Europe/Berlin");
-        LocalTime localTime = LocalTime.now(berlinZone);
-
-        TimeZone.setDefault(TimeZone.getTimeZone("Europe/London"));
-
-        //var currentTime = new Date().getTime();
-
-        //TimeZone berlinTimeZone = TimeZone.getTimeZone("Europe/Berlin");
         TimeZone berlinTimeZone = TimeZone.getTimeZone("GMT+2:00");
         Date now = new Date();
         long nowInBerlin = now.getTime() + berlinTimeZone.getRawOffset();
+        conf = line1.getConfiguration();
 
-
-        System.out.println(("Refresh wurde aufgerufen: Werte: " + nowInBerlin  + " => " + res));
+        System.out.println(("Refresh wurde aufgerufen: Werte: " + nowInBerlin  + " => " + Anzahl.toString()));
         //line_series.add(new DataSeriesItem(System.currentTimeMillis() * 1000, 99));
 
         try{
 
-            DataSeries existingDataSeries = (DataSeries) line1.getConfiguration().getSeries().get(0);
+         //   DataSeries existingDataSeries = (DataSeries) line1.getConfiguration().getSeries().get(0);
+         //   existingDataSeries.add(new DataSeriesItem(nowInBerlin, Anzahl));
 
-          //  existingDataSeries.add(new DataSeriesItem(System.currentTimeMillis() * 1000, res));
-        //    existingDataSeries.add(new DataSeriesItem(new Date().getTime(), res));
-            existingDataSeries.add(new DataSeriesItem(nowInBerlin, res));
+            DataSeries dataSeries = new DataSeries();
+            dataSeries=getDurchsatz();
+
+            conf.setSeries(dataSeries);
+            line1.drawChart();
+
+
         }
         catch(Exception e)
         {
@@ -560,7 +714,7 @@ public class DashboardView extends VerticalLayout{
 
      //   line_conf.setSeries(line_series);
        // line_conf.setSeries(line_series);
-        line1.drawChart();
+
 
 
     }
@@ -569,13 +723,22 @@ public class DashboardView extends VerticalLayout{
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
 
-        UI ui = attachEvent.getUI();
-        String session = VaadinSession.getCurrent().getSession().getId();
-        UI cui = UI.getCurrent();
+        ui = attachEvent.getUI();
 
-        System.out.println("In onAttache Methode, session=" + session);
+        //String session = VaadinSession.getCurrent().getSession().getId();
+        //System.out.println("In onAttache Methode, session=" + session);
 
        // ui.access(()->currentPrice.setText("huhu"));
+
+       //start_timer();
+
+    }
+
+    private void start_timer() {
+
+        //UI cui = UI.getCurrent();
+
+        timer.purge();
 
         timer.schedule(new TimerTask() {
             @Override
@@ -590,24 +753,21 @@ public class DashboardView extends VerticalLayout{
                     return;
                 }
 
+
                 LoadDurchsatzAsync(conf).addCallback(result -> {
                     ui.access(() -> {
 
                         Integer Anzahl = result.stream().findFirst().get().getAnzahl();
 
                         Configuration configuration = chart1.getConfiguration();
-                    //    configuration.setTitle("Durchsatz: " + result);
+                        //    configuration.setTitle("Durchsatz: " + result);
 
                         series = new ListSeries("Speed", Anzahl);
                         configuration.setSeries(series);
-                        // configuration.addSeries(series);
-                        //    System.out.println("In run Methode " + result);
 
                         currentPrice.setText("Wert:" + Anzahl);
-                        cui.access(() -> refresh(Anzahl));
-                        //   chart1.notify();
-
-
+                        //cui.access(() -> refresh(Anzahl));
+                        ui.access(() -> refresh(result));
 
                     });
                 }, err -> {
@@ -615,114 +775,11 @@ public class DashboardView extends VerticalLayout{
                 });
 
 
-
-
-
-/*
-        bk_service.saveAsync("Huhu").addCallback(result -> {
-            ui.access(() -> {
-
-                Configuration configuration = chart1.getConfiguration();
-                configuration.setTitle("Durchsatz: " + result);
-
-                series = new ListSeries("Speed", result);
-                configuration.setSeries(series);
-               // configuration.addSeries(series);
-            //    System.out.println("In run Methode " + result);
-
-                currentPrice.setText("Wert:" + result);
-                cui.access(() -> refresh(result));
-             //   chart1.notify();
-
-
-
-            });
-        }, err -> {
-            ui.access(() -> Notification.show("BOO"));
-        });
-*/
-
-
             }
 
-        }, 0, 10000);
+        }, 0, refreshIntervall);
 
-        /*
-
-        timer.schedule(new TimerTask() {
-            //@Override
-            public void run() {
-
-                ui.access(()->{
-
-                    final Integer z=readvalue();
-
-                    Configuration configuration = chart1.getConfiguration();
-                    configuration.setTitle("Durchsatz: " + z.toString());
-
-                    series = new ListSeries("Speed", z);
-                    configuration.setSeries(series);
-
-                  try {
-                      ui.access(()->chart1.notify());
-                  }
-                  catch(Exception ex)
-                  {
-                      System.out.println(ex.getMessage());
-                  }
-                    System.out.println("In run Methode z= " + z.toString() );
-
-
-                });
-
-
-
-            }
-        }, 0, 5000);
-
-        */
-
-    //    series.addData(price)
-
-        // Hook up to service for live updates
-    /*    subscription =
-                service
-                        .getStockPrice(ticker)
-                        .subscribe(
-                                price -> {
-                                    ui.access(
-                                            () -> {
-                                                currentPrice.setText("$" + price);
-                                                series.addData(price);
-                                            }
-                                    );
-                                }
-                        );*/
     }
-
-/*    private Integer readvalue() {
-
-        Random random = new Random();
-        int i = random.nextInt(300);
-        return i;
-    }*/
-
- /*   @Async
-    public ListenableFuture<Integer> readvalue() {
-        int i=0;
-        try {
-            Random random = new Random();
-            i = random.nextInt(300);
-            // pretend to save
-            Thread.sleep(6000);
-        } catch (InterruptedException e) {
-            return AsyncResult.forExecutionException(new RuntimeException("Error"));
-        }
-
-        return AsyncResult.forValue(i);
-    }*/
-
-
 
 
     @Override
@@ -787,8 +844,8 @@ public class DashboardView extends VerticalLayout{
         //    dl.add(d);
 
 
-        String sql = "select trunc(Eingangsdatumserver,'HH') Zeit, Art,count(*) Anzahl from ekp.metadaten group by trunc(Eingangsdatumserver,'HH')," +
-                      " Art order by 1 desc";
+      //  String sql = "select trunc(Eingangsdatumserver,'HH') Zeit, Art,count(*) as Anzahl from ekp.metadaten where Eingangsdatumserver is not null and Art='incoming' and Eingangsdatumserver > sysdate -3 group by trunc(Eingangsdatumserver,'HH') ,art order by 1 desc" ;
+        String sql = "select trunc(Eingangsdatumserver,'HH') Zeit, count(*) as Anzahl from ekp.metadaten where Eingangsdatumserver is not null and Eingangsdatumserver > sysdate -2 group by trunc(Eingangsdatumserver,'HH') order by 1 desc" ;
 
         System.out.println("Info: Abfrage EKP.Metadaten");
 
