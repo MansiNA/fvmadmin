@@ -19,6 +19,7 @@ import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.ItemClickEvent;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -31,6 +32,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.StreamResource;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -38,14 +40,13 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.annotation.security.PermitAll;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -75,6 +76,8 @@ public class MetadatenView extends VerticalLayout {
     Button searchOldMsgBtn = new Button("alle obsolete Nachrichten");
 
     Button smallButton = new Button("Export");
+    String fileName;
+    private Anchor anchor;
     DateTimePicker startDateTimePicker;
     DateTimePicker endDateTimePicker;
 
@@ -83,12 +86,15 @@ public class MetadatenView extends VerticalLayout {
     List<Journal> journal;
     GridListDataView<Metadaten> dataView=grid.setItems();
     TextField searchField = new TextField();
-    public MetadatenView (ConfigurationService service){
+    public MetadatenView (@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service){
 
         this.service = service;
 
-        add(new H3("Anzeige von Metadaten, sowie der jeweils zugehörigen Ablaufdaten und Journal Einträge"));
+        fileName=p_exportPath + "metadaten.xls";
+        anchor = new Anchor(getStreamResource(fileName, "default content"), "click to download");
 
+        add(new H3("Anzeige von Metadaten, sowie der jeweils zugehörigen Ablaufdaten und EGVP-E Journal Einträge"));
+        anchor.setEnabled(false);
         comboBox = new ComboBox<>("Verbindung");
         smallButton.setVisible(false);
         List<Configuration> configList = service.findMessageConfigurations();
@@ -270,7 +276,7 @@ public class MetadatenView extends VerticalLayout {
         searchBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         searchOldMsgBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
 
-        HorizontalLayout layout = new HorizontalLayout(searchField,searchBtn,searchOldMsgBtn,smallButton );
+        HorizontalLayout layout = new HorizontalLayout(searchField,searchBtn,searchOldMsgBtn,smallButton ,anchor);
         layout.setPadding(false);
 
         HorizontalLayout hl1 = new HorizontalLayout();
@@ -281,7 +287,7 @@ public class MetadatenView extends VerticalLayout {
 
         //Export Button
 
-        smallButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
+     //   smallButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
         smallButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
         smallButton.addClickListener(clickEvent -> {
             Notification.show("Exportiere ausgewählte Metadaten");
@@ -299,8 +305,19 @@ public class MetadatenView extends VerticalLayout {
             try {
               //  generateExcel("","");
 
-                writeObjectsToXls(metadaten,"c:\\tmp\\out.xls");
+
+                writeObjectsToXls(metadaten,fileName);
                 //writeObjectsToCsv(metadaten,"c:\\tmp\\out.csv");
+
+                File file= new File(fileName);
+                StreamResource streamResource = new StreamResource(file.getName(),()->getStream(file));
+
+                anchor.setHref(streamResource);
+                //anchor = new Anchor(streamResource, String.format("%s (%d KB)", file.getName(), (int) file.length() / 1024));
+
+                anchor.setEnabled(true);
+                smallButton.setVisible(false);
+
 
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -309,8 +326,6 @@ public class MetadatenView extends VerticalLayout {
         //        throw new RuntimeException(e);
         //    }
         });
-
-
 
 
 
@@ -367,6 +382,7 @@ public class MetadatenView extends VerticalLayout {
                         System.out.println("Keine Metadaten Infos gefunden!");
                         dataView = grid.setItems();
                         dataView.refreshAll();
+                        anchor.setEnabled(false);
 
                         return;
                     }
@@ -375,6 +391,7 @@ public class MetadatenView extends VerticalLayout {
                         dataView =grid.setItems(metadaten);
                         dataView.refreshAll();
                         smallButton.setVisible(true);
+                        anchor.setEnabled(false);
                     }
 
                 });
@@ -438,6 +455,20 @@ public class MetadatenView extends VerticalLayout {
 
     }
 
+    private InputStream getStream(File file) {
+        FileInputStream stream = null;
+        try {
+            stream = new FileInputStream(file);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return stream;
+    }
+    public StreamResource getStreamResource(String filename, String content) {
+        return new StreamResource(filename,
+                () -> new ByteArrayInputStream(content.getBytes()));
+    }
     private static class ColumnToggleContextMenu extends ContextMenu {
         public ColumnToggleContextMenu(Component target) {
             super(target);
@@ -457,11 +488,19 @@ public class MetadatenView extends VerticalLayout {
    private void showAblaufdaten(ItemClickEvent<Metadaten> e) {
 
         System.out.println(("Aktualisiere Ablaufdaten Grid für NachrichtidIntern: " +  e.getItem().getNACHRICHTIDINTERN()));
+
+        try{
+
+
         gridAblaufdaten.setItems();
         gridEGVP.setItems();
         gridAblaufdaten.setItems(getAblaufdaten(e.getItem().getNACHRICHTIDINTERN().toString()));
         gridEGVP.setItems((getJournal(e.getItem().getNACHRICHTIDEXTERN().toString())));
-
+        }
+        catch(Exception exeption)
+        {
+            System.out.println("ERROR: Konnte Ablaufdaten nicht ermitteln:" + exeption.getMessage());
+        }
 
     }
 
@@ -846,17 +885,102 @@ public class MetadatenView extends VerticalLayout {
 
         // Erstellen Sie die Header-Zeile im Arbeitsblatt
         Row headerRow = sheet.createRow(0);
-        headerRow.createCell(0).setCellValue("Nachrichtidextern");
-        headerRow.createCell(1).setCellValue("Nachrichtidintern");
-        headerRow.createCell(2).setCellValue("NachrichtTyp");
+        headerRow.createCell(0).setCellValue("ID");
+        headerRow.createCell(1).setCellValue("NACHRICHTIDINTERN");
+        headerRow.createCell(2).setCellValue("NACHRICHTIDEXTERN");
+        headerRow.createCell(3).setCellValue("STATUS");
+        headerRow.createCell(4).setCellValue("NACHRICHTTYP");
+        headerRow.createCell(5).setCellValue("TRANSPORTART");
+        headerRow.createCell(6).setCellValue("TRANSPORTVERSION");
+        headerRow.createCell(7).setCellValue("ART");
+        headerRow.createCell(8).setCellValue("SENDER");
+        headerRow.createCell(9).setCellValue("SENDERAKTENZEICHEN");
+        headerRow.createCell(10).setCellValue("SENDERGOVELLOID");
+        headerRow.createCell(11).setCellValue("SENDERPOSTFACHNAME");
+        headerRow.createCell(12).setCellValue("SENDERGESCHAEFTSZEICHEN");
+        headerRow.createCell(13).setCellValue("EMPFAENGER");
+        headerRow.createCell(14).setCellValue("EMPFAENGERAKTENZEICHEN");
+        headerRow.createCell(15).setCellValue("EMPFAENGERGOVELLOID");
+        headerRow.createCell(16).setCellValue("EMPFAENGERPOSTFACHNAME");
+        headerRow.createCell(17).setCellValue("WEITERLEITUNGGOVELLOID");
+        headerRow.createCell(18).setCellValue("WEITERLEITUNGPOSTFACHNAME");
+        headerRow.createCell(19).setCellValue("BETREFF");
+        headerRow.createCell(20).setCellValue("BEMERKUNG");
+        headerRow.createCell(21).setCellValue("ERSTELLUNGSDATUM");
+        headerRow.createCell(22).setCellValue("ABHOLDATUM");
+        headerRow.createCell(23).setCellValue("EINGANGSDATUMSERVER");
+        headerRow.createCell(24).setCellValue("VERFALLSDATUM");
+        headerRow.createCell(25).setCellValue("SIGNATURPRUEFUNGSDATUM");
+        headerRow.createCell(26).setCellValue("VALIDIERUNGSDATUM");
+        headerRow.createCell(27).setCellValue("SIGNATURSTATUS");
+        headerRow.createCell(28).setCellValue("FACHVERFAHREN");
+        headerRow.createCell(29).setCellValue("FACHBEREICH");
+        headerRow.createCell(30).setCellValue("SACHGEBIET");
+        headerRow.createCell(31).setCellValue("ABTEILUNGE1");
+        headerRow.createCell(32).setCellValue("ABTEILUNGE2 ");
+        headerRow.createCell(33).setCellValue("PRIO");
+        headerRow.createCell(34).setCellValue("XJUSTIZVERSION");
+        headerRow.createCell(35).setCellValue("MANUELLBEARBEITETFLAG");
+        headerRow.createCell(36).setCellValue("BEARBEITERNAME");
+        headerRow.createCell(37).setCellValue("BEARBEITERKENNUNG");
+        headerRow.createCell(38).setCellValue("FEHLERTAG");
+        headerRow.createCell(39).setCellValue("PAPIERVORGANG");
+        headerRow.createCell(40).setCellValue("VERARBEITET");
+        headerRow.createCell(41).setCellValue("LOESCHTAG");
+        headerRow.createCell(42).setCellValue("SENDERROLLEN");
+        headerRow.createCell(43).setCellValue("TIMESTAMPVERSION");
+
+
 
         // Fügen Sie die Daten in das Arbeitsblatt ein
         int rowNum = 1;
         for (Metadaten obj : objects) {
             Row row = sheet.createRow(rowNum++);
-            row.createCell(0).setCellValue(obj.getNACHRICHTIDEXTERN());
+            row.createCell(0).setCellValue(obj.getID());
             row.createCell(1).setCellValue(obj.getNACHRICHTIDINTERN());
-            row.createCell(2).setCellValue(obj.getNACHRICHTTYP());
+            row.createCell(2).setCellValue(obj.getNACHRICHTIDEXTERN());
+            row.createCell(3).setCellValue(obj.getSTATUS());
+            row.createCell(4).setCellValue(obj.getNACHRICHTTYP());
+            row.createCell(5).setCellValue(obj.getTRANSPORTVERSION());
+            row.createCell(6).setCellValue(obj.getTRANSPORTART());
+            row.createCell(7).setCellValue(obj.getART());
+            row.createCell(8).setCellValue(obj.getSENDER());
+            row.createCell(9).setCellValue(obj.getSENDERAKTENZEICHEN());
+            row.createCell(10).setCellValue(obj.getSENDERGOVELLOID());
+            row.createCell(11).setCellValue(obj.getSENDERPOSTFACHNAME());
+            row.createCell(12).setCellValue(obj.getSENDERGESCHAEFTSZEICHEN());
+            row.createCell(13).setCellValue(obj.getEMPFAENGER());
+            row.createCell(14).setCellValue(obj.getEMPFAENGERAKTENZEICHEN());
+            row.createCell(15).setCellValue(obj.getEMPFAENGERGOVELLOID());
+            row.createCell(16).setCellValue(obj.getEMPFAENGERPOSTFACHNAME());
+            row.createCell(17).setCellValue(obj.getWEITERLEITUNGGOVELLOID());
+            row.createCell(18).setCellValue(obj.getWEITERLEITUNGPOSTFACHNAME());
+            row.createCell(19).setCellValue(obj.getBETREFF());
+            row.createCell(20).setCellValue(obj.getBEMERKUNG());
+            row.createCell(21).setCellValue(obj.getERSTELLUNGSDATUM());
+            row.createCell(22).setCellValue(obj.getABHOLDATUM());
+            row.createCell(23).setCellValue(obj.getEINGANGSDATUMSERVER());
+            row.createCell(24).setCellValue(obj.getVERFALLSDATUM());
+            row.createCell(25).setCellValue(obj.getSIGNATURPRUEFUNGSDATUM());
+            row.createCell(26).setCellValue(obj.getVALIDIERUNGSDATUM());
+            row.createCell(27).setCellValue(obj.getSIGNATURSTATUS());
+            row.createCell(28).setCellValue(obj.getFACHVERFAHREN());
+            row.createCell(29).setCellValue(obj.getFACHBEREICH());
+            row.createCell(30).setCellValue(obj.getSACHGEBIET());
+            row.createCell(31).setCellValue(obj.getABTEILUNGE1());
+            row.createCell(32).setCellValue(obj.getABTEILUNGE2());
+            row.createCell(33).setCellValue(obj.getPRIO());
+            row.createCell(34).setCellValue(obj.getXJUSTIZVERSION());
+            row.createCell(35).setCellValue(obj.getMANUELLBEARBEITETFLAG());
+            row.createCell(36).setCellValue(obj.getBEARBEITERNAME());
+            row.createCell(37).setCellValue(obj.getBEARBEITERKENNUNG());
+            row.createCell(38).setCellValue(obj.getFEHLERTAG());
+            row.createCell(39).setCellValue(obj.getPAPIERVORGANG());
+            row.createCell(40).setCellValue(obj.getVERARBEITET());
+            row.createCell(41).setCellValue(obj.getLOESCHTAG());
+            row.createCell(42).setCellValue(obj.getSENDERROLLEN());
+            row.createCell(43).setCellValue(obj.getTIMESTAMPVERSION());
+
         }
 
         // Schreiben Sie das Workbook in eine Datei
