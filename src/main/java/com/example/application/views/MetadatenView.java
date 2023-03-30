@@ -23,6 +23,7 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -30,12 +31,21 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.annotation.security.PermitAll;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -64,10 +74,11 @@ public class MetadatenView extends VerticalLayout {
     Button searchBtn = new Button("Suche");
     Button searchOldMsgBtn = new Button("alle obsolete Nachrichten");
 
+    Button smallButton = new Button("Export");
     DateTimePicker startDateTimePicker;
     DateTimePicker endDateTimePicker;
 
-    List<Metadaten> metadaten;
+    static List<Metadaten> metadaten;
     List<Ablaufdaten> ablaufdaten;
     List<Journal> journal;
     GridListDataView<Metadaten> dataView=grid.setItems();
@@ -79,7 +90,7 @@ public class MetadatenView extends VerticalLayout {
         add(new H3("Anzeige von Metadaten, sowie der jeweils zugehörigen Ablaufdaten und Journal Einträge"));
 
         comboBox = new ComboBox<>("Verbindung");
-
+        smallButton.setVisible(false);
         List<Configuration> configList = service.findMessageConfigurations();
 
         comboBox.setItems(configList);
@@ -259,7 +270,7 @@ public class MetadatenView extends VerticalLayout {
         searchBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         searchOldMsgBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
 
-        HorizontalLayout layout = new HorizontalLayout(searchField,searchBtn,searchOldMsgBtn );
+        HorizontalLayout layout = new HorizontalLayout(searchField,searchBtn,searchOldMsgBtn,smallButton );
         layout.setPadding(false);
 
         HorizontalLayout hl1 = new HorizontalLayout();
@@ -267,6 +278,41 @@ public class MetadatenView extends VerticalLayout {
         hl1.setAlignItems(FlexComponent.Alignment.BASELINE);
 
         add(hl1);
+
+        //Export Button
+
+        smallButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        smallButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+        smallButton.addClickListener(clickEvent -> {
+            Notification.show("Exportiere ausgewählte Metadaten");
+            //System.out.println("aktuelle_SQL:" + aktuelle_SQL);
+    //        try {
+            //    generateExcel(exportPath + aktuelle_Tabelle + ".xls",aktuelle_SQL);
+
+            //    File file= new File(exportPath + aktuelle_Tabelle +".xls");
+            //    StreamResource streamResource = new StreamResource(file.getName(),()->getStream(file));
+
+            //    anchor.setHref(streamResource);
+
+            //    anchor.setEnabled(true);
+                smallButton.setVisible(false);
+            try {
+              //  generateExcel("","");
+
+                writeObjectsToXls(metadaten,"c:\\tmp\\out.xls");
+                //writeObjectsToCsv(metadaten,"c:\\tmp\\out.csv");
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            //    } catch (IOException e) {
+        //        throw new RuntimeException(e);
+        //    }
+        });
+
+
+
+
 
         Span title = new Span("Metadaten");
         title.getStyle().set("font-weight", "bold");
@@ -300,9 +346,9 @@ public class MetadatenView extends VerticalLayout {
 
                 // Do some long running task
                 try {
-                    System.out.println("Hole Mailbox Infos");
+                    System.out.println("Hole Metadaten Infos");
 
-                    metadaten=getMailboxes();
+                    metadaten=getMetadaten();
 
 
                     //Thread.sleep(2000); //2 Sekunden warten
@@ -318,7 +364,7 @@ public class MetadatenView extends VerticalLayout {
                     ui.setPollInterval(-1);
 
                     if (ret != 0) {
-                        System.out.println("Keine Mailbox Infos gefunden!");
+                        System.out.println("Keine Metadaten Infos gefunden!");
                         dataView = grid.setItems();
                         dataView.refreshAll();
 
@@ -328,6 +374,7 @@ public class MetadatenView extends VerticalLayout {
                         //grid.setItems(metadaten);
                         dataView =grid.setItems(metadaten);
                         dataView.refreshAll();
+                        smallButton.setVisible(true);
                     }
 
                 });
@@ -552,7 +599,7 @@ public class MetadatenView extends VerticalLayout {
 
         return metadaten;
     }
-    private List<Metadaten> getMailboxes() {
+    private List<Metadaten> getMetadaten() {
 
 
         String sql = "select TIMESTAMPVERSION,\n" +
@@ -779,10 +826,44 @@ public class MetadatenView extends VerticalLayout {
         }
 
 
+    }
 
-
+    private static void writeObjectsToCsv(List<Metadaten> objects, String filePath) throws IOException {
+        FileWriter out = new FileWriter(filePath);
+        try (CSVPrinter printer = new CSVPrinter(out, CSVFormat.EXCEL)) {
+            for (Metadaten obj : objects) {
+                printer.printRecord(obj.getNACHRICHTIDEXTERN(), obj.getNACHRICHTIDINTERN(), obj.getART());
+            }
+        }
     }
 
 
+    public static void writeObjectsToXls(List<Metadaten> objects, String filePath) throws IOException {
+        // Erstellen Sie ein Workbook-Objekt
+        Workbook workbook = new HSSFWorkbook();
+        // Erstellen Sie ein neues Arbeitsblatt im Workbook
+        Sheet sheet = workbook.createSheet("Metadata");
+
+        // Erstellen Sie die Header-Zeile im Arbeitsblatt
+        Row headerRow = sheet.createRow(0);
+        headerRow.createCell(0).setCellValue("Nachrichtidextern");
+        headerRow.createCell(1).setCellValue("Nachrichtidintern");
+        headerRow.createCell(2).setCellValue("NachrichtTyp");
+
+        // Fügen Sie die Daten in das Arbeitsblatt ein
+        int rowNum = 1;
+        for (Metadaten obj : objects) {
+            Row row = sheet.createRow(rowNum++);
+            row.createCell(0).setCellValue(obj.getNACHRICHTIDEXTERN());
+            row.createCell(1).setCellValue(obj.getNACHRICHTIDINTERN());
+            row.createCell(2).setCellValue(obj.getNACHRICHTTYP());
+        }
+
+        // Schreiben Sie das Workbook in eine Datei
+        FileOutputStream fileOut = new FileOutputStream(filePath);
+        workbook.write(fileOut);
+        fileOut.close();
+        workbook.close();
+    }
 
 }
