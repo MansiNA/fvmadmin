@@ -65,6 +65,9 @@ public class MetadatenView extends VerticalLayout {
     JdbcTemplate jdbcTemplate;
     private ConfigurationService service;
     private ComboBox<Configuration> comboBox;
+
+    private String exportPath;
+
     Grid<Metadaten> grid = new Grid<>(Metadaten.class, false);
     Grid<Journal> gridEGVP = new Grid<>(Journal.class, false);
     //Grid<Ablaufdaten> gridAblaufdaten = new Grid<>(Ablaufdaten.class, false);
@@ -86,11 +89,15 @@ public class MetadatenView extends VerticalLayout {
     List<Journal> journal;
     GridListDataView<Metadaten> dataView=grid.setItems();
     TextField searchField = new TextField();
-    public MetadatenView (@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service){
 
+
+    public MetadatenView (@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service){
+    //public MetadatenView (ConfigurationService service){
+        this.exportPath=p_exportPath;
         this.service = service;
 
-        fileName=p_exportPath + "metadaten.xls";
+        fileName=exportPath + "metadaten.xls";
+     //   fileName= "/data/oracle/fvmadmin/csv_export/metadaten.xls";
         anchor = new Anchor(getStreamResource(fileName, "default content"), "click to download");
 
         add(new H3("Anzeige von Metadaten, sowie der jeweils zugehörigen Ablaufdaten und EGVP-E Journal Einträge"));

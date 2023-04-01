@@ -90,6 +90,8 @@ public class TableView extends VerticalLayout {
        // add(hl);
 
 
+
+
         MenuBar menuBar = new MenuBar();
 
      /*   Properties properties = new Properties();

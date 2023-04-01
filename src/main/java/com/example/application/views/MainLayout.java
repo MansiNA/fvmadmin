@@ -7,10 +7,10 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.router.HighlightConditions;
 import com.vaadin.flow.router.RouterLink;
 import org.springframework.security.core.Authentication;
@@ -28,7 +28,7 @@ public class MainLayout extends AppLayout {
     }
 
     private void createHeader() {
-        H1 logo = new H1("FVM Admin Tool");
+        H1 logo = new H1("eKP Web-Admin");
         logo.addClassNames("text-l","m-m");
 
       /*  String principal = "Michael@dbuss.de";
@@ -65,7 +65,10 @@ public class MainLayout extends AppLayout {
         System.out.println("angemeldeter User: " + auth.getName());
 
         HorizontalLayout header= new HorizontalLayout(new DrawerToggle(),logo, logout);
-        header.add(image);
+
+        Span sp= new Span("V1.01");
+
+        header.add(image,sp);
 
 
         header.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
