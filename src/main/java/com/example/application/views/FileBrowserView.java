@@ -10,122 +10,72 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.InputStreamFactory;
+import com.vaadin.flow.server.StreamResource;
+import com.vaadin.flow.server.StreamResourceWriter;
 import org.springframework.beans.factory.annotation.Value;
 
 import javax.annotation.security.RolesAllowed;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.time.*;
+import java.util.Date;
 import java.util.List;
 
 @PageTitle("FileBrowser")
 @Route(value = "filebrowser", layout= MainLayout.class)
 @RolesAllowed("ADMIN")
 public class FileBrowserView extends VerticalLayout {
-     DateTimePicker startDateTimePicker;
-    DateTimePicker endDateTimePicker;
+
 
     Grid<FTPFile> grid;
     SftpClient cl;
-    String ftp_path_1;
-    String sSHHost;
     String sSHKeyfile;
     String sSHUser;
     Integer sSHPort;
     Long von;
     Long bis;
 
-    public FileBrowserView (@Value("${SSHHost}") String SSHHost ,@Value("${SSHPort}") Integer SSHPort, @Value("${SSHUser}") String SSHUser,@Value("${SSHKeyfile}") String SSHKeyfile,  @Value("${FTPPath_1}") String FTPPath_1, ConfigurationService service) throws JSchException, SftpException {
+    public FileBrowserView (@Value("${SSHHost_List}") String SSHHost_List ,@Value("${SSHPort}") Integer SSHPort, @Value("${SSHUser}") String SSHUser,@Value("${SSHKeyfile}") String SSHKeyfile,  @Value("${FTPPath_List}") String FTPPath_List, @Value("${SSHDownloadPath}") String sshDownloadPath, ConfigurationService service) throws JSchException, SftpException {
 
-        ftp_path_1=FTPPath_1;
+        String ftp_path_1;
+        String sSHHost;
+        String downloadPath;
+
+        downloadPath=sshDownloadPath;
+        ftp_path_1=FTPPath_List;
         sSHKeyfile=SSHKeyfile;
-        sSHHost=SSHHost;
+        sSHHost=SSHHost_List;
         sSHUser=SSHUser;
         sSHPort=SSHPort;
 
         add(new H3("Logfile-Browser"));
 
 
-
-        //cl.listFiles("/tmp");
-
-
-
-        grid = new Grid<>(FTPFile.class, false);
-        grid.addColumn(FTPFile::getName).setHeader("Name").setSortable(true);;
-        grid.addColumn(FTPFile::getSize).setHeader("Größe").setSortable(true);;
-        grid.addColumn(FTPFile::getErstellungszeit).setHeader("Erstellungszeit").setSortable(true);;
-
-        Grid.Column<FTPFile> editColumn = grid.addComponentColumn(file -> {
-            Button editButton = new Button("Download");
-            editButton.addClickListener(e -> {
-
-                Notification notification = Notification
-                        .show("Download " + file.getName());
-                try {
-                    getFile("/tmp/" + file.getName(),"c:\\tmp\\mq.txt");
-
-
-                } catch (SftpException ex) {
-                    throw new RuntimeException(ex);
-                } catch (JSchException ex) {
-                    throw new RuntimeException(ex);
-                }
-
-                Runtime rs = Runtime.getRuntime();
-                try {
-                    rs.exec("C:\\Program Files (x86)\\Notepad++\\notepad++.exe c:\\tmp\\mq.txt");
-
-                }
-                catch (IOException ex) {
-                    System.out.println(ex);
-                }
-
-
-            });
-            return editButton;
-        }).setWidth("150px").setFlexGrow(0);
-
-        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
-        //  GridListDataView<Metadaten> dataView =grid.setItems();
-
-        grid.setHeight("800px");
-        grid.getStyle().set("resize", "vertical");
-        grid.getStyle().set("overflow", "auto");
-
-
-
-
-        Button button = new Button("Refresh");
-        button.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        button.addClickListener(e-> {
-            try {
-                refresh();
-            } catch (JSchException ex) {
-                throw new RuntimeException(ex);
-            } catch (SftpException ex) {
-                throw new RuntimeException(ex);
-            }
-        });
-
         ComboBox<String> umgebungComboBox = new ComboBox<>("Umgebung");
-        umgebungComboBox.setAllowCustomValue(true);
-      //  add(umgebungComboBox);
-        umgebungComboBox.setItems("Prod", "QS", "Test2", "Test3");
-        //umgebungComboBox.setHelperText("Auswahl des Logverzeichniss");
-
         ComboBox<String> verzeichnisComboBox = new ComboBox<>("Verzeichnis");
+
+        umgebungComboBox.setAllowCustomValue(true);
+        String[] hosts = sSHHost.split(";");
+        umgebungComboBox.setItems(hosts);
+
         verzeichnisComboBox.setAllowCustomValue(true);
-        //add(verzeichnisComboBox);
-        verzeichnisComboBox.setItems("eKP-Logs", "eKP-Server Logs", "Soa-Logs", "Admin-Logs");
-        //verzeichnisComboBox.setHelperText("Auswahl des Logverzeichniss");
+        String[] dirs = ftp_path_1.split(";");
+        verzeichnisComboBox.setItems(dirs);
+        verzeichnisComboBox.setWidth("600px");
+        // verzeichnisComboBox.setHelperText("Auswahl des Logverzeichniss");
+
+        DateTimePicker startDateTimePicker;
+        DateTimePicker endDateTimePicker;
 
         startDateTimePicker = new DateTimePicker(
                 "Start date and time");
@@ -139,50 +89,161 @@ public class FileBrowserView extends VerticalLayout {
         startDateTimePicker.addValueChangeListener(
                 e -> endDateTimePicker.setMin(e.getValue()));
 
-        HorizontalLayout hl = new HorizontalLayout();
-        hl.add(umgebungComboBox,verzeichnisComboBox,startDateTimePicker, endDateTimePicker,button);
-        hl.setAlignItems(Alignment.BASELINE);
 
-        von = startDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC);
-        bis = endDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC);
+        //cl.listFiles("/tmp");
 
-        System.out.println("Von: " + von );
-        System.out.println("Bis: " + bis );
+        grid = new Grid<>(FTPFile.class, false);
+        grid.addColumn(FTPFile::getName).setHeader("Name").setSortable(true).setAutoWidth(true).setResizable(true);
+        grid.addColumn(FTPFile::getSize).setHeader("Größe").setSortable(true).setAutoWidth(true).setResizable(true);
+        grid.addColumn(FTPFile::getErstellungszeit).setHeader("Letzte Bearbeitung").setAutoWidth(true).setSortable(true).setResizable(true);
 
-        refresh();
+        Grid.Column<FTPFile> editColumn = grid.addComponentColumn(file -> {
+            Button downloadButton = new Button("Copy");
+            downloadButton.addClickListener(e -> {
+
+                Notification notification = Notification
+                        .show("Download " + file.getName());
+                try {
+                    //getFile("/tmp/" + file.getName(),"c:\\tmp\\mq.txt");
+                    //refresh(verzeichnisComboBox.getValue(), umgebungComboBox.getValue(), startDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC), endDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC));
+                    getPlainFile(umgebungComboBox.getValue(), verzeichnisComboBox.getValue() + "/" + file.getName(),file.getName(),downloadPath);
 
 
-        add(hl,grid);
+                } catch (SftpException ex) {
+                    throw new RuntimeException(ex);
+                } catch (JSchException ex) {
+                    throw new RuntimeException(ex);
+                }
+
+        //        Runtime rs = Runtime.getRuntime();
+        //        try {
+        //            rs.exec("C:\\Program Files (x86)\\Notepad++\\notepad++.exe c:\\tmp\\mq.txt");
+
+//                }
+  //              catch (IOException ex) {
+    //                System.out.println(ex);
+      //          }
+
+
+            });
+            return downloadButton;
+        }).setWidth("150px").setFlexGrow(0);
+
+        grid.addComponentColumn(file -> {
+            Button button = new Button("Download");
+            Anchor anchor = new Anchor(new StreamResource(file.getName(), new InputStreamFactory() {
+                @Override
+                public InputStream createInputStream(){
+                    try {
+                        return new ByteArrayInputStream(getByteFile(umgebungComboBox.getValue(), verzeichnisComboBox.getValue() + file.getName(),file.getName(),downloadPath));
+                    } catch (JSchException e) {
+                        throw new RuntimeException(e);
+                    } catch (SftpException e) {
+                        throw new RuntimeException(e);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+            } ),"");
+
+           anchor.getElement().setAttribute("download",true);
+            anchor.getElement().appendChild(button.getElement());
+            return anchor;
+                });
+
+        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+        //  GridListDataView<Metadaten> dataView =grid.setItems();
+
+        grid.setHeight("800px");
+        grid.getStyle().set("resize", "vertical");
+        grid.getStyle().set("overflow", "auto");
+
+        Button button = new Button("Refresh");
+        button.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+        button.addClickListener(e-> {
+            try {
+
+                ZoneId berlinZone = ZoneId.of("Europe/Berlin");
+
+                ZonedDateTime selectedDateTime_von = startDateTimePicker.getValue().atZone(ZoneId.systemDefault());
+                ZonedDateTime berlinDateTime_von = selectedDateTime_von.withZoneSameInstant(ZoneId.of("Europe/Berlin"));
+
+                ZonedDateTime selectedDateTime_bis = endDateTimePicker.getValue().atZone(ZoneId.systemDefault());
+                ZonedDateTime berlinDateTime_bis = selectedDateTime_bis.withZoneSameInstant(ZoneId.of("Europe/Berlin"));
+
+                //refresh(verzeichnisComboBox.getValue(), umgebungComboBox.getValue(), startDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC), endDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC));
+                refresh(verzeichnisComboBox.getValue(), umgebungComboBox.getValue(), berlinDateTime_von, berlinDateTime_bis);
+            } catch (JSchException ex) {
+                throw new RuntimeException(ex);
+            } catch (SftpException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+
+        HorizontalLayout hl1 = new HorizontalLayout();
+        hl1.add(umgebungComboBox,verzeichnisComboBox);
+        hl1.setAlignItems(Alignment.BASELINE);
+
+        HorizontalLayout hl2 = new HorizontalLayout();
+        hl2.add(startDateTimePicker, endDateTimePicker,button);
+        hl2.setAlignItems(Alignment.BASELINE);
+
+        add(hl1,hl2,grid);
 
     }
 
-    private void refresh() throws JSchException, SftpException {
 
-        System.out.println("FTPPath_1=" + ftp_path_1 );
-      System.out.println("sSHKeyfile=" + sSHKeyfile );
-        System.out.println("sSHHost=" + sSHHost );
+    //private void refresh(String ftp_Path, String host, Long von, Long bis) throws JSchException, SftpException {
+    private void refresh(String ftp_Path, String host, ZonedDateTime von, ZonedDateTime bis) throws JSchException, SftpException {
+
+
+        System.out.println("ftp_Path=" + ftp_Path );
+        System.out.println("sSHKeyfile=" + sSHKeyfile );
+        System.out.println("host=" + host );
         System.out.println("sSHPort=" + sSHPort );
         System.out.println("sSHUser=" + sSHUser );
 
-        von = startDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC);
-        bis = endDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC);
+        System.out.println("Von: " + von.toString());
+        System.out.println("Bis: " + bis.toString());
+
+    /*    Date date_von = new Date(von);
+        SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+        String formattedDate_von = formatter.format(date_von);
+        System.out.println(formattedDate_von);
+
+        Date date_bis = new Date(bis);
+        String formattedDate_bis = formatter.format(date_bis);
+        System.out.println(formattedDate_bis);*/
 
       //  cl = new SftpClient("37.120.189.200",9021,"michael");
-        cl = new SftpClient(sSHHost,sSHPort,sSHUser);
+        cl = new SftpClient(host,sSHPort,sSHUser);
 
 
         //cl.authPassword("7x24!admin4me");
         cl.authKey(sSHKeyfile,"");
 
-        List<FTPFile> files = cl.getFiles(ftp_path_1, von,bis);
+        //List<FTPFile> files = cl.getFiles(ftp_Path, von.toEpochSecond() * 1_000_000_000L,bis.toEpochSecond() * 1_000_000_000L);
+        List<FTPFile> files = cl.getFiles(ftp_Path, von.toEpochSecond() ,bis.toEpochSecond());
         grid.setItems(files);
 
         cl.close();
     }
-    private void getFile(String SourceFile, String TargetFile) throws JSchException, SftpException {
+    private void getPlainFile(String sSHHost, String SourceFile, String TargetFile, String Downloadpath) throws JSchException, SftpException {
         cl = new SftpClient(sSHHost,sSHPort,sSHUser);
         cl.authKey(sSHKeyfile,"");
-        cl.downloadFile(SourceFile, TargetFile  );
+        cl.downloadFile(SourceFile, Downloadpath + TargetFile  );
         cl.close();
     }
+
+    private byte[] getByteFile(String sSHHost, String SourceFile, String TargetFile, String Downloadpath) throws JSchException, SftpException, IOException {
+        cl = new SftpClient(sSHHost,sSHPort,sSHUser);
+        cl.authKey(sSHKeyfile,"");
+        //cl.downloadFile(SourceFile, Downloadpath + TargetFile  );
+        var ret = cl.readFile(SourceFile);
+        cl.close();
+        System.out.println("In Methode getByteFile!");
+        return ret;
+    }
+
 }

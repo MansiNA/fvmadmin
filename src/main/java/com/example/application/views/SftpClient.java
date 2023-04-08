@@ -4,6 +4,9 @@ import com.example.application.data.entity.FTPFile;
 import com.example.application.utils.Util;
 import com.jcraft.jsch.*;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -191,6 +194,43 @@ public final class SftpClient {
         }
         channel.rm(remoteFile);
     }
+
+
+    public byte[] readFile(String fileName) throws SftpException, IOException {
+
+        System.out.printf("get Bytes from File [%s]%n", fileName);
+        if (channel == null) {
+            throw new IllegalArgumentException("Connection is not available");
+        }
+        InputStream inputStream = channel.get(fileName);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+
+            var fileData = outputStream.toByteArray();
+
+            outputStream.close();
+            inputStream.close();
+            channel.disconnect();
+            session.disconnect();
+
+        return fileData;
+    }
+
+
+
+
+
+
+
+
+
+
 
     /**
      * Disconnect from remote

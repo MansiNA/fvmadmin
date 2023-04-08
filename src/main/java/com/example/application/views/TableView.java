@@ -36,13 +36,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
 
 @PageTitle("Table Viewer")
 @Route(value = "table-view", layout= MainLayout.class)
-@PermitAll
+@RolesAllowed({"ADMIN","USER"})
 public class TableView extends VerticalLayout {
 
     private String exportPath;

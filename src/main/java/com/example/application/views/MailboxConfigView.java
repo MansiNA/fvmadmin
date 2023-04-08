@@ -40,7 +40,7 @@ import java.util.stream.Stream;
 
 @PageTitle("Mailbox Verwaltung")
 @Route(value = "mailbox-config", layout= MainLayout.class)
-@RolesAllowed("ADMIN")
+@RolesAllowed({"ADMIN","PF_ADMIN"})
 public class MailboxConfigView  extends VerticalLayout {
     @Autowired
     JdbcTemplate jdbcTemplate;

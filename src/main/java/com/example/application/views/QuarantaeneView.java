@@ -22,13 +22,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @PageTitle("Quarantäne Verwaltung")
 @Route(value = "quarantaene", layout= MainLayout.class)
-@PermitAll
+@RolesAllowed({"ADMIN"})
 public class QuarantaeneView extends VerticalLayout {
 
     @Autowired

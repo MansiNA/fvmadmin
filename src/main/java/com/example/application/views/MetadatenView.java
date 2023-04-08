@@ -46,6 +46,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -57,7 +58,7 @@ import java.util.stream.Stream;
 
 @PageTitle("Tabelle Metadaten")
 @Route(value = "metadaten", layout= MainLayout.class)
-@PermitAll
+@RolesAllowed({"ADMIN","USER"})
 //@Route(value = "")
 public class MetadatenView extends VerticalLayout {
 
@@ -153,35 +154,35 @@ public class MetadatenView extends VerticalLayout {
 
 
         Grid.Column<Metadaten> nachrichtidexternColumn = grid.addColumn(Metadaten::getNACHRICHTIDEXTERN).setHeader("NachrichtID-Extern")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> nachrichtidinternColumn = grid.addColumn(Metadaten::getNACHRICHTIDINTERN).setHeader("NachrichtID-Intern")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> fehlertagColumn = grid.addColumn(Metadaten::getFEHLERTAG).setHeader("Fehlertag")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> verarbeitetColumn = grid.addColumn(Metadaten::getVERARBEITET).setHeader("Verarbeitet")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> loeschtagColumn = grid.addColumn(Metadaten::getLOESCHTAG).setHeader("Löschtag")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> SENDERAKTENZEICHENColumn = grid.addColumn(Metadaten::getSENDERAKTENZEICHEN).setHeader("SENDERAKTENZEICHEN")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> fachverfahrenColumn = grid.addColumn(Metadaten::getFACHVERFAHREN).setHeader("Fachverfahren")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> eingangsdatumServerColumn = grid.addColumn(Metadaten::getEINGANGSDATUMSERVER).setHeader("Eingangsdatum")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> statusColumn = grid.addColumn(Metadaten::getSTATUS).setHeader("Status")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> nachrichttypColumn = grid.addColumn(Metadaten::getNACHRICHTTYP).setHeader("Nachricht-Typ")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> bearbeiternameColumn = grid.addColumn(Metadaten::getBEARBEITERNAME).setHeader("Bearbeitername")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> papiervorgangColumn = grid.addColumn(Metadaten::getPAPIERVORGANG).setHeader("Papiervorgang")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> transportversionColumn = grid.addColumn(Metadaten::getTRANSPORTVERSION).setHeader("Transportversion")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> artColumn = grid.addColumn(Metadaten::getART).setHeader("Art")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
         Grid.Column<Metadaten> senderColumn = grid.addColumn(Metadaten::getSENDER).setHeader("Sender")
-                .setAutoWidth(true).setResizable(true).setSortable(true).setResizable(true);
+                .setAutoWidth(true).setResizable(true).setSortable(true);
 
         SENDERAKTENZEICHENColumn.setVisible(false);
         nachrichtidexternColumn.setVisible(false);

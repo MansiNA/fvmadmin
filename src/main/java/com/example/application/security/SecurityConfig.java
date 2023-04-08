@@ -35,6 +35,7 @@ public class SecurityConfig extends VaadinWebSecurity {
                     "{noop}admin#01",
                     Collections.singleton(new SimpleGrantedAuthority("ROLE_ADMIN"))
             ));
+
         }
     }
 
@@ -65,10 +66,15 @@ public class SecurityConfig extends VaadinWebSecurity {
                         .build();
         UserDetails admin =
                 User.withUsername("admin")
-                        .password("{noop}admin")
+                        .password("{noop}admin#2023")
                         .roles("ADMIN")
                         .build();
-        return new InMemoryUserDetailsManager(user, admin);
+        UserDetails pf_admin =
+                User.withUsername("pf_admin")
+                        .password("{noop}pf_admin!")
+                        .roles("PF_ADMIN")
+                        .build();
+        return new InMemoryUserDetailsManager(user, admin,pf_admin);
     }
 
 
