@@ -1,0 +1,10 @@
+books;select * from books
+v$process;select * from v$process
+AM_USER;select * from ekp.am_user
+CATEGORY;select * from ekp.category
+FILM;select film_name from film
+Datenbank;select * from v$database
+Tablespaces;select * from dba_tablespaces
+LogHist;select * from v$loghist
+Datafile;select Name,Bytes/1024/1024 as MB from v$datafile
+ELA_Vavoriten;select * from EKP.ELA_FAVORITEN
