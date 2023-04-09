@@ -94,10 +94,10 @@ public class FileBrowserView extends VerticalLayout {
 
         grid = new Grid<>(FTPFile.class, false);
         grid.addColumn(FTPFile::getName).setHeader("Name").setSortable(true).setAutoWidth(true).setResizable(true);
-        grid.addColumn(FTPFile::getSize).setHeader("Größe").setSortable(true).setAutoWidth(true).setResizable(true);
-        grid.addColumn(FTPFile::getErstellungszeit).setHeader("Letzte Bearbeitung").setAutoWidth(true).setSortable(true).setResizable(true);
+        grid.addColumn(FTPFile::getSize).setHeader("Größe").setSortable(true).setWidth("80px").setFlexGrow(0).setResizable(true);
+        grid.addColumn(FTPFile::getErstellungszeit).setHeader("Letzte Bearbeitung").setWidth("150px").setFlexGrow(0).setSortable(true).setResizable(true);
 
-        Grid.Column<FTPFile> editColumn = grid.addComponentColumn(file -> {
+        /*Grid.Column<FTPFile> editColumn = grid.addComponentColumn(file -> {
             Button downloadButton = new Button("Copy");
             downloadButton.addClickListener(e -> {
 
@@ -115,19 +115,20 @@ public class FileBrowserView extends VerticalLayout {
                     throw new RuntimeException(ex);
                 }
 
-        //        Runtime rs = Runtime.getRuntime();
-        //        try {
-        //            rs.exec("C:\\Program Files (x86)\\Notepad++\\notepad++.exe c:\\tmp\\mq.txt");
+                Runtime rs = Runtime.getRuntime();
+                try {
+                    rs.exec("C:\\Program Files (x86)\\Notepad++\\notepad++.exe c:\\tmp\\mq.txt");
 
-//                }
-  //              catch (IOException ex) {
-    //                System.out.println(ex);
-      //          }
+                }
+                catch (IOException ex) {
+                    System.out.println(ex);
+                }
 
 
             });
             return downloadButton;
         }).setWidth("150px").setFlexGrow(0);
+*/
 
         grid.addComponentColumn(file -> {
             Button button = new Button("Download");
@@ -148,13 +149,11 @@ public class FileBrowserView extends VerticalLayout {
             } ),"");
 
            anchor.getElement().setAttribute("download",true);
-            anchor.getElement().appendChild(button.getElement());
-            return anchor;
-                });
+           anchor.getElement().appendChild(button.getElement());
+           return anchor;
+        });
 
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
-        //  GridListDataView<Metadaten> dataView =grid.setItems();
-
         grid.setHeight("800px");
         grid.getStyle().set("resize", "vertical");
         grid.getStyle().set("overflow", "auto");

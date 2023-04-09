@@ -66,7 +66,7 @@ public class MainLayout extends AppLayout {
 
         HorizontalLayout header= new HorizontalLayout(new DrawerToggle(),logo, logout);
 
-        Span sp= new Span("V1.01");
+        Span sp= new Span("V1.02");
 
         header.add(image,sp);
 
@@ -91,7 +91,7 @@ public class MainLayout extends AppLayout {
         RouterLink hangingMessagesView = new RouterLink ("Hängende Nachrichten (geplant)", HangingMessagesView.class);
         RouterLink tableView = new RouterLink ("Table Viewer", TableView.class);
         RouterLink DashboardView = new RouterLink ("Dashboard (geplant)", DashboardView.class);
-        RouterLink fileBrowserView = new RouterLink ("LogFileBrowser (geplant)", FileBrowserView.class);
+        RouterLink fileBrowserView = new RouterLink ("LogFileBrowser", FileBrowserView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
 
         addToDrawer(new VerticalLayout(
@@ -103,9 +103,9 @@ public class MainLayout extends AppLayout {
                 metadatenView,
                 MessageExport,
                 mailboxConfig,
+                fileBrowserView,
                 quarantaeneView,
                 hangingMessagesView,
-                fileBrowserView,
                 elaFavoriten,
                 DashboardView
         ));
