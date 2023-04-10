@@ -5,6 +5,7 @@ import com.example.application.utils.OSInfoUtil;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
@@ -18,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 //@Route(value = "")
 
+@CssImport(value = "./styles/textfield.css", themeFor = "vaadin-text-area")
 public class MainLayout extends AppLayout {
 
     private final SecurityService securityService;

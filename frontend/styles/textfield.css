@@ -1,0 +1,3 @@
+:host([readonly]) [part='input-field'] {
+    border: none;
+}
