@@ -62,19 +62,37 @@ public class HangingMessagesView extends VerticalLayout {
     private static final ExecutorService notifierThread = Executors.newSingleThreadExecutor();
     private static final ExecutorService startnotifierThread = Executors.newSingleThreadExecutor();
     private SerializableConsumer<String> subscriber;
-    private final Checkbox notifyMe = new Checkbox("Subscribe to notifications");
+
     private void updateSubscription() {
         UI ui = getUI().orElse(null);
 
         // Subscribe if checkbox is checked and view is attached
-        if (notifyMe.getValue() && ui != null) {
+        if ( ui != null) {
             if (subscriber != null) {
                 // Already subscribed
                 return;
             }
 
             //subscriber = message -> ui.access(() -> Notification.show(message));
-            subscriber = messager -> ui.access((()-> fertig("Job ist jetzt fertig geworden...")));
+            //subscriber = message -> ui.access((()->  lv.addLogMessage(message)));
+
+            subscriber = message -> {
+                if (message=="Start")
+                {
+                    ui.access((()->  lv.addLogMessage(message)));
+                    ui.access((()->  textArea.setEnabled(false)));
+                    ui.access((()->  executeBtn.setEnabled(false)));
+                    ui.access((()->  checkBtn.setEnabled(false)));
+                }
+                else {
+                    ui.access((()->  lv.addLogMessage(message)));
+                    ui.access((()->  textArea.setEnabled(true)));
+                    ui.access((()->  executeBtn.setEnabled(true)));
+                    ui.access((()->  checkBtn.setEnabled(true)));
+                }
+
+                                    };
+
 
             synchronized (subscribers) {
                 subscribers.add(subscriber);
@@ -92,34 +110,7 @@ public class HangingMessagesView extends VerticalLayout {
         }
     }
 
-    private void updateStartSubscription() {
-        UI ui = getUI().orElse(null);
 
-        // Subscribe if checkbox is checked and view is attached
-        if (notifyMe.getValue() && ui != null) {
-            if (subscriber != null) {
-                // Already subscribed
-                return;
-            }
-
-            //subscriber = message -> ui.access(() -> Notification.show(message));
-            subscriber = messager -> ui.access((()-> fertig("Job wurde gestartet!")));
-
-            synchronized (subscribers) {
-                subscribers.add(subscriber);
-            }
-        } else {
-            if (subscriber == null) {
-                // Already unsubscribed
-                return;
-            }
-
-            synchronized (subscribers) {
-                subscribers.remove(subscriber);
-            }
-            subscriber = null;
-        }
-    }
 
     private static void notifySubscribers(String message) {
         Set<SerializableConsumer<String>> subscribersSnapshot;
@@ -143,36 +134,12 @@ public class HangingMessagesView extends VerticalLayout {
     }
 
 
-    private static void notifyStart(String message) {
-        Set<SerializableConsumer<String>> subscribersSnapshot;
-        synchronized (start_subscribers) {
-            subscribersSnapshot = new HashSet<>(start_subscribers);
-        }
-
-        for (SerializableConsumer<String> start_subscriber : subscribersSnapshot) {
-            startnotifierThread.execute(
-                    () -> {
-                        try {
-                            start_subscriber.accept(message);
-
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-            );
-        }
-    }
-
 
     public HangingMessagesView(MessageStatus status, ConfigurationService conf_service) {
 
-        notifyMe.addValueChangeListener(event -> updateSubscription());
         addAttachListener(event -> updateSubscription());
         addDetachListener(event -> updateSubscription());
 
-        notifyMe.addValueChangeListener(event -> updateStartSubscription());
-        addAttachListener(event -> updateStartSubscription());
-        addDetachListener(event -> updateStartSubscription());
 
 
         Button makeChanges = new Button(
@@ -184,7 +151,7 @@ public class HangingMessagesView extends VerticalLayout {
             System.out.println("Notifier gedrückt!");
         });
 
-        add(notifyMe, makeChanges);
+        add( makeChanges);
 
         this.status=status;
 
@@ -227,7 +194,7 @@ public class HangingMessagesView extends VerticalLayout {
 
         executeBtn.addClickListener(clickEvent -> {
             System.out.println("Button Ausführen clicked");
-            notifyStart("Job wurde gestartet!");
+            start();
             status.setStatus(true);
             status.setMessages(textArea.getValue());
             textArea.setEnabled(false);
@@ -264,7 +231,7 @@ public class HangingMessagesView extends VerticalLayout {
 
                         if (latch.getCount() == 0 && ! status.getStatus())
                         {
-                           notifySubscribers("This is a notification triggerd by the button");
+                           notifySubscribers("Fertig geworden");
                            fertig("Job ist fertig geworden!");
                         }
 
@@ -316,13 +283,17 @@ public class HangingMessagesView extends VerticalLayout {
 
     private void fertig(String message) {
         textArea.setEnabled(true);
-        executeBtn.setVisible(true);
-        checkBtn.setVisible(true);
         executeBtn.setEnabled(true);
         checkBtn.setEnabled(true);
-        hl.setVisible(true);
         lv.addLogMessage(message);
         textArea.setValue("");
+    }
+
+    private void start() {
+        textArea.setEnabled(false);
+        executeBtn.setEnabled(false);
+        checkBtn.setEnabled(false);
+        notifySubscribers("Start");
     }
 
     private ComponentEventListener<ClickEvent<Button>> refresher() {
