@@ -27,13 +27,20 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.shared.Registration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
+import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.annotation.security.RolesAllowed;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.Types;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -83,14 +90,19 @@ public class HangingMessagesView extends VerticalLayout {
                     ui.access((()->  textArea.setEnabled(false)));
                     ui.access((()->  executeBtn.setEnabled(false)));
                     ui.access((()->  checkBtn.setEnabled(false)));
+                    ui.access((()->  textArea.setValue("")));
+                    ui.access((()->  textArea.setValue(status.getMessages())));
+
+                }
+                else if (message=="Fertig") {
+                    ui.access((() -> lv.addLogMessage(message)));
+                    ui.access((() -> textArea.setEnabled(true)));
+                    ui.access((() -> executeBtn.setEnabled(true)));
+                    ui.access((() -> checkBtn.setEnabled(true)));
                 }
                 else {
                     ui.access((()->  lv.addLogMessage(message)));
-                    ui.access((()->  textArea.setEnabled(true)));
-                    ui.access((()->  executeBtn.setEnabled(true)));
-                    ui.access((()->  checkBtn.setEnabled(true)));
                 }
-
                                     };
 
 
@@ -194,16 +206,17 @@ public class HangingMessagesView extends VerticalLayout {
 
         executeBtn.addClickListener(clickEvent -> {
             System.out.println("Button Ausführen clicked");
-            start();
+            //start();
+            notifySubscribers("Start");
             status.setStatus(true);
             status.setMessages(textArea.getValue());
-            textArea.setEnabled(false);
+         //   textArea.setEnabled(false);
            // executeBtn.setVisible(false);
            // checkBtn.setVisible(false);
-            executeBtn.setEnabled(false);
-            checkBtn.setEnabled(false);
+//            executeBtn.setEnabled(false);
+//            checkBtn.setEnabled(false);
 
-            lv.addLogMessage("Verarbeitung gestartet...");
+         //   lv.addLogMessage("Verarbeitung gestartet...");
 
             String[] lines = textArea.getValue().split("\\n");
 
@@ -226,13 +239,13 @@ public class HangingMessagesView extends VerticalLayout {
                     // Benutzeroberfläche aktualisieren
                     ui.access(() -> {
                         // Hier können Sie auf die Benutzeroberfläche zugreifen und sie aktualisieren
-                        lv.addLogMessage("beendet: " + line);
-
+                        //lv.addLogMessage("beendet: " + line);
+                     //   notifySubscribers("NachrichtID beendet: " + line);
 
                         if (latch.getCount() == 0 && ! status.getStatus())
                         {
-                           notifySubscribers("Fertig geworden");
-                           fertig("Job ist fertig geworden!");
+                           notifySubscribers("Fertig");
+                           //fertig("Job ist fertig geworden!");
                         }
 
                     });
@@ -272,8 +285,9 @@ public class HangingMessagesView extends VerticalLayout {
         {
             textArea.setEnabled(false);
             textArea.setValue(status.getMessages());
-            hl.setVisible(false);
-            lv.addLogMessage("ongoing");
+            checkBtn.setEnabled(false);
+            executeBtn.setEnabled(false);
+            lv.addLogMessage("Job läuft aktuell noch...");
         }
 
         add(comboBox,textArea,hl,lv);
@@ -302,13 +316,49 @@ public class HangingMessagesView extends VerticalLayout {
     }
 
     private void resendMessage(String line,CountDownLatch latch ) {
-        //private void resendMessage(String line) {
-
-        //Check. ob NachrichtIDextern in Metadaten vorhanden ist:
-
+        System.out.println("Verarbeite NachrichtenID: " + line );
         //Ausführen des HH_MESSAGE_RESEND('NachrichtIDExtern');
         // exec HH_MESSAGE_RESEND('StageMsg1681032256039954439fb-ca07-4546-9fd1-a601006876ab');
-        try{
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        Configuration conf;
+        conf = comboBox.getValue();
+
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(conf.getPassword());
+        try {
+
+            jdbcTemplate.setDataSource(ds);
+
+            Connection connection = DataSourceUtils.getConnection((jdbcTemplate.getDataSource()));
+            CallableStatement statement = connection.prepareCall("{call ekp.HH_MESSAGE_RESEND(?,?) }");
+            statement.setString(1,line);
+            statement.registerOutParameter(2, Types.VARCHAR);
+
+            statement.executeUpdate();
+
+            var xx = statement.getNString((2));
+            //jdbcTemplate.execute("call ekp.HH_MESSAGE_RESEND('" + line + "')");
+            notifySubscribers(line + " => " + xx );
+
+            latch.countDown();
+            if (latch.getCount() == 0)
+            {
+                System.out.println("FERTIG!");
+                status.setStatus(false);
+                // lv.addLogMessage("fertig");
+            }
+
+        } catch (Exception e) {
+            latch.countDown();
+            status.setStatus(false);
+            System.out.println("Exception in HangingMessagesView.resendMessage: " + e.getMessage());
+            notifySubscribers("Fehler: " + e.getMessage());
+        }
+
+
+
+        /*try{
             Random random = new Random();
             int randomNumber = random.nextInt(20) + 1;
             Thread.sleep(randomNumber * 1000); //1-20 Sekunden warten
@@ -323,7 +373,7 @@ public class HangingMessagesView extends VerticalLayout {
         }
         catch(InterruptedException e){
             throw new RuntimeException(e);
-        }
+        }*/
 
 
 
