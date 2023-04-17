@@ -39,10 +39,7 @@ import java.nio.file.Paths;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.Types;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -152,8 +149,6 @@ public class HangingMessagesView extends VerticalLayout {
         addAttachListener(event -> updateSubscription());
         addDetachListener(event -> updateSubscription());
 
-
-
         Button makeChanges = new Button(
                 "Notify subscribers",
                 clickEvent -> notifySubscribers("This is a notification triggerd by the button")
@@ -163,17 +158,19 @@ public class HangingMessagesView extends VerticalLayout {
             System.out.println("Notifier gedrückt!");
         });
 
-        add( makeChanges);
+//        add( makeChanges);
 
         this.status=status;
 
         comboBox = new ComboBox<>("Verbindung");
-        comboBox.setItems(conf_service.findMessageConfigurations());
-        comboBox.setItemLabelGenerator(com.example.application.data.entity.Configuration::get_Message_Connection);
+        List<Configuration> configList = conf_service.findMessageConfigurations();
 
-        //    comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
-        comboBox.setPlaceholder("auswählen");
+        comboBox.setItems(configList);
+        comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
 
+       // comboBox.setValue(conf_service.findAllConfigurations().stream().findFirst().get());
+
+        comboBox.setValue(configList.get(1) );
 
 
         add(new H2("Bearbeitung hängende Nachrichten"));
@@ -190,7 +187,7 @@ public class HangingMessagesView extends VerticalLayout {
 
         textArea.setLabel("NachrichtID-Extern:");
         //textArea.setMaxLength(charLimit);
-        textArea.setWidth("500px");
+        textArea.setWidth("600px");
        // textArea.setMaxLength(charLimit);
         textArea.setValueChangeMode(ValueChangeMode.EAGER);
         /*textArea.addValueChangeListener(e -> {
@@ -198,8 +195,11 @@ public class HangingMessagesView extends VerticalLayout {
                     .setHelperText(e.getValue().length() + "/" + charLimit);
         });*/
         textArea.setValue("");
-
-
+        textArea.addValueChangeListener( e -> {
+            //System.out.println("IDs wurden eingegeben");
+            executeBtn.setEnabled(true);
+            checkBtn.setEnabled(true);
+        });
 
 
         UI ui = UI.getCurrent();
@@ -271,11 +271,53 @@ public class HangingMessagesView extends VerticalLayout {
 
         });
 
+        checkBtn.addClickListener(clickEvent -> {
+            System.out.println("Button Check clicked");
+            //start();
+            notifySubscribers("Start");
+            status.setStatus(true);
+            status.setMessages(textArea.getValue());
 
+            String[] lines = textArea.getValue().split("\\n");
+
+            latch = new CountDownLatch(lines.length);
+
+            for (String line : lines) {
+
+
+                // Hintergrundaufgabe erstellen
+                Runnable task = () -> {
+                    // Hintergrundaufgabe ausführen, die möglicherweise längere Zeit in Anspruch nimmt
+                    checkMessage(line,latch);
+                    //  resendMessage(line);
+
+                    // Benutzeroberfläche aktualisieren
+                    ui.access(() -> {
+                        // Hier können Sie auf die Benutzeroberfläche zugreifen und sie aktualisieren
+                        //lv.addLogMessage("beendet: " + line);
+                        //   notifySubscribers("NachrichtID beendet: " + line);
+
+                        if (latch.getCount() == 0 && ! status.getStatus())
+                        {
+                            notifySubscribers("Fertig");
+                            //fertig("Job ist fertig geworden!");
+                        }
+
+                    });
+                };
+
+                // Hintergrundaufgabe im Hintergrund-Thread ausführen
+                new Thread(task).start();
+
+            }
+
+        });
 
         checkBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
-        executeBtn.addThemeVariants(ButtonVariant.LUMO_ERROR);
+        executeBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY,ButtonVariant.LUMO_ERROR);
 
+        executeBtn.setEnabled(false);
+        checkBtn.setEnabled(false);
 
         hl.add(checkBtn,executeBtn);
 
@@ -315,6 +357,70 @@ public class HangingMessagesView extends VerticalLayout {
         return null;
     }
 
+    private void checkMessage(String line,CountDownLatch latch ) {
+        System.out.println("Check NachrichtenID: " + line );
+
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        Configuration conf;
+        conf = comboBox.getValue();
+
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(conf.getPassword());
+        try {
+
+            jdbcTemplate.setDataSource(ds);
+
+            Connection connection = DataSourceUtils.getConnection((jdbcTemplate.getDataSource()));
+            CallableStatement statement = connection.prepareCall("{call ekp.HH_MESSAGE_RESEND(?,?,?) }");
+            statement.setString(1,line);
+            statement.setString(2,"check");
+            statement.registerOutParameter(3, Types.VARCHAR);
+
+            statement.executeUpdate();
+
+            var xx = statement.getNString((3));
+            //jdbcTemplate.execute("call ekp.HH_MESSAGE_RESEND('" + line + "')");
+            notifySubscribers(line + " => " + xx );
+
+            latch.countDown();
+            if (latch.getCount() == 0)
+            {
+                System.out.println("FERTIG!");
+                status.setStatus(false);
+                // lv.addLogMessage("fertig");
+            }
+
+        } catch (Exception e) {
+            latch.countDown();
+            status.setStatus(false);
+            System.out.println("Exception in HangingMessagesView.resendMessage: " + e.getMessage());
+            notifySubscribers("Fehler: " + e.getMessage());
+        }
+
+
+
+        /*try{
+            Random random = new Random();
+            int randomNumber = random.nextInt(20) + 1;
+            Thread.sleep(randomNumber * 1000); //1-20 Sekunden warten
+            System.out.println("Verarbeite NachrichtenID: " + line );
+            latch.countDown();
+            if (latch.getCount() == 0)
+            {
+                System.out.println("FERTIG!");
+                status.setStatus(false);
+               // lv.addLogMessage("fertig");
+            }
+        }
+        catch(InterruptedException e){
+            throw new RuntimeException(e);
+        }*/
+
+
+
+    }
+
     private void resendMessage(String line,CountDownLatch latch ) {
         System.out.println("Verarbeite NachrichtenID: " + line );
         //Ausführen des HH_MESSAGE_RESEND('NachrichtIDExtern');
@@ -331,13 +437,14 @@ public class HangingMessagesView extends VerticalLayout {
             jdbcTemplate.setDataSource(ds);
 
             Connection connection = DataSourceUtils.getConnection((jdbcTemplate.getDataSource()));
-            CallableStatement statement = connection.prepareCall("{call ekp.HH_MESSAGE_RESEND(?,?) }");
+            CallableStatement statement = connection.prepareCall("{call ekp.HH_MESSAGE_RESEND(?,?,?) }");
             statement.setString(1,line);
-            statement.registerOutParameter(2, Types.VARCHAR);
+            statement.setString(2,"go");
+            statement.registerOutParameter(3, Types.VARCHAR);
 
             statement.executeUpdate();
 
-            var xx = statement.getNString((2));
+            var xx = statement.getNString((3));
             //jdbcTemplate.execute("call ekp.HH_MESSAGE_RESEND('" + line + "')");
             notifySubscribers(line + " => " + xx );
 

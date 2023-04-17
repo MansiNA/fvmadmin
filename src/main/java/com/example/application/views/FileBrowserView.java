@@ -2,8 +2,10 @@ package com.example.application.views;
 
 import com.example.application.data.entity.FTPFile;
 import com.example.application.data.service.ConfigurationService;
+import com.example.application.utils.TaskStatus;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -15,6 +17,8 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.InputStreamFactory;
@@ -44,6 +48,9 @@ public class FileBrowserView extends VerticalLayout {
     Integer sSHPort;
     Long von;
     Long bis;
+    private TextArea tailTextArea = new TextArea();
+    ComboBox<String> umgebungComboBox = new ComboBox<>("Umgebung");
+    TaskStatus stat = new TaskStatus();
 
     public FileBrowserView (@Value("${SSHHost_List}") String SSHHost_List ,@Value("${SSHPort}") Integer SSHPort, @Value("${SSHUser}") String SSHUser,@Value("${SSHKeyfile}") String SSHKeyfile,  @Value("${FTPPath_List}") String FTPPath_List, @Value("${SSHDownloadPath}") String sshDownloadPath, ConfigurationService service) throws JSchException, SftpException {
 
@@ -60,8 +67,12 @@ public class FileBrowserView extends VerticalLayout {
 
         add(new H3("Logfile-Browser"));
 
+        Button TaskBtn = new Button("Task beenden");
+        TaskBtn.addClickListener(e->stat.setActive(false));
 
-        ComboBox<String> umgebungComboBox = new ComboBox<>("Umgebung");
+        tailTextArea.setWidthFull();
+        tailTextArea.setMaxHeight("600px");
+
         ComboBox<String> verzeichnisComboBox = new ComboBox<>("Verzeichnis");
 
         umgebungComboBox.setAllowCustomValue(true);
@@ -153,6 +164,23 @@ public class FileBrowserView extends VerticalLayout {
            return anchor;
         });
 
+        grid.addComponentColumn(file -> {
+            Button editButton = new Button("Tail");
+            editButton.addClickListener(e -> {
+                System.out.println("Tail gedrückt für: " + verzeichnisComboBox.getValue() + "/" + file.getName());
+                try {
+                    tail(verzeichnisComboBox.getValue() + "/" + file.getName());
+                } catch (JSchException ex) {
+                    throw new RuntimeException(ex);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                } catch (SftpException ex) {
+                    throw new RuntimeException(ex);
+                }
+            });
+            return editButton;
+        }).setFlexGrow(0).setResizable(true);
+
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         grid.setHeight("800px");
         grid.getStyle().set("resize", "vertical");
@@ -188,7 +216,27 @@ public class FileBrowserView extends VerticalLayout {
         hl2.add(startDateTimePicker, endDateTimePicker,button);
         hl2.setAlignItems(Alignment.BASELINE);
 
-        add(hl1,hl2,grid);
+        tailTextArea.addValueChangeListener(event -> {
+            Element element = tailTextArea.getElement();
+           // System.out.println("TailLogArea geändert");
+            element.setProperty("scrollTop", element.getProperty("scrollHeight"));
+            tailTextArea.focus();
+        });
+
+        add(hl1,hl2,grid,TaskBtn,tailTextArea);
+
+
+        stat.setActive(false);
+
+    }
+
+    private void tail(String file) throws JSchException, IOException, SftpException {
+        cl = new SftpClient(umgebungComboBox.getValue(),sSHPort,sSHUser);
+        stat.setActive(true);
+
+        //cl.authPassword("7x24!admin4me");
+        cl.authKey(sSHKeyfile,"");
+        cl.startReadingRemoteLogFile(UI.getCurrent(), tailTextArea, file, stat);
 
     }
 

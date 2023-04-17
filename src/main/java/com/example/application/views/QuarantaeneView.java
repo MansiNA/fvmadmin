@@ -208,14 +208,16 @@ public class QuarantaeneView extends VerticalLayout {
         //String sql = "select substr(stacktrace,1,16) as Tag, EXCEPTIONCODE, count(*) as Anzahl, 4 as AnzahlInFH from QUARANTINE a where to_date(substr(stacktrace,1,10),'YYYY-MM_DD') > sysdate-30  group by substr(stacktrace,1,16), EXCEPTIONCODE order by 1 desc";
         //String sql = "select substr(stacktrace,1,10) as Tag, EXCEPTIONCODE, count(*) as Anzahl from EGVP.QUARANTINE@EGVP a where to_date(substr(stacktrace,1,10),'YYYY-MM_DD') > sysdate-30  group by substr(stacktrace,1,10), EXCEPTIONCODE order by 1 desc";
 
-        String sql= "select egvp.id, egvp.entrancedate,egvp.creationdate, egvp.pobox, egvp.exceptioncode, egvp.receiverid, egvp.receivername, egvp.senderid, egvp.Sendername\n" +
+        /*String sql= "select egvp.id, egvp.entrancedate,egvp.creationdate, egvp.pobox, egvp.exceptioncode, egvp.receiverid, egvp.receivername, egvp.senderid, egvp.Sendername\n" +
                 ", m.nachrichtidintern, m.art, m.fehlertag, m.verarbeitet,m.loeschtag \n" +
                 "from EGVP.QUARANTINE@EGVP egvp\n" +
                 "left outer join ekp.metadaten m\n" +
                 "on egvp.id=m.NACHRICHTIDEXTERN\n" +
                 "where (egvp.entrancedate is not null or egvp.creationdate is not null or to_date(substr(egvp.stacktrace,1,10),'YYYY-MM-DD') > sysdate -30)\n" +
                 "and nvl(egvp.entrancedate,sysdate) >= sysdate -30\n" +
-                "order by egvp.creationdate desc, egvp.entrancedate desc\n";
+                "order by egvp.creationdate desc, egvp.entrancedate desc\n";*/
+
+        String sql= "select * from ekp.v_egvp_quarantaene";
 
         System.out.println("Abfrage EGVP-Quarantäne");
 

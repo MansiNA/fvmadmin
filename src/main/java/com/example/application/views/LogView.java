@@ -34,8 +34,9 @@ public class LogView extends VerticalLayout {
         logArea.setReadOnly(true);
         logArea.getStyle().set("maxHeight", "250px");
         logArea.getStyle().set("overflow", "auto");
-        logArea.setWidthFull();
+        logArea.setWidth("900px");
         logArea.addClassName("logArea");
+
         //logArea.getStyle().set("border-style","solid");
         add(logArea);
     }

@@ -110,7 +110,7 @@ public class MetadatenView extends VerticalLayout {
         comboBox.setItems(configList);
         comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
 
-        comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
+      //  comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
 
         comboBox.setValue(configList.get(1) );
 

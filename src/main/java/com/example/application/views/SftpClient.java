@@ -1,12 +1,13 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.FTPFile;
+import com.example.application.utils.TaskStatus;
 import com.example.application.utils.Util;
 import com.jcraft.jsch.*;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.textfield.TextArea;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -77,6 +78,7 @@ public final class SftpClient {
         config.put("StrictHostKeyChecking", "no");
         session.setConfig(config);
         session.connect();
+     //   session.setTimeout(6000);
         channel = (ChannelSftp) session.openChannel("sftp");
         channel.connect();
     }
@@ -223,9 +225,78 @@ public final class SftpClient {
     }
 
 
+    public void startReadingRemoteLogFile(UI ui, TextArea logTextArea, String FileName, TaskStatus stat  ) throws JSchException, IOException, SftpException {
+
+        if (channel == null) {
+            throw new IllegalArgumentException("Connection is not available");
+        }
+
+        ChannelSftp sftpChannel = (ChannelSftp) channel;
 
 
+      //  String command = "tail -f " +FileName;
+        String command = "tail -300 " +FileName;
+        ChannelExec channel = (ChannelExec) session.openChannel("exec");
+        channel.setCommand(command);
 
+
+    new Thread(() -> {
+    try {
+        channel.connect();
+    } catch (JSchException e) {
+        throw new RuntimeException(e);
+    }
+
+    // Read the output of the tail command and display it
+    BufferedReader reader = null;
+    try {
+        reader = new BufferedReader(new InputStreamReader(channel.getInputStream()));
+    } catch (IOException e) {
+        throw new RuntimeException(e);
+    }
+    String line;
+        while (true) {
+            try {
+                line = reader.readLine();
+              //  if (line.startsWith("stop")) break;
+                if (!stat.isActive()) break;
+                if (line==null) break;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            //  System.out.println(line);
+            updateLog(ui,line,logTextArea);
+        }
+
+        sftpChannel.exit();
+        session.disconnect();
+
+    }).start();
+
+  /*      Thread t = new Thread(){
+            public void run(){
+
+            System.out.println("im Thread");
+
+        };
+        };
+        t.setName("T1");
+
+        t.start();
+*/
+    }
+
+    private void updateLog(UI ui, String line, TextArea tailTextArea ) {
+        ui.access(() -> {
+            tailTextArea.setValue(tailTextArea.getValue() + "\n" + line);
+
+            tailTextArea.getStyle().set("color", "var(--lumo-error-text-color)");
+
+            // Scroll to the bottom of the TextArea
+         //   tailTextArea.setCursorPosition(tailTextArea.getValue().length());
+           // logTextArea.setCursorPosition(logTextArea.getValue().length());
+        });
+    }
 
 
 
