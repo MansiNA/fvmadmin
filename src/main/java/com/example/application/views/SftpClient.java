@@ -6,6 +6,8 @@ import com.example.application.utils.Util;
 import com.jcraft.jsch.*;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinSession;
 
 import java.io.*;
 import java.time.Instant;
@@ -225,7 +227,11 @@ public final class SftpClient {
     }
 
 
-    public void startReadingRemoteLogFile(UI ui, TextArea logTextArea, String FileName, TaskStatus stat  ) throws JSchException, IOException, SftpException {
+    public void TailRemoteLogFile(TextArea logTextArea, String FileName, TaskStatus stat  ) throws JSchException, IOException, SftpException {
+
+        VaadinSession vaadinSession = VaadinSession.getCurrent();
+        VaadinService vaadinService = VaadinService.getCurrent();
+        UI ui = UI.getCurrent();
 
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
@@ -234,13 +240,17 @@ public final class SftpClient {
         ChannelSftp sftpChannel = (ChannelSftp) channel;
 
 
-      //  String command = "tail -f " +FileName;
-        String command = "tail -300 " +FileName;
+        String command = "tail -f " +FileName;
+      //  String command = "tail -300 " +FileName;
         ChannelExec channel = (ChannelExec) session.openChannel("exec");
         channel.setCommand(command);
 
 
     new Thread(() -> {
+        VaadinService.setCurrent(vaadinService);
+        VaadinSession.setCurrent(vaadinSession);
+        UI.setCurrent(ui);
+
     try {
         channel.connect();
     } catch (JSchException e) {
@@ -265,7 +275,7 @@ public final class SftpClient {
                 throw new RuntimeException(e);
             }
             //  System.out.println(line);
-            updateLog(ui,line,logTextArea);
+            updateLog(line,logTextArea);
         }
 
         sftpChannel.exit();
@@ -273,29 +283,65 @@ public final class SftpClient {
 
     }).start();
 
-  /*      Thread t = new Thread(){
-            public void run(){
-
-            System.out.println("im Thread");
-
-        };
-        };
-        t.setName("T1");
-
-        t.start();
-*/
     }
 
-    private void updateLog(UI ui, String line, TextArea tailTextArea ) {
-        ui.access(() -> {
-            tailTextArea.setValue(tailTextArea.getValue() + "\n" + line);
+    public void ReadRemoteLogFile(UI ui, TextArea logTextArea, String FileName, TaskStatus stat  ) throws JSchException, IOException, SftpException {
 
-            tailTextArea.getStyle().set("color", "var(--lumo-error-text-color)");
+        if (channel == null) {
+            throw new IllegalArgumentException("Connection is not available");
+        }
 
-            // Scroll to the bottom of the TextArea
-         //   tailTextArea.setCursorPosition(tailTextArea.getValue().length());
-           // logTextArea.setCursorPosition(logTextArea.getValue().length());
-        });
+        ChannelSftp sftpChannel = (ChannelSftp) channel;
+
+
+        //String command = "tail -f " +FileName;
+        String command = "tail -300 " +FileName;
+        ChannelExec channel = (ChannelExec) session.openChannel("exec");
+        channel.setCommand(command);
+
+
+
+            try {
+                channel.connect();
+            } catch (JSchException e) {
+                throw new RuntimeException(e);
+            }
+
+            // Read the output of the tail command and display it
+            BufferedReader reader = null;
+            try {
+                reader = new BufferedReader(new InputStreamReader(channel.getInputStream()));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            String line;
+            while (true) {
+                try {
+                    line = reader.readLine();
+                    if (line==null) break;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                //  System.out.println(line);
+                updateLog(line,logTextArea);
+            }
+
+            sftpChannel.exit();
+            session.disconnect();
+
+//        logTextArea.getElement().executeJs("this.scrollTop = this.scrollHeight");
+
+
+    }
+
+    private void updateLog(String line, TextArea tailTextArea ) {
+        VaadinSession.getCurrent().lock();
+
+        tailTextArea.getElement().executeJs(
+                "this.inputElement.value += $0; this._updateHeight(); this._inputField.scrollTop = this._inputField.scrollHeight - this._inputField.clientHeight;",
+                "\n" + line
+        );
+        VaadinSession.getCurrent().unlock();
     }
 
 

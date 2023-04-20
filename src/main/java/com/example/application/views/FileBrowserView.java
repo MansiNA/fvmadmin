@@ -1,6 +1,7 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.FTPFile;
+import com.example.application.data.entity.Metadaten;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.utils.TaskStatus;
 import com.jcraft.jsch.JSchException;
@@ -11,13 +12,18 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.grid.SortOrderProvider;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Label;
+import com.vaadin.flow.component.messages.MessageList;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -32,6 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.time.*;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -51,6 +58,7 @@ public class FileBrowserView extends VerticalLayout {
     private TextArea tailTextArea = new TextArea();
     ComboBox<String> umgebungComboBox = new ComboBox<>("Umgebung");
     TaskStatus stat = new TaskStatus();
+    Label Filelabel = new Label();
 
     public FileBrowserView (@Value("${SSHHost_List}") String SSHHost_List ,@Value("${SSHPort}") Integer SSHPort, @Value("${SSHUser}") String SSHUser,@Value("${SSHKeyfile}") String SSHKeyfile,  @Value("${FTPPath_List}") String FTPPath_List, @Value("${SSHDownloadPath}") String sshDownloadPath, ConfigurationService service) throws JSchException, SftpException {
 
@@ -65,13 +73,15 @@ public class FileBrowserView extends VerticalLayout {
         sSHUser=SSHUser;
         sSHPort=SSHPort;
 
+
         add(new H3("Logfile-Browser"));
 
         Button TaskBtn = new Button("Task beenden");
         TaskBtn.addClickListener(e->stat.setActive(false));
 
-        tailTextArea.setWidthFull();
+
         tailTextArea.setMaxHeight("600px");
+        tailTextArea.setWidthFull();
 
         ComboBox<String> verzeichnisComboBox = new ComboBox<>("Verzeichnis");
 
@@ -96,7 +106,7 @@ public class FileBrowserView extends VerticalLayout {
         endDateTimePicker = new DateTimePicker(
                 "End date and time");
         //endDateTimePicker.setValue(LocalDateTime.of(2020, 9, 1, 20, 0, 0));
-        endDateTimePicker.setValue(LocalDateTime.now(ZoneId.systemDefault()));
+        endDateTimePicker.setValue(LocalDateTime.now(ZoneId.systemDefault()).plusHours(1));
         startDateTimePicker.addValueChangeListener(
                 e -> endDateTimePicker.setMin(e.getValue()));
 
@@ -104,9 +114,9 @@ public class FileBrowserView extends VerticalLayout {
         //cl.listFiles("/tmp");
 
         grid = new Grid<>(FTPFile.class, false);
-        grid.addColumn(FTPFile::getName).setHeader("Name").setSortable(true).setAutoWidth(true).setResizable(true);
+        grid.addColumn(FTPFile::getName).setHeader("Name").setSortable(true).setWidth("300px").setFlexGrow(0).setResizable(true);
         grid.addColumn(FTPFile::getSize).setHeader("Größe").setSortable(true).setWidth("80px").setFlexGrow(0).setResizable(true);
-        grid.addColumn(FTPFile::getErstellungszeit).setHeader("Letzte Bearbeitung").setWidth("150px").setFlexGrow(0).setSortable(true).setResizable(true);
+        Grid.Column<FTPFile> erstellungszeitColumn = grid.addColumn(FTPFile::getErstellungszeit).setHeader("Letzte Bearbeitung").setWidth("150px").setFlexGrow(0).setSortable(true).setResizable(true);
 
         /*Grid.Column<FTPFile> editColumn = grid.addComponentColumn(file -> {
             Button downloadButton = new Button("Copy");
@@ -162,12 +172,16 @@ public class FileBrowserView extends VerticalLayout {
            anchor.getElement().setAttribute("download",true);
            anchor.getElement().appendChild(button.getElement());
            return anchor;
-        });
+        }).setFlexGrow(0).setResizable(true);
 
         grid.addComponentColumn(file -> {
             Button editButton = new Button("Tail");
             editButton.addClickListener(e -> {
-                System.out.println("Tail gedrückt für: " + verzeichnisComboBox.getValue() + "/" + file.getName());
+                System.out.println("Tail-Button gedrückt für: " + verzeichnisComboBox.getValue() + "/" + file.getName());
+                stat.setActive(false);
+
+                //Welche Threads sind ongoing?
+
                 try {
                     tail(verzeichnisComboBox.getValue() + "/" + file.getName());
                 } catch (JSchException ex) {
@@ -179,12 +193,34 @@ public class FileBrowserView extends VerticalLayout {
                 }
             });
             return editButton;
-        }).setFlexGrow(0).setResizable(true);
+        }).setWidth("100px").setFlexGrow(0).setResizable(true);
+
+        grid.addComponentColumn(file -> {
+            Button editButton = new Button("Show");
+            editButton.addClickListener(e -> {
+                System.out.println("Show-Button gedrückt für: " + verzeichnisComboBox.getValue() + "/" + file.getName());
+                try {
+                    showFile(verzeichnisComboBox.getValue() + "/" + file.getName());
+                } catch (JSchException ex) {
+                    throw new RuntimeException(ex);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                } catch (SftpException ex) {
+                    throw new RuntimeException(ex);
+                }
+            });
+            return editButton;
+        }).setWidth("100px").setFlexGrow(0).setResizable(true);
 
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
-        grid.setHeight("800px");
+        grid.setHeight("600px");
+        grid.setWidthFull();
         grid.getStyle().set("resize", "vertical");
         grid.getStyle().set("overflow", "auto");
+
+        GridSortOrder<FTPFile> order = new GridSortOrder<>(erstellungszeitColumn, SortDirection.DESCENDING);
+
+        grid.sort(Arrays.asList(order));
 
         Button button = new Button("Refresh");
         button.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
@@ -216,15 +252,13 @@ public class FileBrowserView extends VerticalLayout {
         hl2.add(startDateTimePicker, endDateTimePicker,button);
         hl2.setAlignItems(Alignment.BASELINE);
 
-        tailTextArea.addValueChangeListener(event -> {
-            Element element = tailTextArea.getElement();
-           // System.out.println("TailLogArea geändert");
-            element.setProperty("scrollTop", element.getProperty("scrollHeight"));
-            tailTextArea.focus();
-        });
 
-        add(hl1,hl2,grid,TaskBtn,tailTextArea);
+        HorizontalLayout hl = new HorizontalLayout();
 
+        Label label=new Label("File: ");
+        hl.add(label,Filelabel);
+
+        add(hl1,hl2,grid,hl,tailTextArea);
 
         stat.setActive(false);
 
@@ -233,13 +267,24 @@ public class FileBrowserView extends VerticalLayout {
     private void tail(String file) throws JSchException, IOException, SftpException {
         cl = new SftpClient(umgebungComboBox.getValue(),sSHPort,sSHUser);
         stat.setActive(true);
+        stat.setLogfile((file));
 
         //cl.authPassword("7x24!admin4me");
         cl.authKey(sSHKeyfile,"");
-        cl.startReadingRemoteLogFile(UI.getCurrent(), tailTextArea, file, stat);
-
+        cl.TailRemoteLogFile(tailTextArea, file, stat);
+        Filelabel.setText(stat.getLogfile());
     }
 
+    private void showFile(String file) throws JSchException, IOException, SftpException {
+        cl = new SftpClient(umgebungComboBox.getValue(),sSHPort,sSHUser);
+        stat.setActive(false);
+        stat.setLogfile((file));
+
+        //cl.authPassword("7x24!admin4me");
+        cl.authKey(sSHKeyfile,"");
+        cl.ReadRemoteLogFile(UI.getCurrent(), tailTextArea, file, stat);
+        Filelabel.setText(stat.getLogfile());
+    }
 
     //private void refresh(String ftp_Path, String host, Long von, Long bis) throws JSchException, SftpException {
     private void refresh(String ftp_Path, String host, ZonedDateTime von, ZonedDateTime bis) throws JSchException, SftpException {
