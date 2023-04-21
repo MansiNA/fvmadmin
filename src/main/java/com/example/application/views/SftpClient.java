@@ -247,6 +247,7 @@ public final class SftpClient {
 
 
     new Thread(() -> {
+        Thread.currentThread().setName("MQ-Tail");
         VaadinService.setCurrent(vaadinService);
         VaadinSession.setCurrent(vaadinSession);
         UI.setCurrent(ui);
@@ -264,8 +265,8 @@ public final class SftpClient {
     } catch (IOException e) {
         throw new RuntimeException(e);
     }
-    String line;
-        while (true) {
+        String line;
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 line = reader.readLine();
               //  if (line.startsWith("stop")) break;
@@ -275,7 +276,7 @@ public final class SftpClient {
                 throw new RuntimeException(e);
             }
             //  System.out.println(line);
-            updateLog(line,logTextArea);
+            updateLog(line,logTextArea,"append");
         }
 
         sftpChannel.exit();
@@ -285,13 +286,13 @@ public final class SftpClient {
 
     }
 
-    public void ReadRemoteLogFile(UI ui, TextArea logTextArea, String FileName, TaskStatus stat  ) throws JSchException, IOException, SftpException {
+  /*  public void ReadRemoteLogFile(UI ui, TextArea logTextArea, String FileName, TaskStatus stat  ) throws JSchException, IOException, SftpException {
 
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
         }
 
-        ChannelSftp sftpChannel = (ChannelSftp) channel;
+       // ChannelSftp sftpChannel = (ChannelSftp) channel;
 
 
         //String command = "tail -f " +FileName;
@@ -326,16 +327,114 @@ public final class SftpClient {
                 updateLog(line,logTextArea);
             }
 
-            sftpChannel.exit();
+         //   sftpChannel.exit();
             session.disconnect();
+
+//        logTextArea.getElement().executeJs("this.scrollTop = this.scrollHeight");
+
+
+    }*/
+
+
+    public void ReadRemoteLogFile(UI ui, TextArea logTextArea, String FileName) throws JSchException, IOException, SftpException {
+
+        if (channel == null) {
+            throw new IllegalArgumentException("Connection is not available");
+        }
+
+        // ChannelSftp sftpChannel = (ChannelSftp) channel;
+
+
+        //String command = "tail -f " +FileName;
+        String command = "head -300 " +FileName;
+        ChannelExec channel = (ChannelExec) session.openChannel("exec");
+        channel.setCommand(command);
+
+
+
+        try {
+            channel.connect();
+        } catch (JSchException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Read the output of the tail command and display it
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new InputStreamReader(channel.getInputStream()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        String line;
+
+        updateLog("",logTextArea,"clear");
+
+        while (true) {
+            try {
+                line = reader.readLine();
+                if (line==null) break;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            //  System.out.println(line);
+            updateLog(line,logTextArea,"append");
+        }
+
+        //####################
+
+       // command = "head 300 " +FileName;
+        command = "tail -300 " +FileName;
+
+        channel.disconnect();
+        channel = (ChannelExec) session.openChannel("exec");
+        channel.setCommand(command);
+
+
+
+        try {
+            channel.connect();
+        } catch (JSchException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Read the output of the tail command and display it
+        reader = null;
+        try {
+            reader = new BufferedReader(new InputStreamReader(channel.getInputStream()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        updateLog("###################### TAIL -300 ##############################",logTextArea, "append");
+        while (true) {
+            try {
+                line = reader.readLine();
+                if (line==null) break;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            //  System.out.println(line);
+            updateLog(line,logTextArea,"append");
+        }
+
+
+
+        //   sftpChannel.exit();
+        session.disconnect();
+
+
 
 //        logTextArea.getElement().executeJs("this.scrollTop = this.scrollHeight");
 
 
     }
 
-    private void updateLog(String line, TextArea tailTextArea ) {
+
+    private void updateLog(String line, TextArea tailTextArea,String typ ) {
         VaadinSession.getCurrent().lock();
+
+        if (typ.contains("clear")){
+            tailTextArea.clear();
+        }
 
         tailTextArea.getElement().executeJs(
                 "this.inputElement.value += $0; this._updateHeight(); this._inputField.scrollTop = this._inputField.scrollHeight - this._inputField.clientHeight;",

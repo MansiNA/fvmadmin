@@ -41,6 +41,7 @@ import java.time.*;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @PageTitle("FileBrowser")
 @Route(value = "filebrowser", layout= MainLayout.class)
@@ -59,6 +60,8 @@ public class FileBrowserView extends VerticalLayout {
     ComboBox<String> umgebungComboBox = new ComboBox<>("Umgebung");
     TaskStatus stat = new TaskStatus();
     Label Filelabel = new Label();
+
+    UI ui=UI.getCurrent();
 
     public FileBrowserView (@Value("${SSHHost_List}") String SSHHost_List ,@Value("${SSHPort}") Integer SSHPort, @Value("${SSHUser}") String SSHUser,@Value("${SSHKeyfile}") String SSHKeyfile,  @Value("${FTPPath_List}") String FTPPath_List, @Value("${SSHDownloadPath}") String sshDownloadPath, ConfigurationService service) throws JSchException, SftpException {
 
@@ -79,9 +82,17 @@ public class FileBrowserView extends VerticalLayout {
         Button TaskBtn = new Button("Task beenden");
         TaskBtn.addClickListener(e->stat.setActive(false));
 
+        Button ClearBtn = new Button("Clear");
+        ClearBtn.addClickListener(e->{
+            System.out.println("Clear-Button gedrückt!");
+            System.out.println("Länge des TextAreas vorher: " + tailTextArea.getValue().length() );
+            tailTextArea.setValue("");
+            System.out.println("Länge des TextAreas nachher: " + tailTextArea.getValue().length() );
+        });
 
         tailTextArea.setMaxHeight("600px");
         tailTextArea.setWidthFull();
+        tailTextArea.setValue("Noch keine Datei ausgewählt...");
 
         ComboBox<String> verzeichnisComboBox = new ComboBox<>("Verzeichnis");
 
@@ -180,7 +191,9 @@ public class FileBrowserView extends VerticalLayout {
                 System.out.println("Tail-Button gedrückt für: " + verzeichnisComboBox.getValue() + "/" + file.getName());
                 stat.setActive(false);
 
-                //Welche Threads sind ongoing?
+                //Welche Threads sind aktuell ongoing?
+
+
 
                 try {
                     tail(verzeichnisComboBox.getValue() + "/" + file.getName());
@@ -256,7 +269,7 @@ public class FileBrowserView extends VerticalLayout {
         HorizontalLayout hl = new HorizontalLayout();
 
         Label label=new Label("File: ");
-        hl.add(label,Filelabel);
+        hl.add(label,Filelabel,TaskBtn,ClearBtn);
 
         add(hl1,hl2,grid,hl,tailTextArea);
 
@@ -268,6 +281,22 @@ public class FileBrowserView extends VerticalLayout {
         cl = new SftpClient(umgebungComboBox.getValue(),sSHPort,sSHUser);
         stat.setActive(true);
         stat.setLogfile((file));
+
+        //System.out.println("Name des aktuellen Threads: " + Thread.currentThread().getName());
+
+
+        Map<Thread, StackTraceElement[]> threads = Thread.getAllStackTraces();
+
+        for (Thread t : threads.keySet()) {
+            if (t.getName().startsWith("MQ-Tail")){
+                System.out.println("Es läuft bereits ein Tail-Thread: " + t.getName());
+                t.interrupt();
+                return;
+
+            }
+
+        }
+
 
         //cl.authPassword("7x24!admin4me");
         cl.authKey(sSHKeyfile,"");
@@ -282,7 +311,7 @@ public class FileBrowserView extends VerticalLayout {
 
         //cl.authPassword("7x24!admin4me");
         cl.authKey(sSHKeyfile,"");
-        cl.ReadRemoteLogFile(UI.getCurrent(), tailTextArea, file, stat);
+        cl.ReadRemoteLogFile(ui, tailTextArea, file);
         Filelabel.setText(stat.getLogfile());
     }
 
