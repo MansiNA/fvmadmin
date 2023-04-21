@@ -79,19 +79,13 @@ public class FileBrowserView extends VerticalLayout {
 
         add(new H3("Logfile-Browser"));
 
-        Button TaskBtn = new Button("Task beenden");
-        TaskBtn.addClickListener(e->stat.setActive(false));
+        Button TaskBtn = new Button("Tail beenden");
+        TaskBtn.addClickListener(e->{stat.setActive(false); TaskBtn.setVisible(false);});
 
-        Button ClearBtn = new Button("Clear");
-        ClearBtn.addClickListener(e->{
-            System.out.println("Clear-Button gedrückt!");
-            System.out.println("Länge des TextAreas vorher: " + tailTextArea.getValue().length() );
-            tailTextArea.setValue("");
-            System.out.println("Länge des TextAreas nachher: " + tailTextArea.getValue().length() );
-        });
 
         tailTextArea.setMaxHeight("600px");
         tailTextArea.setWidthFull();
+    //    tailTextArea.setReadOnly(true);
         tailTextArea.setValue("Noch keine Datei ausgewählt...");
 
         ComboBox<String> verzeichnisComboBox = new ComboBox<>("Verzeichnis");
@@ -186,10 +180,11 @@ public class FileBrowserView extends VerticalLayout {
         }).setFlexGrow(0).setResizable(true);
 
         grid.addComponentColumn(file -> {
-            Button editButton = new Button("Tail");
+            Button editButton = new Button("Tail -f");
             editButton.addClickListener(e -> {
                 System.out.println("Tail-Button gedrückt für: " + verzeichnisComboBox.getValue() + "/" + file.getName());
                 stat.setActive(false);
+                TaskBtn.setVisible(true);
 
                 //Welche Threads sind aktuell ongoing?
 
@@ -269,7 +264,9 @@ public class FileBrowserView extends VerticalLayout {
         HorizontalLayout hl = new HorizontalLayout();
 
         Label label=new Label("File: ");
-        hl.add(label,Filelabel,TaskBtn,ClearBtn);
+        hl.add(label,Filelabel,TaskBtn);
+
+        TaskBtn.setVisible(false);
 
         add(hl1,hl2,grid,hl,tailTextArea);
 

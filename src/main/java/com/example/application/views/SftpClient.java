@@ -232,7 +232,7 @@ public final class SftpClient {
         VaadinSession vaadinSession = VaadinSession.getCurrent();
         VaadinService vaadinService = VaadinService.getCurrent();
         UI ui = UI.getCurrent();
-
+        clearLog(logTextArea);
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
         }
@@ -276,7 +276,7 @@ public final class SftpClient {
                 throw new RuntimeException(e);
             }
             //  System.out.println(line);
-            updateLog(line,logTextArea,"append");
+            updateLog(line,logTextArea);
         }
 
         sftpChannel.exit();
@@ -367,7 +367,7 @@ public final class SftpClient {
         }
         String line;
 
-        updateLog("",logTextArea,"clear");
+        clearLog(logTextArea);
 
         while (true) {
             try {
@@ -377,7 +377,7 @@ public final class SftpClient {
                 throw new RuntimeException(e);
             }
             //  System.out.println(line);
-            updateLog(line,logTextArea,"append");
+            updateLog(line,logTextArea);
         }
 
         //####################
@@ -404,7 +404,7 @@ public final class SftpClient {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        updateLog("###################### TAIL -300 ##############################",logTextArea, "append");
+        updateLog("###################### TAIL -300 ##############################",logTextArea);
         while (true) {
             try {
                 line = reader.readLine();
@@ -413,7 +413,7 @@ public final class SftpClient {
                 throw new RuntimeException(e);
             }
             //  System.out.println(line);
-            updateLog(line,logTextArea,"append");
+            updateLog(line,logTextArea);
         }
 
 
@@ -429,12 +429,8 @@ public final class SftpClient {
     }
 
 
-    private void updateLog(String line, TextArea tailTextArea,String typ ) {
+    private void updateLog(String line, TextArea tailTextArea) {
         VaadinSession.getCurrent().lock();
-
-        if (typ.contains("clear")){
-            tailTextArea.clear();
-        }
 
         tailTextArea.getElement().executeJs(
                 "this.inputElement.value += $0; this._updateHeight(); this._inputField.scrollTop = this._inputField.scrollHeight - this._inputField.clientHeight;",
@@ -443,7 +439,15 @@ public final class SftpClient {
         VaadinSession.getCurrent().unlock();
     }
 
+    private void clearLog(TextArea tailTextArea) {
+        VaadinSession.getCurrent().lock();
 
+        tailTextArea.getElement().executeJs(
+                "this.inputElement.value = $0; this._updateHeight(); this._inputField.scrollTop = this._inputField.scrollHeight - this._inputField.clientHeight;",
+                ""
+        );
+        VaadinSession.getCurrent().unlock();
+    }
 
 
 
