@@ -4,6 +4,7 @@ import com.example.application.data.entity.FTPFile;
 import com.example.application.data.entity.Metadaten;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.utils.TaskStatus;
+import com.example.application.utils.ThreadUtils;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.SftpException;
 import com.vaadin.flow.component.UI;
@@ -79,8 +80,34 @@ public class FileBrowserView extends VerticalLayout {
 
         add(new H3("Logfile-Browser"));
 
-        Button TaskBtn = new Button("Tail beenden");
-        TaskBtn.addClickListener(e->{stat.setActive(false); TaskBtn.setVisible(false);});
+
+        Button EndTaskBtn = new Button("Tail beenden");
+        EndTaskBtn.addClickListener(e-> {
+                    stat.setActive(false);
+                    EndTaskBtn.setVisible(false);
+
+//            ThreadUtils.dumpThreads();
+
+
+                    ThreadGroup group = Thread.currentThread().getThreadGroup();
+                    Thread[] threads = new Thread[group.activeCount()];
+                    group.enumerate(threads);
+
+                    Thread tailThread = new Thread();
+
+                    for (Thread thread : threads) {
+                        if (thread != null && thread.getName().equals("Tail-Thread")) {
+                            tailThread = thread;
+                            thread.interrupt();
+                        }
+
+                    }
+            System.out.println("Tail Thread-Status: " + tailThread.getState());
+
+        });
+
+
+
 
 
         tailTextArea.setMaxHeight("600px");
@@ -184,9 +211,11 @@ public class FileBrowserView extends VerticalLayout {
             editButton.addClickListener(e -> {
                 System.out.println("Tail-Button gedrückt für: " + verzeichnisComboBox.getValue() + "/" + file.getName());
                 stat.setActive(false);
-                TaskBtn.setVisible(true);
+                EndTaskBtn.setVisible(true);
 
                 //Welche Threads sind aktuell ongoing?
+                ThreadUtils.dumpThreads();
+
 
 
 
@@ -264,9 +293,9 @@ public class FileBrowserView extends VerticalLayout {
         HorizontalLayout hl = new HorizontalLayout();
 
         Label label=new Label("File: ");
-        hl.add(label,Filelabel,TaskBtn);
+        hl.add(label,Filelabel,EndTaskBtn);
 
-        TaskBtn.setVisible(false);
+        EndTaskBtn.setVisible(false);
 
         add(hl1,hl2,grid,hl,tailTextArea);
 

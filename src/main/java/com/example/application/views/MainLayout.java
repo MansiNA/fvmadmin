@@ -92,6 +92,7 @@ public class MainLayout extends AppLayout {
         RouterLink metadatenView = new RouterLink ("METADATEN", MetadatenView.class);
         RouterLink hangingMessagesView = new RouterLink ("Hängende Nachrichten", HangingMessagesView.class);
         RouterLink tableView = new RouterLink ("Table Viewer", TableView.class);
+        RouterLink cockpitView = new RouterLink ("eKP-Cockpit", CockpitView.class);
         RouterLink DashboardView = new RouterLink ("Dashboard (geplant)", DashboardView.class);
         RouterLink fileBrowserView = new RouterLink ("LogFileBrowser", FileBrowserView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
@@ -105,6 +106,7 @@ public class MainLayout extends AppLayout {
                 metadatenView,
                 MessageExport,
                 mailboxConfig,
+                cockpitView,
                 fileBrowserView,
                 quarantaeneView,
                 hangingMessagesView,

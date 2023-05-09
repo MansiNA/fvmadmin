@@ -67,6 +67,8 @@ public class MetadatenView extends VerticalLayout {
     private ConfigurationService service;
     private ComboBox<Configuration> comboBox;
 
+    ComboBox searchAttribut = new ComboBox<>("Such-Attribut");
+
     private String exportPath;
 
     Grid<Metadaten> grid = new Grid<>(Metadaten.class, false);
@@ -103,6 +105,13 @@ public class MetadatenView extends VerticalLayout {
 
         add(new H3("Anzeige von Metadaten, sowie der jeweils zugehörigen Ablaufdaten und EGVP-E Journal Einträge"));
         anchor.setEnabled(false);
+
+
+        searchAttribut.setItems("NachrichtIDIntern", "NachrichtIDExtern", "Sender","Senderaktenzeichen","SenderGovelloID","SenderpostfachName","Sendergeschäftszeichen","Empfänger","Empfaengeraktenzeichen","Empfaengegovelloid","Empfaengerpostfachname","Weiterleitungsgovelloid","Weiterleitungspostfachname","Betreff","Bemerkung","Fachverfahren","Fachbereich","Bearbeitername");
+        searchAttribut.setWidth("200px");
+        searchAttribut.setValue("NachrichtIDextern");
+        searchAttribut.addValueChangeListener( e -> searchField.setPlaceholder(e.getValue().toString()));
+
         comboBox = new ComboBox<>("Verbindung");
         smallButton.setVisible(false);
         List<Configuration> configList = service.findMessageConfigurations();
@@ -130,7 +139,7 @@ public class MetadatenView extends VerticalLayout {
                 e -> endDateTimePicker.setMin(e.getValue()));
 
         HorizontalLayout hl = new HorizontalLayout();
-        hl.add(comboBox,startDateTimePicker, endDateTimePicker);
+        hl.add(comboBox,searchAttribut,startDateTimePicker, endDateTimePicker);
 
         add(hl);
 
@@ -290,6 +299,7 @@ public class MetadatenView extends VerticalLayout {
         HorizontalLayout hl1 = new HorizontalLayout();
         hl1.add(layout);
         hl1.setAlignItems(FlexComponent.Alignment.BASELINE);
+
 
         add(hl1);
 
@@ -714,18 +724,25 @@ public class MetadatenView extends VerticalLayout {
       //  LocalDate toDate = LocalDate.from(endDateTimePicker.getValue());
       //  java.sql.Date sqltoDate = java.sql.Date.valueOf(toDate);
 
-        if (searchField.getValue().isEmpty())
+        if (searchField.getValue().isEmpty()) //Wenn nach nichts gesucht wird, nur auf Zeitraum einschränken:
         {
         //    sql = sql + "where lower(nachrichtidextern) like '%' and rownum < 500";
             sql = sql + "where eingangsdatumserver >= to_date('" + fromDate.format(formatters) + "','DD.MM.YYYY HH24:MI:SS')";
             sql = sql + " and eingangsdatumserver <= to_date('" + toDate.format(formatters) + "','DD.MM.YYYY HH24:MI:SS')";
          //   sql = sql + "where eingangsdatumserver >= to_date('" + sd + "','DD.MM.YYYY HH24:MI:SS')";
         }
-        else
+        else if (!searchAttribut.getValue().toString().contains("NachrichtIDIntern"))
         {
-            sql = sql + "where lower(nachrichtidextern) like '%" + searchField.getValue().toLowerCase() + "%'" +
-            "\nor nachrichtidintern=" + tryParseInt(searchField.getValue(),0);
+            //sql = sql + "where lower(nachrichtidextern) like '%" + searchField.getValue().toLowerCase() + "%'" + "\nor nachrichtidintern=" + tryParseInt(searchField.getValue(),0);
+
+            sql = sql + "where lower( " + searchAttribut.getValue().toString() + ") like '%" + searchField.getValue().toLowerCase() + "%'";
+
         }
+        else //Nach NachrichtID-Intern suchen:
+        {
+            sql = sql + " where nachrichtidintern=" + tryParseInt(searchField.getValue(),0);
+        }
+
 
 //                + "or nachrichtidintern=" + Search;
 

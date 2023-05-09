@@ -247,7 +247,7 @@ public final class SftpClient {
 
 
     new Thread(() -> {
-        Thread.currentThread().setName("MQ-Tail");
+        Thread.currentThread().setName("Tail-Thread");
         VaadinService.setCurrent(vaadinService);
         VaadinSession.setCurrent(vaadinSession);
         UI.setCurrent(ui);
@@ -265,15 +265,19 @@ public final class SftpClient {
     } catch (IOException e) {
         throw new RuntimeException(e);
     }
-        String line;
+        String line="";
         while (!Thread.currentThread().isInterrupted()) {
             try {
+
                 line = reader.readLine();
               //  if (line.startsWith("stop")) break;
                 if (!stat.isActive()) break;
                 if (line==null) break;
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                //throw new RuntimeException(e);
+                System.out.println("readLine-Abfrage in SftpClient unterbrochen " + e.getMessage() );
+                sftpChannel.exit();
+                session.disconnect();
             }
             //  System.out.println(line);
             updateLog(line,logTextArea);
