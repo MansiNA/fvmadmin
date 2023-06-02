@@ -262,6 +262,8 @@ public class MailboxConfigView  extends VerticalLayout {
 
             jdbcTemplate.execute("update EKP.MAILBOX_CONFIG set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
 
+            jdbcTemplate.execute("update EKP.MAILBOX_CONFIG_Folder set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
+
         } catch (Exception e) {
         System.out.println("Exception: " + e.getMessage());
         }

@@ -6,6 +6,7 @@ import com.example.application.data.entity.Journal;
 import com.example.application.data.entity.Metadaten;
 import com.example.application.data.service.ConfigurationService;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -20,11 +21,13 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.ItemClickEvent;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -93,7 +96,6 @@ public class MetadatenView extends VerticalLayout {
     GridListDataView<Metadaten> dataView=grid.setItems();
     TextField searchField = new TextField();
 
-
     public MetadatenView (@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service){
     //public MetadatenView (ConfigurationService service){
         this.exportPath=p_exportPath;
@@ -107,7 +109,7 @@ public class MetadatenView extends VerticalLayout {
         anchor.setEnabled(false);
 
 
-        searchAttribut.setItems("NachrichtIDIntern", "NachrichtIDExtern", "Sender","Senderaktenzeichen","SenderGovelloID","SenderpostfachName","Sendergeschäftszeichen","Empfänger","Empfaengeraktenzeichen","Empfaengegovelloid","Empfaengerpostfachname","Weiterleitungsgovelloid","Weiterleitungspostfachname","Betreff","Bemerkung","Fachverfahren","Fachbereich","Bearbeitername");
+        searchAttribut.setItems("NachrichtIDIntern", "NachrichtIDExtern", "Sender","Senderaktenzeichen","SenderGovelloID","SenderpostfachName","Sendergeschäftszeichen","Empfänger","Empfaengeraktenzeichen","EmpfaengerGovelloID","Empfaengerpostfachname","Weiterleitungsgovelloid","Weiterleitungspostfachname","Betreff","Bemerkung","Fachverfahren","Fachbereich","Bearbeitername");
         searchAttribut.setWidth("200px");
         searchAttribut.setValue("NachrichtIDextern");
         searchAttribut.addValueChangeListener( e -> searchField.setPlaceholder(e.getValue().toString()));
@@ -288,7 +290,7 @@ public class MetadatenView extends VerticalLayout {
 
 
         searchOldMsgBtn.getElement().setProperty("title","Zeigt alle Nachrichten, mit EingangsdatumServer älter 60 Tage");
-        searchBtn.getElement().setProperty("title","Zeigt die Metadaten zu der gewünschten ID. Falls keine ID angegeben, werden die letzten 500 Einträge ausgegeben.");
+        searchBtn.getElement().setProperty("title","Zeigt die Metadaten zu dem gewünschten Attribut. Falls keine Einschränkung angegeben, werden nur die letzten 500 Einträge ausgegeben.");
 
         searchBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         searchOldMsgBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
@@ -302,6 +304,8 @@ public class MetadatenView extends VerticalLayout {
 
 
         add(hl1);
+
+
 
         //Export Button
 
@@ -751,7 +755,8 @@ public class MetadatenView extends VerticalLayout {
         System.out.println("Bis: " + endDateTimePicker.getValue());
 
 
-
+     //   Notification notification = Notification.show("Abfgae gestartet!: ");
+     //   notification.setPosition(Notification.Position.MIDDLE);
 
         System.out.println(sql);
 
@@ -777,10 +782,14 @@ public class MetadatenView extends VerticalLayout {
 
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
+
+
+
         }
 
         return metadaten;
     }
+
 
     public int tryParseInt(String value, int defaultVal) {
         try {

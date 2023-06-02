@@ -66,7 +66,7 @@ public class SecurityConfig extends VaadinWebSecurity {
                         .build();
         UserDetails admin =
                 User.withUsername("admin")
-                        .password("{noop}admin#2023")
+                        .password("{noop}admin!2023")
                         .roles("ADMIN")
                         .build();
         UserDetails pf_admin =
