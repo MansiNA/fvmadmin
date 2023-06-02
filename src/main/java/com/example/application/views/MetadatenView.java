@@ -6,11 +6,13 @@ import com.example.application.data.entity.Journal;
 import com.example.application.data.entity.Metadaten;
 import com.example.application.data.service.ConfigurationService;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
@@ -96,6 +98,8 @@ public class MetadatenView extends VerticalLayout {
     GridListDataView<Metadaten> dataView=grid.setItems();
     TextField searchField = new TextField();
 
+    ConfirmDialog dialog = new ConfirmDialog();
+
     public MetadatenView (@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service){
     //public MetadatenView (ConfigurationService service){
         this.exportPath=p_exportPath;
@@ -109,7 +113,7 @@ public class MetadatenView extends VerticalLayout {
         anchor.setEnabled(false);
 
 
-        searchAttribut.setItems("NachrichtIDIntern", "NachrichtIDExtern", "Sender","Senderaktenzeichen","SenderGovelloID","SenderpostfachName","Sendergeschäftszeichen","Empfänger","Empfaengeraktenzeichen","EmpfaengerGovelloID","Empfaengerpostfachname","Weiterleitungsgovelloid","Weiterleitungspostfachname","Betreff","Bemerkung","Fachverfahren","Fachbereich","Bearbeitername");
+        searchAttribut.setItems("NachrichtIDIntern", "NachrichtIDExternAA", "Sender","Senderaktenzeichen","SenderGovelloID","SenderpostfachName","Sendergeschäftszeichen","Empfänger","Empfaengeraktenzeichen","EmpfaengerGovelloID","Empfaengerpostfachname","Weiterleitungsgovelloid","Weiterleitungspostfachname","Betreff","Bemerkung","Fachverfahren","Fachbereich","Bearbeitername");
         searchAttribut.setWidth("200px");
         searchAttribut.setValue("NachrichtIDextern");
         searchAttribut.addValueChangeListener( e -> searchField.setPlaceholder(e.getValue().toString()));
@@ -142,6 +146,17 @@ public class MetadatenView extends VerticalLayout {
 
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox,searchAttribut,startDateTimePicker, endDateTimePicker);
+
+        dialog.setHeader("DB Abfrage fehlgeschlagen");
+        dialog.setConfirmText("OK");
+
+        Button button = new Button("Open confirm dialog");
+        button.addClickListener(event -> {
+            dialog.open();
+
+        });
+        add(button);
+
 
         add(hl);
 
@@ -385,7 +400,7 @@ public class MetadatenView extends VerticalLayout {
                 try {
                     System.out.println("Hole Metadaten Infos");
 
-                    metadaten=getMetadaten();
+                    metadaten=getMetadaten(ui);
 
 
                     //Thread.sleep(2000); //2 Sekunden warten
@@ -660,7 +675,7 @@ public class MetadatenView extends VerticalLayout {
 
         return metadaten;
     }
-    private List<Metadaten> getMetadaten() {
+    private List<Metadaten> getMetadaten(UI ui) {
 
 
         String sql = "select TIMESTAMPVERSION,\n" +
@@ -781,7 +796,13 @@ public class MetadatenView extends VerticalLayout {
             System.out.println("Metadaten eingelesen");
 
         } catch (Exception e) {
-            System.out.println("Exception: " + e.getMessage());
+            System.out.println("Error: " + e.getMessage());
+            ui.access(() -> {
+                dialog.setText(new Html("<p>" + e.getMessage()+ "</p>"));
+                dialog.setWidth("800px");
+                dialog.open();
+            });
+
 
 
 
