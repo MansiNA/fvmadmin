@@ -147,16 +147,6 @@ public class MetadatenView extends VerticalLayout {
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox,searchAttribut,startDateTimePicker, endDateTimePicker);
 
-        dialog.setHeader("DB Abfrage fehlgeschlagen");
-        dialog.setConfirmText("OK");
-
-        Button button = new Button("Open confirm dialog");
-        button.addClickListener(event -> {
-            dialog.open();
-
-        });
-        add(button);
-
 
         add(hl);
 
@@ -800,6 +790,8 @@ public class MetadatenView extends VerticalLayout {
             ui.access(() -> {
                 dialog.setText(new Html("<p>" + e.getMessage()+ "</p>"));
                 dialog.setWidth("800px");
+                dialog.setHeader("DB Abfrage fehlgeschlagen");
+                dialog.setConfirmText("OK");
                 dialog.open();
             });
 
