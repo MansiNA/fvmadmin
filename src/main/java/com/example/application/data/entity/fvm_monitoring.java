@@ -18,6 +18,15 @@ public class fvm_monitoring {
     private Integer Check_Intervall;
     private Integer Warning_Schwellwert;
     private Integer Error_Schwellwert;
+private Double Error_Prozent;
+
+    public Double getError_Prozent() {
+        return Error_Prozent;
+    }
+
+    public void setError_Prozent(Double error_Prozent) {
+        Error_Prozent = error_Prozent;
+    }
 
     private Date Zeitpunkt ;
 

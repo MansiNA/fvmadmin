@@ -1,6 +1,5 @@
 package com.example.application.views;
 
-import com.example.application.data.entity.AnwParameter;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.Metadaten;
 import com.example.application.data.entity.fvm_monitoring;
@@ -27,9 +26,11 @@ import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.richtexteditor.RichTextEditor;
 import com.vaadin.flow.component.richtexteditor.RichTextEditorVariant;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -136,12 +137,23 @@ public class CockpitView extends VerticalLayout {
                 .setAutoWidth(true).setResizable(true).setSortable(true);
         grid.addColumn(fvm_monitoring::getError_Schwellwert ).setHeader("Error Schwellwert")
                 .setAutoWidth(true).setResizable(true).setSortable(true);
-        grid.addColumn(fvm_monitoring::getAktueller_Wert).setHeader("Aktuell")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+
       //  grid.addColumn(fvm_monitoring::getBeschreibung).setHeader("Beschreibung")
       //          .setAutoWidth(true).setResizable(true).setSortable(true);
       //  grid.addColumn(fvm_monitoring::getHandlungs_INFO).setHeader("Handlungsinfo")
       //          .setAutoWidth(true).setResizable(true).setSortable(true);
+
+        // Spalte für den Fortschritt mit ProgressBarRenderer
+        grid.addColumn(new ComponentRenderer<>(item -> {
+            ProgressBar progressBar = new ProgressBar();
+
+            progressBar.setValue(item.getError_Prozent()); // Wert zwischen 0 und 1
+           //progressBar.setValue(0.8); // Wert zwischen 0 und 1
+            return progressBar;
+        })).setHeader("% Auslastung").setWidth("40px").setAutoWidth(true).setResizable(true);
+
+        grid.addColumn(fvm_monitoring::getAktueller_Wert).setHeader("Aktuell")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
 
         grid.setSelectionMode(Grid.SelectionMode.SINGLE);
 
@@ -370,7 +382,8 @@ public class CockpitView extends VerticalLayout {
 
         //String sql = "SELECT ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT, ERROR_SCHWELLWERT FROM EKP.FVM_MONITORING";
 
-        String sql = "SELECT m.ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT, ERROR_SCHWELLWERT,mr.result as Aktueller_Wert FROM EKP.FVM_MONITORING m\n" +
+        String sql = "SELECT m.ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
+                ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent FROM EKP.FVM_MONITORING m\n" +
                 "left outer join EKP.FVM_MONITOR_RESULT mr\n" +
                 "on m.id=mr.id\n" +
                 "and mr.is_active='1'";
