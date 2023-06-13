@@ -1,0 +1,58 @@
+CREATE TABLE EKP.FVM_MONITORING
+(
+  ID                   NUMBER,
+  SQL                  VARCHAR2(4000 BYTE),
+  TITEL                VARCHAR2(255 BYTE),
+  BESCHREIBUNG         VARCHAR2(4000 BYTE),
+  HANDLUNGS_INFO       VARCHAR2(4000 BYTE),
+  CHECK_INTERVALL      NUMBER,
+  WARNING_SCHWELLWERT  NUMBER,
+  ERROR_SCHWELLWERT    NUMBER
+);
+
+------
+DROP TABLE EKP.FVM_MONITOR_RESULT CASCADE CONSTRAINTS;
+
+CREATE TABLE EKP.FVM_MONITOR_RESULT
+(
+  ID         NUMBER,
+  ZEITPUNKT  DATE                               DEFAULT sysdate,
+  RESULT     NUMBER,
+  IS_ACTIVE  CHAR(1 BYTE)                       DEFAULT '1'
+);
+
+
+ALTER TABLE EKP.FVM_MONITOR_RESULT ADD (
+  CONSTRAINT IS_ACTIVE_CONS
+  CHECK (is_active in ('1','0'))
+  ENABLE VALIDATE);
+
+
+CREATE INDEX EKP.IDX_FVM_MONITOR_RESULT ON EKP.FVM_MONITOR_RESULT
+(IS_ACTIVE)
+LOGGING
+TABLESPACE USERS
+PCTFREE    10
+INITRANS   2
+MAXTRANS   255
+STORAGE    (
+            INITIAL          64K
+            NEXT             1M
+            MINEXTENTS       1
+            MAXEXTENTS       UNLIMITED
+            PCTINCREASE      0
+            BUFFER_POOL      DEFAULT
+           );
+
+CREATE OR REPLACE TRIGGER EKP.tr_fvm_monitor_result
+BEFORE INSERT ON EKP.FVM_MONITOR_RESULT
+FOR EACH ROW
+BEGIN
+   DBMS_OUTPUT.PUT_LINE('Ein neuer Datensatz wurde eingefügt. ID: ' || :NEW.id);
+   
+   update FVM_MONITOR_RESULT set is_active='0' 
+   where id = :New.id;
+   
+   
+END;
+/

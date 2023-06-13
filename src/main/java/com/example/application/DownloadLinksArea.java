@@ -47,7 +47,6 @@ public class DownloadLinksArea extends VerticalLayout {
 
             anchor_list.add(getAnchor(file));
         }
-
         anchorGrid.setItems(anchor_list);
 //anchorGrid.addClassNames("py-0","px-0");
 
@@ -74,8 +73,8 @@ public class DownloadLinksArea extends VerticalLayout {
         anchorGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
       //  anchorGrid.addThemeVariants(GridVariant.LUMO_COLUMN_BORDERS);
         anchorGrid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
-        anchorGrid.setHeight("150px");
-        anchorGrid.setWidth("450px");
+        anchorGrid.setHeight("300px");
+        anchorGrid.setWidth("850px");
         add(anchorGrid);
         this.addClassName("downloadArea");
         this.setSpacing(false);

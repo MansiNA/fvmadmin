@@ -5,6 +5,7 @@ import com.example.application.data.entity.Metadaten;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
 import com.vaadin.flow.component.Html;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.charts.Chart;
@@ -18,9 +19,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridSelectionModel;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.Hr;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -29,19 +28,41 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.richtexteditor.RichTextEditor;
 import com.vaadin.flow.component.richtexteditor.RichTextEditorVariant;
+import com.vaadin.flow.component.tabs.Tab;
+import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import org.apache.poi.ss.formula.functions.T;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.annotation.security.RolesAllowed;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+
+
+import org.w3c.dom.*;
+import org.w3c.dom.Node;
+import org.xml.sax.InputSource;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 @PageTitle("eKP-Cokpit | by DBUSS GmbH")
 @Route(value = "cockpit", layout= MainLayout.class)
@@ -63,6 +84,11 @@ public class CockpitView extends VerticalLayout {
     private ComboBox<Configuration> comboBox;
     static List<fvm_monitoring> param_Liste = new ArrayList<fvm_monitoring>();
     static List<fvm_monitoring> monitore;
+
+    static VerticalLayout content = new VerticalLayout();;
+    static Tab details;
+    static Tab payment;
+
     public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service) {
         this.jdbcTemplate = jdbcTemplate;
 
@@ -108,6 +134,38 @@ public class CockpitView extends VerticalLayout {
         });
 
 
+        Button bt = new Button("Test");
+
+        bt.addClickListener(e -> {
+            System.out.println("Test-Button gedrückt");
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder().uri(URI.create("https://jsonplaceholder.typicode.com/albums")).build();
+            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenApply(HttpResponse::body)
+                    //.thenAccept(System.out::println)
+                    .thenApply(CockpitView::parse)
+                    .join();
+        });
+
+
+        Button xmlBt = new Button("XML");
+
+        xmlBt.addClickListener(e -> {
+            System.out.println("XML-Button gedrückt");
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder().uri(URI.create("https://jsonplaceholder.typicode.com/albums")).build();
+            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                    .thenApply(HttpResponse::body)
+                    //.thenAccept(System.out::println)
+                    //.thenApply(CockpitView::parse)
+                    .thenApply(CockpitView::xmlpare)
+                    .join();
+        });
+
+
+
+      //  add(xmlBt);
+
 
         H1 h1 = new H1("ekP / EGVP-E Monitoring");
         add(h1);
@@ -137,7 +195,8 @@ public class CockpitView extends VerticalLayout {
                 .setAutoWidth(true).setResizable(true).setSortable(true);
         grid.addColumn(fvm_monitoring::getError_Schwellwert ).setHeader("Error Schwellwert")
                 .setAutoWidth(true).setResizable(true).setSortable(true);
-
+        grid.addColumn(fvm_monitoring::getAktueller_Wert).setHeader("Aktuell")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
       //  grid.addColumn(fvm_monitoring::getBeschreibung).setHeader("Beschreibung")
       //          .setAutoWidth(true).setResizable(true).setSortable(true);
       //  grid.addColumn(fvm_monitoring::getHandlungs_INFO).setHeader("Handlungsinfo")
@@ -149,11 +208,19 @@ public class CockpitView extends VerticalLayout {
 
             progressBar.setValue(item.getError_Prozent()); // Wert zwischen 0 und 1
            //progressBar.setValue(0.8); // Wert zwischen 0 und 1
-            return progressBar;
-        })).setHeader("% Auslastung").setWidth("40px").setAutoWidth(true).setResizable(true);
 
-        grid.addColumn(fvm_monitoring::getAktueller_Wert).setHeader("Aktuell")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+            Double p = item.getError_Prozent();
+            Double rounded;
+            p = p*100;
+            rounded = (double) Math.round(p);
+            Text t = new Text(rounded.toString() + "%");
+            HorizontalLayout hl = new HorizontalLayout();
+            hl.add(t,progressBar);
+
+            return hl;
+        })).setHeader("Auslastung").setWidth("150px").setResizable(true);
+
+
 
         grid.setSelectionMode(Grid.SelectionMode.SINGLE);
 
@@ -215,10 +282,14 @@ public class CockpitView extends VerticalLayout {
         MonitorContextMenu contextMenu = new MonitorContextMenu(grid);
 
         grid.setClassNameGenerator(person -> {
-            if (person.getAktueller_Wert() >= person.getWarning_Schwellwert() && person.getAktueller_Wert() < person.getError_Schwellwert() )
-                return "warning";
-            if (person.getAktueller_Wert() >= person.getError_Schwellwert())
-                return "error";
+
+            if (person.getAktueller_Wert() != null && person.getWarning_Schwellwert() != null && person.getError_Schwellwert() != null ) {
+
+                if (person.getAktueller_Wert() >= person.getWarning_Schwellwert() && person.getAktueller_Wert() < person.getError_Schwellwert())
+                    return "warning";
+                if (person.getAktueller_Wert() >= person.getError_Schwellwert())
+                    return "error";
+            }
             return null;
         });
 
@@ -229,35 +300,66 @@ public class CockpitView extends VerticalLayout {
         add(layout,grid);
     }
 
+    private static String xmlpare(String xml) {
+
+
+        String input = "<data><object><property name=\"body\"><object><property name=\"item\"><object><property name=\"name\"><value type=\"string\">AdminServer</value></property><property name=\"state\"><value type=\"string\">RUNNING</value></property><property name=\"health\"><value type=\"string\">HEALTH_OK</value></property><property name=\"clusterName\"><value/></property><property name=\"currentMachine\"><value type=\"string\"></value></property><property name=\"weblogicVersion\"><value type=\"string\">WebLogic Server 12.2.1.4.0 Thu Sep 12 04:04:29 GMT 2019 1974621</value></property><property name=\"openSocketsCurrentCount\"><value type=\"number\">1</value></property><property name=\"heapSizeMax\"><value type=\"number\">518979584</value></property><property name=\"oSVersion\"><value type=\"string\">5.4.0-42-generic</value></property><property name=\"oSName\"><value type=\"string\">Linux</value></property><property name=\"javaVersion\"><value type=\"string\">1.8.0_202</value></property><property name=\"heapSizeCurrent\"><value type=\"number\">284954624</value></property><property name=\"heapFreeCurrent\"><value type=\"number\">76093760</value></property></object></property></object></property><property name=\"messages\"><array></array></property></object></data>";
+
+        // Extract property name-value pairs
+        Pattern pattern = Pattern.compile("<property name=\"(.*?)\"><value(.*?)>(.*?)</value></property>");
+        Matcher matcher = pattern.matcher(input);
+
+        while (matcher.find()) {
+            String name = matcher.group(1);
+            String value = matcher.group(3);
+
+            System.out.println("Name: " + name);
+            System.out.println("Value: " + value);
+            System.out.println();
+        }
+
+
+        return null;
+
+    }
+
+    public static String parse(String responseBody){
+
+         JSONArray albums = new JSONArray(responseBody);
+        for ( int i = 0; i < albums.length();i++){
+            JSONObject album = albums.getJSONObject(i);
+            int id = album.getInt("id");
+            int userId = album.getInt("userId");
+            String title = album.getString("title");
+            System.out.println(id + "  " + title + " "  + userId);
+
+        }
+
+
+        return null;
+    }
+
     private class MonitorContextMenu extends GridContextMenu<fvm_monitoring> {
         public MonitorContextMenu(Grid<fvm_monitoring> target) {
             super(target);
 
             addItem("Beschreibung", e -> e.getItem().ifPresent(person -> {
                  System.out.printf("Edit: %s%n", person.getID());
-                dialog_Beschreibung.setHeaderTitle("Beschreibung des Monitors >" + person.getTitel() +"<");
-                VerticalLayout dialogLayout = createDialogLayout(person.getBeschreibung());
+                dialog_Beschreibung.setHeaderTitle(person.getTitel());
+              //  VerticalLayout dialogLayout = createDialogLayout(person.getBeschreibung());
+
+                VerticalLayout dialogLayout =showDialog(person);
+
                 dialog_Beschreibung.removeAll();
                 dialog_Beschreibung.add(dialogLayout);
                 dialog_Beschreibung.setModal(false);
                 dialog_Beschreibung.setDraggable(true);
                 dialog_Beschreibung.setResizable(true);
+                dialog_Beschreibung.setWidth("800px");
+                dialog_Beschreibung.setHeight("600px");
                 dialog_Beschreibung.open();
             }));
 
-            addItem("Handlungsanweisung", e -> e.getItem().ifPresent(person -> {
-                dialog_Beschreibung.setHeaderTitle("Handlungsanweisung");
-                VerticalLayout dialogLayout = createDialogLayout(person.getHandlungs_INFO());
-                dialog_Beschreibung.removeAll();
-                dialog_Beschreibung.add(dialogLayout);
-                dialog_Beschreibung.setModal(false);
-                dialog_Beschreibung.setDraggable(true);
-                dialog_Beschreibung.setResizable(true);
-                dialog_Beschreibung.open();
-
-
-                //System.out.printf("Delete: %s%n", person.getID());
-            }));
 
             addItem("Historie", e -> e.getItem().ifPresent(monitor -> {
                 dialog_Beschreibung.setHeaderTitle("Historie für " + monitor.getTitel() + " (" + monitor.getID() + ")");
@@ -353,6 +455,78 @@ public class CockpitView extends VerticalLayout {
         dialogLayout.getStyle().set("height", "800px").set("max-height", "100%");
         return dialogLayout;
     }
+
+
+
+private static VerticalLayout showDialog(fvm_monitoring Inhalt){
+
+        VerticalLayout dialogInhalt = new VerticalLayout();
+
+    details = new Tab("Beschreibung");
+    payment = new Tab("Handlungsanweisung");
+
+    Tabs tabs = new Tabs();
+
+    tabs.addSelectedChangeListener(
+            event -> setContent(event.getSelectedTab(),Inhalt));
+
+
+    tabs.add(details, payment);
+
+
+    content.setSpacing(false);
+    content.add(tabs);
+
+    setContent(tabs.getSelectedTab(),Inhalt);
+
+    dialogInhalt = new VerticalLayout();
+    dialogInhalt.add(tabs,content);
+
+    return dialogInhalt;
+
+}
+
+    private static void setContent(Tab tab,fvm_monitoring inhalt ) {
+
+        if(content != null ) {
+            content.removeAll();
+        }
+
+        if (tab == null) {
+            return;
+        }
+        if (tab.equals(details)) {
+
+            RichTextEditor rte = new RichTextEditor();
+            //rte.setMaxHeight("400px");
+            //rte.setMinHeight("200px");
+            rte.setWidthFull();
+            rte.setHeightFull();
+            rte.setReadOnly(true);
+            rte.addThemeVariants(RichTextEditorVariant.LUMO_NO_BORDER);
+            rte.asHtml().setValue(inhalt.getBeschreibung());
+
+            //content.add(inhalt.getBeschreibung());
+            content.add(rte);
+        } else if (tab.equals(payment)) {
+            RichTextEditor rte = new RichTextEditor();
+            //rte.setMaxHeight("400px");
+            //rte.setMinHeight("200px");
+            rte.setWidthFull();
+            rte.setHeightFull();
+            rte.setReadOnly(true);
+            rte.addThemeVariants(RichTextEditorVariant.LUMO_NO_BORDER);
+            rte.asHtml().setValue(inhalt.getHandlungs_INFO());
+
+            //content.add(inhalt.getBeschreibung());
+            content.add(rte);
+
+            //content.add(inhalt.getHandlungs_INFO());
+        } else {
+            content.add(new Paragraph("This is the Shipping tab"));
+        }
+    }
+
 
     private static VerticalLayout createDialogLayout(String Beschreibung) {
 

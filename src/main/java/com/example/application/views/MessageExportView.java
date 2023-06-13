@@ -84,7 +84,8 @@ public class MessageExportView extends VerticalLayout {
 
         uploadFolder = new File(exportPath);
         linksArea = new DownloadLinksArea(uploadFolder);
-
+        linksArea.setWidth("1800px");
+        linksArea.setHeight("150px");
 
 
         live = new Tab("Prod");
@@ -223,7 +224,7 @@ public class MessageExportView extends VerticalLayout {
         vertical.add(buttonLayout);
 
 
-
+        spinner.setWidth("800px");
         vertical.add(spinner);
 
         vertical.add(linksArea);
