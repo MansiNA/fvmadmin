@@ -18,6 +18,7 @@ public class fvm_monitoring {
     private Integer Check_Intervall;
     private Integer Warning_Schwellwert;
     private Integer Error_Schwellwert;
+    private Date Zeitpunkt ;
 private Double Error_Prozent;
 
     public Double getError_Prozent() {
@@ -28,7 +29,6 @@ private Double Error_Prozent;
         Error_Prozent = error_Prozent;
     }
 
-    private Date Zeitpunkt ;
 
     public Date getZeitpunkt() {
         return Zeitpunkt;

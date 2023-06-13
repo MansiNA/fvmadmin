@@ -73,7 +73,7 @@ public class DownloadLinksArea extends VerticalLayout {
         anchorGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
       //  anchorGrid.addThemeVariants(GridVariant.LUMO_COLUMN_BORDERS);
         anchorGrid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
-        anchorGrid.setHeight("300px");
+        anchorGrid.setHeight("500px");
         anchorGrid.setWidth("850px");
         add(anchorGrid);
         this.addClassName("downloadArea");

@@ -15,8 +15,10 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridSelectionModel;
+import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.html.*;
@@ -47,6 +49,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -62,6 +65,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 
 @PageTitle("eKP-Cokpit | by DBUSS GmbH")
@@ -220,6 +224,7 @@ public class CockpitView extends VerticalLayout {
             return hl;
         })).setHeader("Auslastung").setWidth("150px").setResizable(true);
 
+        grid.setItemDetailsRenderer(createPersonDetailsRenderer());
 
 
         grid.setSelectionMode(Grid.SelectionMode.SINGLE);
@@ -295,9 +300,46 @@ public class CockpitView extends VerticalLayout {
 
         grid.setItems(param_Liste);
         grid.setHeight("800px");
-
+        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
 
         add(layout,grid);
+    }
+
+
+    private static ComponentRenderer<PersonDetailsFormLayout, fvm_monitoring> createPersonDetailsRenderer() {
+        return new ComponentRenderer<>(PersonDetailsFormLayout::new,
+                PersonDetailsFormLayout::setPerson);
+    }
+
+    private static class PersonDetailsFormLayout extends FormLayout {
+        private final TextField emailField = new TextField("Letzte Aktualisierung");
+        private final TextField idField = new TextField("ID");
+
+        public PersonDetailsFormLayout() {
+            Stream.of(idField,emailField).forEach(field -> {
+                field.setReadOnly(true);
+                add(field);
+            });
+
+            setResponsiveSteps(new ResponsiveStep("0", 2));
+
+        }
+
+        public void setPerson(fvm_monitoring person) {
+
+            if (person.getZeitpunkt() != null) {
+
+                SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+                String dateAsString = dateFormat.format(person.getZeitpunkt());
+
+                emailField.setValue(dateAsString);
+            }
+            else {
+                emailField.setValue("unbekannt...");
+            }
+            idField.setValue(person.getID().toString());
+
+        }
     }
 
     private static String xmlpare(String xml) {
@@ -557,7 +599,7 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
         //String sql = "SELECT ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT, ERROR_SCHWELLWERT FROM EKP.FVM_MONITORING";
 
         String sql = "SELECT m.ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
-                ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent FROM EKP.FVM_MONITORING m\n" +
+                ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent, Zeitpunkt FROM EKP.FVM_MONITORING m\n" +
                 "left outer join EKP.FVM_MONITOR_RESULT mr\n" +
                 "on m.id=mr.id\n" +
                 "and mr.is_active='1'";
