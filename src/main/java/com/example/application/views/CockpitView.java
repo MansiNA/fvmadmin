@@ -6,6 +6,7 @@ import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Text;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.charts.Chart;
@@ -22,6 +23,7 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -50,6 +52,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -63,6 +67,8 @@ import org.xml.sax.InputSource;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -92,6 +98,12 @@ public class CockpitView extends VerticalLayout {
     static VerticalLayout content = new VerticalLayout();;
     static Tab details;
     static Tab payment;
+
+    private ScheduledExecutorService executor;
+    private Label countdownLabel;
+
+    private UI ui ;
+    Instant startTime;
 
     public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service) {
         this.jdbcTemplate = jdbcTemplate;
@@ -127,8 +139,10 @@ public class CockpitView extends VerticalLayout {
         param_Liste.add(param1);
 */
 
+        countdownLabel = new Label();
+
         Button refreshBtn = new Button("refresh");
-        refreshBtn.getElement().setProperty("title","Zeigt die Metadaten zu dem gewünschten Attribut. Falls keine Einschränkung angegeben, werden nur die letzten 500 Einträge ausgegeben.");
+        refreshBtn.getElement().setProperty("title","Daten neu einlesen");
         refreshBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         refreshBtn.addClickListener(clickEvent -> {
 
@@ -137,6 +151,7 @@ public class CockpitView extends VerticalLayout {
 
         });
 
+        ui= UI.getCurrent();
 
         Button bt = new Button("Test");
 
@@ -278,7 +293,7 @@ public class CockpitView extends VerticalLayout {
 
 
         //   HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn);
-        HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn);
+        HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn, countdownLabel);
         layout.setPadding(false);
         layout.setAlignItems(FlexComponent.Alignment.BASELINE);
 
@@ -303,6 +318,47 @@ public class CockpitView extends VerticalLayout {
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
 
         add(layout,grid);
+
+        startCountdown(Duration.ofSeconds(60));
+    }
+
+    private void stopCountdown() {
+        if (executor != null && !executor.isShutdown()) {
+            executor.shutdown();
+        }
+    }
+
+    private Duration calculateRemainingTime(Duration duration, Instant startTime) {
+        Instant now = Instant.now();
+        Instant endTime = startTime.plus(duration);
+        return Duration.between(now, endTime);
+    }
+
+    private void updateCountdownLabel(Duration remainingTime) {
+        long seconds = remainingTime.getSeconds();
+        String formattedTime = String.format("%02d:%02d:%02d", seconds / 3600, (seconds % 3600) / 60, (seconds % 60));
+
+        if (remainingTime.isNegative()){
+            startTime = Instant.now();
+            param_Liste=getMonitoring();
+            grid.setItems(param_Liste);
+            return;
+        }
+
+        countdownLabel.setText(formattedTime);
+    }
+
+    private void startCountdown(Duration duration) {
+        executor = Executors.newSingleThreadScheduledExecutor();
+
+        startTime = Instant.now();
+
+        executor.scheduleAtFixedRate(() -> {
+            ui.access(() -> {
+                Duration remainingTime = calculateRemainingTime(duration, startTime);
+                updateCountdownLabel(remainingTime);
+            });
+        }, 0, 1, java.util.concurrent.TimeUnit.SECONDS);
     }
 
 

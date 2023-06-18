@@ -18,6 +18,16 @@ public class fvm_monitoring {
     private Integer Check_Intervall;
     private Integer Warning_Schwellwert;
     private Integer Error_Schwellwert;
+    private Boolean isactive;
+
+    public Boolean getActive() {
+        return isactive;
+    }
+
+    public void setActive(Boolean isactive) {
+        this.isactive = isactive;
+    }
+
     private Date Zeitpunkt ;
 private Double Error_Prozent;
 
