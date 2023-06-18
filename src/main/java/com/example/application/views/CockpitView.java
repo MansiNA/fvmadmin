@@ -4,13 +4,13 @@ import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.Metadaten;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
-import com.vaadin.flow.component.Html;
+import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.Text;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.charts.Chart;
 import com.vaadin.flow.component.charts.model.*;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.contextmenu.SubMenu;
@@ -54,6 +54,8 @@ import java.net.http.HttpResponse;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -100,56 +102,27 @@ public class CockpitView extends VerticalLayout {
     static Tab payment;
 
     private ScheduledExecutorService executor;
+
+    Checkbox autorefresh = new Checkbox();
+
+    private Label lastRefreshLabel;
     private Label countdownLabel;
 
     private UI ui ;
     Instant startTime;
+    ConfigurationService service;
 
     public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service) {
         this.jdbcTemplate = jdbcTemplate;
+        this.service=service;
 
-/*
-        fvm_monitoring param = new fvm_monitoring();
-        fvm_monitoring param1 = new fvm_monitoring();
+        addClassName("cockpit-view");
+        setSizeFull();
 
-
-        param.setID(1);
-        param.setTitel("Anzahl Nachrichten im Fehlerhospital");
-        param.setBeschreibung("<h1>Anzahl Nachrichten im Fehlerhospital</h1><p>WAbsolute Anzahl von Nachrichten im FH.</br>Diese werden Differenziert nach OrdG/FachG und Staatsanwaltschaften aufgeteilt.");
-        param.setCheck_Intervall(5);
-        param.setSQL("select count(*) from cat");
-        param.setHandlungs_INFO("<p>Informationen an den jeweiligen Justiz-Bereich</p>");
-        param.setWarning_Schwellwert(5);
-        param.setError_Schwellwert(10);
-        param.setAktueller_Wert(86);
-
-        param_Liste.add(param);
-
-        param1.setID(11);
-        param1.setTitel("Mein letzter Check");
-        param1.setBeschreibung("<h1>Huhu Cool, oder?</h2>");
-        param1.setCheck_Intervall(30);
-        param1.setSQL("select 700 from dual");
-        param1.setHandlungs_INFO("<p>Hier eine genaue Beschreibung, was im Fehlerfall getan werden muss</p>");
-        param1.setWarning_Schwellwert(30);
-        param1.setError_Schwellwert(50);
-        param1.setAktueller_Wert(2);
-
-
-        param_Liste.add(param1);
-*/
+        configureGrid();
 
         countdownLabel = new Label();
-
-        Button refreshBtn = new Button("refresh");
-        refreshBtn.getElement().setProperty("title","Daten neu einlesen");
-        refreshBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        refreshBtn.addClickListener(clickEvent -> {
-
-            param_Liste=getMonitoring();
-            grid.setItems(param_Liste);
-
-        });
+        lastRefreshLabel=new Label();
 
         ui= UI.getCurrent();
 
@@ -186,8 +159,8 @@ public class CockpitView extends VerticalLayout {
       //  add(xmlBt);
 
 
-        H1 h1 = new H1("ekP / EGVP-E Monitoring");
-        add(h1);
+        H2 h2 = new H2("ekP / EGVP-E Monitoring");
+        add(h2);
 
         //editor.setVisible(false);
 
@@ -197,13 +170,79 @@ public class CockpitView extends VerticalLayout {
         add(editor);
         editor.setVisible(false);
 
-
-
         Button closeButton = new Button("close", e -> dialog_Beschreibung.close());
         dialog_Beschreibung.getFooter().add(closeButton);
 
 
+        //   HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn);
 
+
+
+        MonitorContextMenu contextMenu = new MonitorContextMenu(grid);
+
+
+
+
+        add(getToolbar(),grid);
+
+
+    }
+
+    private Component getToolbar() {
+
+        Button refreshBtn = new Button("refresh");
+        refreshBtn.getElement().setProperty("title","Daten neu einlesen");
+        refreshBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+        refreshBtn.addClickListener(clickEvent -> {
+
+            param_Liste=getMonitoring();
+            grid.setItems(param_Liste);
+            updateLastRefreshLabel();
+
+        });
+
+        comboBox = new ComboBox<>("Verbindung");
+        List<Configuration> configList = service.findMessageConfigurations();
+        comboBox.setItems(configList);
+        comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
+        comboBox.setValue(configList.get(1) );
+
+        autorefresh.setLabel("Autorefresh");
+
+        autorefresh.addClickListener(e->{
+
+            if (autorefresh.getValue()){
+                System.out.println("Autorefresh wird eingeschaltet.");
+                startCountdown(Duration.ofSeconds(60));
+                countdownLabel.setVisible(true);
+            }
+            else{
+                System.out.println("Autorefresh wird ausgeschaltet.");
+                stopCountdown();
+                countdownLabel.setVisible(false);
+            }
+
+        });
+
+
+        updateLastRefreshLabel();
+
+        HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn,lastRefreshLabel, autorefresh, countdownLabel);
+        layout.setPadding(false);
+        layout.setAlignItems(FlexComponent.Alignment.BASELINE);
+
+        return layout;
+
+    }
+
+    private void updateLastRefreshLabel() {
+        LocalTime currentTime = LocalTime.now();
+        String formattedTime = currentTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+
+        lastRefreshLabel.setText("letzte Aktualisierung: " + formattedTime);
+    }
+
+    private void configureGrid() {
         /*grid.addColumn(fvm_monitoring::getID).setHeader("ID")
                 .setAutoWidth(true).setResizable(true).setSortable(true);*/
         grid.addColumn(fvm_monitoring::getTitel).setHeader("Titel")
@@ -216,17 +255,17 @@ public class CockpitView extends VerticalLayout {
                 .setAutoWidth(true).setResizable(true).setSortable(true);
         grid.addColumn(fvm_monitoring::getAktueller_Wert).setHeader("Aktuell")
                 .setAutoWidth(true).setResizable(true).setSortable(true);
-      //  grid.addColumn(fvm_monitoring::getBeschreibung).setHeader("Beschreibung")
-      //          .setAutoWidth(true).setResizable(true).setSortable(true);
-      //  grid.addColumn(fvm_monitoring::getHandlungs_INFO).setHeader("Handlungsinfo")
-      //          .setAutoWidth(true).setResizable(true).setSortable(true);
+        //  grid.addColumn(fvm_monitoring::getBeschreibung).setHeader("Beschreibung")
+        //          .setAutoWidth(true).setResizable(true).setSortable(true);
+        //  grid.addColumn(fvm_monitoring::getHandlungs_INFO).setHeader("Handlungsinfo")
+        //          .setAutoWidth(true).setResizable(true).setSortable(true);
 
         // Spalte für den Fortschritt mit ProgressBarRenderer
         grid.addColumn(new ComponentRenderer<>(item -> {
             ProgressBar progressBar = new ProgressBar();
 
             progressBar.setValue(item.getError_Prozent()); // Wert zwischen 0 und 1
-           //progressBar.setValue(0.8); // Wert zwischen 0 und 1
+            //progressBar.setValue(0.8); // Wert zwischen 0 und 1
 
             Double p = item.getError_Prozent();
             Double rounded;
@@ -243,9 +282,21 @@ public class CockpitView extends VerticalLayout {
 
 
         grid.setSelectionMode(Grid.SelectionMode.SINGLE);
+        grid.setItems(param_Liste);
+        grid.setHeight("800px");
+        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
 
+        grid.setClassNameGenerator(person -> {
 
+            if (person.getAktueller_Wert() != null && person.getWarning_Schwellwert() != null && person.getError_Schwellwert() != null ) {
 
+                if (person.getAktueller_Wert() >= person.getWarning_Schwellwert() && person.getAktueller_Wert() < person.getError_Schwellwert())
+                    return "warning";
+                if (person.getAktueller_Wert() >= person.getError_Schwellwert())
+                    return "error";
+            }
+            return null;
+        });
 
 /*
         grid.addComponentColumn(file -> {
@@ -285,41 +336,7 @@ public class CockpitView extends VerticalLayout {
             return menuBar;
         }).setWidth("120px").setFlexGrow(0);*/
 
-        comboBox = new ComboBox<>("Verbindung");
-        List<Configuration> configList = service.findMessageConfigurations();
-        comboBox.setItems(configList);
-        comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
-        comboBox.setValue(configList.get(1) );
 
-
-        //   HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn);
-        HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn, countdownLabel);
-        layout.setPadding(false);
-        layout.setAlignItems(FlexComponent.Alignment.BASELINE);
-
-
-
-        MonitorContextMenu contextMenu = new MonitorContextMenu(grid);
-
-        grid.setClassNameGenerator(person -> {
-
-            if (person.getAktueller_Wert() != null && person.getWarning_Schwellwert() != null && person.getError_Schwellwert() != null ) {
-
-                if (person.getAktueller_Wert() >= person.getWarning_Schwellwert() && person.getAktueller_Wert() < person.getError_Schwellwert())
-                    return "warning";
-                if (person.getAktueller_Wert() >= person.getError_Schwellwert())
-                    return "error";
-            }
-            return null;
-        });
-
-        grid.setItems(param_Liste);
-        grid.setHeight("800px");
-        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
-
-        add(layout,grid);
-
-        startCountdown(Duration.ofSeconds(60));
     }
 
     private void stopCountdown() {
@@ -336,16 +353,17 @@ public class CockpitView extends VerticalLayout {
 
     private void updateCountdownLabel(Duration remainingTime) {
         long seconds = remainingTime.getSeconds();
-        String formattedTime = String.format("%02d:%02d:%02d", seconds / 3600, (seconds % 3600) / 60, (seconds % 60));
+        String formattedTime = String.format("%02d", (seconds % 60));
 
         if (remainingTime.isNegative()){
             startTime = Instant.now();
             param_Liste=getMonitoring();
             grid.setItems(param_Liste);
+            updateLastRefreshLabel();
             return;
         }
 
-        countdownLabel.setText(formattedTime);
+        countdownLabel.setText("in " + formattedTime + " Sekunden");
     }
 
     private void startCountdown(Duration duration) {
@@ -726,6 +744,15 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
 
         return monitore;
     }
+
+
+    @Override
+    protected void onDetach(DetachEvent event) {
+        super.onDetach(event);
+        // Stoppe den Timer, wenn das UI geschlossen wird
+        stopCountdown();
+    }
+
 
 
 }
