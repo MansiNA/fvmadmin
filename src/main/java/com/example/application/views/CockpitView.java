@@ -4,6 +4,8 @@ import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.Metadaten;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
+import com.example.application.utils.myCallback;
+import com.example.application.views.list.MonitoringForm;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
@@ -34,6 +36,8 @@ import com.vaadin.flow.component.richtexteditor.RichTextEditor;
 import com.vaadin.flow.component.richtexteditor.RichTextEditorVariant;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
+import com.vaadin.flow.component.textfield.NumberField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
@@ -87,11 +91,13 @@ public class CockpitView extends VerticalLayout {
     @Autowired
     JdbcTemplate jdbcTemplate;
 
+   // myCallback callback;
     Grid<fvm_monitoring> grid = new Grid<>(fvm_monitoring.class, false);
 
     Dialog dialog_Beschreibung = new Dialog();
+    Dialog dialog_Editor = new Dialog();
 
-    RichTextEditor editor = new RichTextEditor();
+   // RichTextEditor editor = new RichTextEditor();
 
     private ComboBox<Configuration> comboBox;
     static List<fvm_monitoring> param_Liste = new ArrayList<fvm_monitoring>();
@@ -100,10 +106,14 @@ public class CockpitView extends VerticalLayout {
     static VerticalLayout content = new VerticalLayout();;
     static Tab details;
     static Tab payment;
+    //static TextField titel;
 
+    static fvm_monitoring akt_mon;
     private ScheduledExecutorService executor;
 
     Checkbox autorefresh = new Checkbox();
+
+    myCallback callback;
 
     private Label lastRefreshLabel;
     private Label countdownLabel;
@@ -111,6 +121,8 @@ public class CockpitView extends VerticalLayout {
     private UI ui ;
     Instant startTime;
     ConfigurationService service;
+    MonitoringForm form;
+
 
     public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service) {
         this.jdbcTemplate = jdbcTemplate;
@@ -167,11 +179,21 @@ public class CockpitView extends VerticalLayout {
        // String htmlContent = "<h1>Beispielüberschrift</h1><p>Dies ist der Inhalt des Editors.</p>";
        // editor.asHtml().setValue(htmlContent);
 
-        add(editor);
-        editor.setVisible(false);
+        //add(editor);
+        //editor.setVisible(false);
+
+
 
         Button closeButton = new Button("close", e -> dialog_Beschreibung.close());
+        Button cancelEditButton = new Button("cancel", e -> dialog_Editor.close());
+        Button saveEditButton = new Button("save", e -> {
+
+            saveMonitor();
+            dialog_Editor.close();
+        });
         dialog_Beschreibung.getFooter().add(closeButton);
+
+        dialog_Editor.getFooter().add(cancelEditButton,saveEditButton);
 
 
         //   HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn);
@@ -180,12 +202,18 @@ public class CockpitView extends VerticalLayout {
 
         MonitorContextMenu contextMenu = new MonitorContextMenu(grid);
 
+        form = new MonitoringForm();
+        form.setVisible(false);
+
+        add(getToolbar(),grid,form );
 
 
+    }
 
-        add(getToolbar(),grid);
+    private void saveMonitor() {
+        System.out.println("Titel:" + akt_mon.getTitel());
 
-
+        System.out.println("Save gedrückt");
     }
 
     private Component getToolbar() {
@@ -277,6 +305,10 @@ public class CockpitView extends VerticalLayout {
 
             return hl;
         })).setHeader("Auslastung").setWidth("150px").setResizable(true);
+
+        grid.addColumn(fvm_monitoring::getActive).setHeader("Aktiv")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
+
 
         grid.setItemDetailsRenderer(createPersonDetailsRenderer());
 
@@ -494,8 +526,34 @@ public class CockpitView extends VerticalLayout {
 
             add(new Hr());
 
+            addItem("edit", e -> e.getItem().ifPresent(monitor -> {
+                System.out.printf("Edit: %s%n", monitor.getID());
+
+                form.setVisible(true);
+       //         form.setMonitor(monitor);
+/*
+                dialog_Editor.setHeaderTitle(monitor.getTitel());
+                //  VerticalLayout dialogLayout = createDialogLayout(person.getBeschreibung());
+
+                VerticalLayout dialogLayout =showEditDialog(monitor);
+
+                dialog_Editor.removeAll();
+                dialog_Editor.add(dialogLayout);
+                dialog_Editor.setModal(false);
+                dialog_Editor.setDraggable(true);
+                dialog_Editor.setResizable(true);
+                dialog_Editor.setWidth("800px");
+                dialog_Editor.setHeight("600px");
+                dialog_Editor.open();
+*/
+
+            }));
+
             addItem("refresh", e -> e.getItem().ifPresent(person -> {
                 System.out.printf("refresh: %s%n", person.getID());
+
+
+
             }));
 
          /*   GridMenuItem<fvm_monitoring> emailItem = addItem("Email",
@@ -520,6 +578,8 @@ public class CockpitView extends VerticalLayout {
 
 
     }
+
+
 
     private VerticalLayout createDialogGraph(Integer id) {
 
@@ -602,6 +662,39 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
 
 }
 
+
+
+    private static VerticalLayout showEditDialog(fvm_monitoring Inhalt){
+
+        VerticalLayout dialogInhalt = new VerticalLayout();
+        TextField titel = new TextField("Titel");
+        titel.setValue(Inhalt.getTitel());
+        titel.setWidthFull();
+
+        NumberField intervall = new NumberField("Intervall");
+        NumberField infoSchwellwert = new NumberField("Warnung-Schwellert");
+        NumberField errorSchwellwert = new NumberField("Fehler-Schwellwert");
+        Checkbox checkbox = new Checkbox("aktiv");
+
+        HorizontalLayout hr = new HorizontalLayout(intervall,infoSchwellwert,errorSchwellwert, checkbox);
+        hr.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
+
+        TextArea sql_text = new TextArea ("SQL-Abfrage");
+        sql_text.setWidthFull();
+
+        Label descriptionLb = new Label("Beschreibung");
+        RichTextEditor rte_Beschreibung = new RichTextEditor("nix");
+        RichTextEditor rte_Handlungsanweisung = new RichTextEditor("nix");
+
+
+        dialogInhalt = new VerticalLayout();
+        dialogInhalt.add(titel, hr, sql_text, descriptionLb, rte_Beschreibung, rte_Handlungsanweisung, content);
+
+        return dialogInhalt;
+
+    }
+
+
     private static void setContent(Tab tab,fvm_monitoring inhalt ) {
 
         if(content != null ) {
@@ -673,7 +766,7 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
         //String sql = "SELECT ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT, ERROR_SCHWELLWERT FROM EKP.FVM_MONITORING";
 
         String sql = "SELECT m.ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
-                ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent, Zeitpunkt FROM EKP.FVM_MONITORING m\n" +
+                ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent, Zeitpunkt, m.is_active isactive FROM EKP.FVM_MONITORING m\n" +
                 "left outer join EKP.FVM_MONITOR_RESULT mr\n" +
                 "on m.id=mr.id\n" +
                 "and mr.is_active='1'";

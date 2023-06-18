@@ -8,6 +8,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -15,24 +16,37 @@ import com.vaadin.flow.component.richtexteditor.RichTextEditor;
 import com.vaadin.flow.component.richtexteditor.RichTextEditorVariant;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
+import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.BeanValidationBinder;
+import com.vaadin.flow.data.binder.Binder;
 
 import java.util.List;
 
 public class MonitoringForm extends FormLayout {
 
-    TextField titel = new TextField ("Titel");
-    static TextArea sql_text = new TextArea ("SQL-Abfrage");
-    Checkbox checkbox = new Checkbox("aktiv");
-    static RichTextEditor rte_Beschreibung = new RichTextEditor("nix");
-    static RichTextEditor rte_Handlungsanweisung = new RichTextEditor("nix");
+
+    TextField Titel = new TextField ("Titel");
+    TextArea SQL = new TextArea ("SQL-Abfrage");
+    Checkbox isactive = new Checkbox("aktiv");
+    RichTextEditor Beschreibung = new RichTextEditor("nix");
+    RichTextEditor Handlungs_INFO = new RichTextEditor("nix");
+
+    IntegerField Check_Intervall = new IntegerField("Check-Intervall");
+
+    IntegerField Warning_Schwellwert = new IntegerField("Warning Schwellwert");
+    IntegerField Error_Schwellwert = new IntegerField("Error Schwellwert");
 
 
     Button save = new Button("save");
     Button delete = new Button("delete");
     Button cancel = new Button("cancel");
-    myCallback callback;
+
+    Binder<fvm_monitoring> binder = new BeanValidationBinder<>(fvm_monitoring.class);
+
+   // myCallback callback;
 
    // RichTextEditor rte;
  /*   static Tab details = new Tab("Beschreibung");
@@ -40,14 +54,17 @@ public class MonitoringForm extends FormLayout {
 
 
 
-    fvm_monitoring monitor;
+    //fvm_monitoring monitor;
 
-    static VerticalLayout content = new VerticalLayout();;
-    public MonitoringForm(fvm_monitoring monitor, myCallback callback) {
+  //  static VerticalLayout content = new VerticalLayout();;
+    //public MonitoringForm(fvm_monitoring monitor, myCallback callback) {
+    public MonitoringForm() {
         addClassName("monitoring-form");
+
+        binder.bindInstanceFields(this);
     //    VerticalLayout dialogInhalt;
-        this.callback=callback;
-        this.monitor=monitor;
+        //this.callback=callback;
+        //this.monitor=monitor;
 
 
     //    VerticalLayout editorInhalt = new VerticalLayout();
@@ -71,18 +88,27 @@ public class MonitoringForm extends FormLayout {
       //  dialogInhalt = new VerticalLayout();
         //dialogInhalt.add(tabs,content);
 
+        Label descriptionLb = new Label("Beschreibung:");
+        Label directiveLb = new Label("Handlungsanweisung:");
+
         add(
-                titel,
-                checkbox,
-                sql_text,
-                rte_Beschreibung,
-                rte_Handlungsanweisung,
+                Titel,
+                SQL,
+                Check_Intervall,
+                Warning_Schwellwert,
+               Error_Schwellwert,
+                isactive,
+                descriptionLb,
+                Beschreibung,
+                directiveLb,
+                Handlungs_INFO,
                 createButtonLayout()
         );
 
-        setColspan(sql_text, 2);
-        setColspan(rte_Beschreibung, 2);
-        setColspan(rte_Handlungsanweisung, 2);
+        setColspan(Titel, 2);
+        setColspan(SQL, 2);
+        setColspan(Beschreibung, 2);
+        setColspan(Handlungs_INFO, 2);
 
     }
 
@@ -146,31 +172,15 @@ public class MonitoringForm extends FormLayout {
         cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
         save.addClickShortcut(Key.ENTER);
-        save.addClickListener(e ->saveMonitor());
+      //  save.addClickListener(e ->saveMonitor());
         cancel.addClickShortcut(Key.ESCAPE);
 
         return new HorizontalLayout(save, delete,cancel);
     }
 
-    private void saveMonitor() {
-
-        monitor.setTitel(titel.getValue());
-        monitor.setActive(checkbox.getValue());
-        //monitor.setSQL(sql.getElement()..getText());
-     //   monitor.setWarning_Schwellwert();
-     //   monitor.setError_Schwellwert();
-     //   monitor.setSQL();
-        monitor.setHandlungs_INFO(rte_Handlungsanweisung.getValue());
-     //   monitor.setCheck_Intervall();
-     //   monitor.setBeschreibung();
 
 
-      //  System.out.println("Save Monitor gedrückt...Titel: " + monitor.getTitel());
 
-        callback.save(monitor);
-
-
-    }
 }
 
 //rte.setMaxHeight("400px");
