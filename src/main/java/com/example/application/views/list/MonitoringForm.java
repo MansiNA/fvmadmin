@@ -22,6 +22,7 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.data.binder.ValidationException;
 
 import java.util.List;
 
@@ -30,23 +31,56 @@ public class MonitoringForm extends FormLayout {
 
     TextField Titel = new TextField ("Titel");
     TextArea SQL = new TextArea ("SQL-Abfrage");
-    Checkbox isactive = new Checkbox("aktiv");
-    RichTextEditor Beschreibung = new RichTextEditor("nix");
-    RichTextEditor Handlungs_INFO = new RichTextEditor("nix");
+   // Checkbox is_active = new Checkbox("aktiv");
+    TextField is_active = new TextField("aktiv");
+    TextField Beschreibung = new TextField("Beschreibung");
+    TextField Handlungs_INFO = new TextField("Handlungsinformation");
+
+    RichTextEditor rtf_Beschreibung = new RichTextEditor("Beschreibung");
+    RichTextEditor rtf_Handlungs_INFO = new RichTextEditor("Handlungsinformation");
+
 
     IntegerField Check_Intervall = new IntegerField("Check-Intervall");
 
     IntegerField Warning_Schwellwert = new IntegerField("Warning Schwellwert");
     IntegerField Error_Schwellwert = new IntegerField("Error Schwellwert");
 
-
-    Button save = new Button("save");
-    Button delete = new Button("delete");
-    Button cancel = new Button("cancel");
-
     Binder<fvm_monitoring> binder = new BeanValidationBinder<>(fvm_monitoring.class);
+    myCallback callback;
+    private fvm_monitoring mon;
+    Button save = new Button("save", event ->{
+        if (binder.validate().isOk()){
+         //   System.out.println("callback Save aufrufen");
+            try {
+                binder.writeBean(mon);
+            } catch (ValidationException e) {
+                throw new RuntimeException(e);
+            }
+            callback.save(mon);
 
-   // myCallback callback;
+
+        }
+    });
+    Button delete = new Button("delete", event ->{
+        if (binder.validate().isOk()){
+            callback.delete(mon);
+
+
+        }
+    });
+    Button cancel = new Button("cancel", event ->{
+        if (binder.validate().isOk()){
+            callback.cancel();
+
+
+        }
+    });
+
+
+
+
+
+    // myCallback callback;
 
    // RichTextEditor rte;
  /*   static Tab details = new Tab("Beschreibung");
@@ -58,8 +92,9 @@ public class MonitoringForm extends FormLayout {
 
   //  static VerticalLayout content = new VerticalLayout();;
     //public MonitoringForm(fvm_monitoring monitor, myCallback callback) {
-    public MonitoringForm() {
+    public MonitoringForm(myCallback callback) {
         addClassName("monitoring-form");
+        this.callback=callback;
 
         binder.bindInstanceFields(this);
     //    VerticalLayout dialogInhalt;
@@ -97,18 +132,33 @@ public class MonitoringForm extends FormLayout {
                 Check_Intervall,
                 Warning_Schwellwert,
                Error_Schwellwert,
-                isactive,
-                descriptionLb,
+                is_active,
                 Beschreibung,
-                directiveLb,
+                //descriptionLb,
+                //rtf_Beschreibung,
+                //directiveLb,
+                //rtf_Handlungs_INFO,
                 Handlungs_INFO,
                 createButtonLayout()
         );
 
         setColspan(Titel, 2);
         setColspan(SQL, 2);
+        setColspan(rtf_Beschreibung, 2);
+        setColspan(rtf_Handlungs_INFO, 2);
         setColspan(Beschreibung, 2);
         setColspan(Handlungs_INFO, 2);
+
+    }
+
+    public void setContact(fvm_monitoring mon) {
+        this.mon = mon;
+
+
+
+        binder.readBean(mon);
+        rtf_Beschreibung.setValue(Beschreibung.getValue());
+        rtf_Handlungs_INFO.setValue(Handlungs_INFO.getValue());
 
     }
 

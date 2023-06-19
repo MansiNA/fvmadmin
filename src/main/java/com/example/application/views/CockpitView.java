@@ -87,11 +87,64 @@ import java.util.stream.Stream;
         themeFor = "vaadin-grid",
         value = "./styles/styles.css"
 )
-public class CockpitView extends VerticalLayout {
+public class CockpitView extends VerticalLayout{
     @Autowired
     JdbcTemplate jdbcTemplate;
 
-   // myCallback callback;
+    myCallback callback=new myCallback() {
+        @Override
+        public void delete(fvm_monitoring mon) {
+            System.out.println("Delete in CockpitView aufgerufen für " + mon.getTitel());
+        }
+
+        @Override
+        public void save(fvm_monitoring mon) {
+            System.out.println("Save in CockpitView aufgerufen für " + mon.getTitel());
+
+
+
+            String sql = "update FVM_MONITORING \n" +
+                    "set SQL='" + mon.getSQL() + "',\n" +
+                    "TITEL='" + mon.getTitel() + "',\n" +
+                    "Beschreibung='" + mon.getBeschreibung() + "',\n" +
+                    "Handlungs_Info='" + mon.getHandlungs_INFO() + "',\n" +
+                    "Check_Intervall=" + mon.getCheck_Intervall() + ",\n" +
+                    "WARNING_SCHWELLWERT=" + mon.getWarning_Schwellwert() + ",\n" +
+                    "ERROR_SCHWELLWERT=" + mon.getError_Schwellwert() + ",\n" +
+                    "IS_ACTIVE='" + mon.getIS_ACTIVE() + "'\n" +
+                    "where id=" + mon.getID();
+
+
+            System.out.println("Update FVM_Monitoring (CockpitView.java): ");
+            System.out.println(sql);
+
+            DriverManagerDataSource ds = new DriverManagerDataSource();
+            Configuration conf;
+            conf = comboBox.getValue();
+
+            ds.setUrl(conf.getDb_Url());
+            ds.setUsername(conf.getUserName());
+            ds.setPassword(conf.getPassword());
+
+            try {
+                jdbcTemplate.setDataSource(ds);
+                jdbcTemplate.update(sql);
+                System.out.println("Update durchgeführt");
+
+            } catch (Exception e) {
+                System.out.println("Exception: " + e.getMessage());
+            }
+            finally {
+                form.setVisible(false);
+            }
+
+        }
+
+        @Override
+        public void cancel() {
+           form.setVisible(false);
+        }
+    };
     Grid<fvm_monitoring> grid = new Grid<>(fvm_monitoring.class, false);
 
     Dialog dialog_Beschreibung = new Dialog();
@@ -113,9 +166,7 @@ public class CockpitView extends VerticalLayout {
 
     Checkbox autorefresh = new Checkbox();
 
-    myCallback callback;
-
-    private Label lastRefreshLabel;
+     private Label lastRefreshLabel;
     private Label countdownLabel;
 
     private UI ui ;
@@ -202,7 +253,7 @@ public class CockpitView extends VerticalLayout {
 
         MonitorContextMenu contextMenu = new MonitorContextMenu(grid);
 
-        form = new MonitoringForm();
+        form = new MonitoringForm(callback);
         form.setVisible(false);
 
         add(getToolbar(),grid,form );
@@ -306,7 +357,7 @@ public class CockpitView extends VerticalLayout {
             return hl;
         })).setHeader("Auslastung").setWidth("150px").setResizable(true);
 
-        grid.addColumn(fvm_monitoring::getActive).setHeader("Aktiv")
+        grid.addColumn(fvm_monitoring::getIS_ACTIVE).setHeader("Aktiv")
                 .setAutoWidth(true).setResizable(true).setSortable(true);
 
 
@@ -416,6 +467,8 @@ public class CockpitView extends VerticalLayout {
         return new ComponentRenderer<>(PersonDetailsFormLayout::new,
                 PersonDetailsFormLayout::setPerson);
     }
+
+
 
     private static class PersonDetailsFormLayout extends FormLayout {
         private final TextField emailField = new TextField("Letzte Aktualisierung");
@@ -530,7 +583,7 @@ public class CockpitView extends VerticalLayout {
                 System.out.printf("Edit: %s%n", monitor.getID());
 
                 form.setVisible(true);
-       //         form.setMonitor(monitor);
+                form.setContact(monitor);
 /*
                 dialog_Editor.setHeaderTitle(monitor.getTitel());
                 //  VerticalLayout dialogLayout = createDialogLayout(person.getBeschreibung());
@@ -766,8 +819,8 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
         //String sql = "SELECT ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT, ERROR_SCHWELLWERT FROM EKP.FVM_MONITORING";
 
         String sql = "SELECT m.ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
-                ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent, Zeitpunkt, m.is_active isactive FROM EKP.FVM_MONITORING m\n" +
-                "left outer join EKP.FVM_MONITOR_RESULT mr\n" +
+                ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent, Zeitpunkt, m.is_active FROM FVM_MONITORING m\n" +
+                "left outer join FVM_MONITOR_RESULT mr\n" +
                 "on m.id=mr.id\n" +
                 "and mr.is_active='1'";
 
@@ -805,7 +858,7 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
     private List<fvm_monitoring> getHistMonitoring(Integer id) {
 
 
-        String sql = "select ID,ZEITPUNKT,Result as Aktueller_Wert from EKP.FVM_MONITOR_RESULT where id= " + id + " order by Zeitpunkt desc";
+        String sql = "select ID,ZEITPUNKT,Result as Aktueller_Wert from FVM_MONITOR_RESULT where id= " + id + " order by Zeitpunkt desc";
 
 
         System.out.println("Abfrage EKP.FVM_Monitoring Historie (CockpitView.java): ");
