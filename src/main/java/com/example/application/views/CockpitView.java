@@ -251,7 +251,7 @@ public class CockpitView extends VerticalLayout{
 
 
 
-        MonitorContextMenu contextMenu = new MonitorContextMenu(grid);
+
 
         form = new MonitoringForm(callback);
         form.setVisible(false);
@@ -362,12 +362,33 @@ public class CockpitView extends VerticalLayout{
 
 
         grid.setItemDetailsRenderer(createPersonDetailsRenderer());
+        grid.setSelectionMode(Grid.SelectionMode.NONE);
+       // grid.setSelectionMode(Grid.SelectionMode.SINGLE);
+       // grid.setDetailsVisibleOnClick(false);
+
+        grid.addItemClickListener(event -> {
+
+          //  System.out.println("ClickEvent:" + event.getItem().getTitel());
+
+            if (((ClickEvent) event).getClickCount() == 2){
+                System.out.println("Double ClickEvent:" + event.getItem().getTitel());
+                grid.setDetailsVisible(event.getItem(), !grid.isDetailsVisible(event.getItem()));
+            }
+
+         //   ClickEvent<fvm_monitoring> clickEvent = (ClickEvent<fvm_monitoring>) event;
+         //   if (clickEvent.getClickCount() == 2) {
+         //       grid.setDetailsVisible(event.getItem(), !grid.isDetailsVisible(event.getItem()));
+         //   }
+        });
 
 
-        grid.setSelectionMode(Grid.SelectionMode.SINGLE);
+
+
+
         grid.setItems(param_Liste);
         grid.setHeight("800px");
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+        MonitorContextMenu contextMenu = new MonitorContextMenu(grid);
 
         grid.setClassNameGenerator(person -> {
 
@@ -380,6 +401,8 @@ public class CockpitView extends VerticalLayout{
             }
             return null;
         });
+
+
 
 /*
         grid.addComponentColumn(file -> {
