@@ -326,8 +326,8 @@ public class CockpitView extends VerticalLayout{
                 .setAutoWidth(true).setResizable(true).setSortable(true);*/
         grid.addColumn(fvm_monitoring::getTitel).setHeader("Titel")
                 .setAutoWidth(true).setResizable(true).setSortable(true);
-        grid.addColumn(fvm_monitoring::getCheck_Intervall).setHeader("Intervall")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+      /*  grid.addColumn(fvm_monitoring::getCheck_Intervall).setHeader("Intervall")
+                .setAutoWidth(true).setResizable(true).setSortable(true); */
         grid.addColumn(fvm_monitoring::getWarning_Schwellwert).setHeader("Warning Schwellwert")
                 .setAutoWidth(true).setResizable(true).setSortable(true);
         grid.addColumn(fvm_monitoring::getError_Schwellwert ).setHeader("Error Schwellwert")
@@ -471,16 +471,17 @@ public class CockpitView extends VerticalLayout{
 
 
     private static class PersonDetailsFormLayout extends FormLayout {
-        private final TextField emailField = new TextField("Letzte Aktualisierung");
+        private final TextField lastRefreshField = new TextField("Letzte Aktualisierung");
+        private final TextField refreshIntervallField = new TextField("Refresh-Intervall");
         private final TextField idField = new TextField("ID");
 
         public PersonDetailsFormLayout() {
-            Stream.of(idField,emailField).forEach(field -> {
+            Stream.of(idField,refreshIntervallField,lastRefreshField).forEach(field -> {
                 field.setReadOnly(true);
                 add(field);
             });
 
-            setResponsiveSteps(new ResponsiveStep("0", 2));
+            setResponsiveSteps(new ResponsiveStep("0", 3));
 
         }
 
@@ -491,13 +492,13 @@ public class CockpitView extends VerticalLayout{
                 SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
                 String dateAsString = dateFormat.format(person.getZeitpunkt());
 
-                emailField.setValue(dateAsString);
+                lastRefreshField.setValue(dateAsString);
             }
             else {
-                emailField.setValue("unbekannt...");
+                lastRefreshField.setValue("unbekannt...");
             }
             idField.setValue(person.getID().toString());
-
+            refreshIntervallField.setValue(person.getCheck_Intervall().toString());
         }
     }
 
@@ -603,7 +604,8 @@ public class CockpitView extends VerticalLayout{
             }));
 
             addItem("refresh", e -> e.getItem().ifPresent(person -> {
-                System.out.printf("refresh: %s%n", person.getID());
+                System.out.printf("refresh im ContextMenü aufgerufen: %s%n", person.getID());
+                refreshMonitor(person.getID());
 
 
 
@@ -632,6 +634,34 @@ public class CockpitView extends VerticalLayout{
 
     }
 
+    private void refreshMonitor(Integer id) {
+
+        String sql="begin parallel_proc(''," + id + "); end;";
+        System.out.println(sql);
+
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        Configuration conf;
+        conf = comboBox.getValue();
+
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(conf.getPassword());
+
+        try {
+
+            jdbcTemplate.setDataSource(ds);
+
+            jdbcTemplate.execute(sql);
+
+            System.out.println("Refresh ausgeführt");
+
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+
+        return ;
+
+    }
 
 
     private VerticalLayout createDialogGraph(Integer id) {
