@@ -21,6 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.List;
 
 //@Route(value = "")
 
@@ -28,11 +29,13 @@ import java.util.Collection;
 public class MainLayout extends AppLayout {
 
     private final SecurityService securityService;
-    boolean isAdmin = checkAdminRole();
+    boolean isAdmin =checkAdminRole();
+    boolean isPFUser =checkPFRole();
     public MainLayout(SecurityService securityService){
         createHeader();
         createDrawer();
         this.securityService = securityService;
+        //isAdmin = checkAdminRole();
     }
 
     private void createHeader() {
@@ -117,12 +120,41 @@ public class MainLayout extends AppLayout {
                 // Überprüfen, ob der angemeldete Benutzer die Berechtigung "ROLE_ADMIN" hat
                 return userDetails.getAuthorities().stream()
                         .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+
             }
         }
 
         return false;
 
     }
+
+
+    private boolean checkPFRole() {
+
+        // Überprüfen, ob der angemeldete Benutzer zur Gruppe "Admin" gehört
+
+        // Erhalten Sie den angemeldeten Benutzer
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // Überprüfen, ob der Benutzer authentifiziert ist und nicht anonym
+        if (authentication != null && !(authentication instanceof AnonymousAuthenticationToken)) {
+            Object principal = authentication.getPrincipal();
+
+            // Überprüfen, ob der angemeldete Benutzer ein UserDetails-Objekt ist
+            if (principal instanceof UserDetails) {
+                UserDetails userDetails = (UserDetails) principal;
+
+                // Überprüfen, ob der angemeldete Benutzer die Berechtigung "ROLE_ADMIN" hat
+                return userDetails.getAuthorities().stream()
+                        .anyMatch(authority -> authority.getAuthority().equals("ROLE_PF_ADMIN"));
+
+            }
+        }
+
+        return false;
+
+    }
+
 
     private void createDrawer() {
 
@@ -160,10 +192,16 @@ public class MainLayout extends AppLayout {
             ));
 
         }
+        else if (isPFUser){
+            addToDrawer(new VerticalLayout(
+                    mailboxConfig
+            ));
+        }
         else{
             addToDrawer(new VerticalLayout(
                     tableView,
-                    metadatenView
+                    metadatenView,
+                    mailboxConfig
                 //    cockpitView,
                //     quarantaeneView
             ));
