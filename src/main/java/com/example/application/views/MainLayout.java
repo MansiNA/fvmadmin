@@ -9,6 +9,7 @@ import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.login.LoginForm;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -29,12 +30,18 @@ import java.util.List;
 public class MainLayout extends AppLayout {
 
     private final SecurityService securityService;
+
     boolean isAdmin =checkAdminRole();
     boolean isPFUser =checkPFRole();
+
+    boolean isUser =checkUserRole();
     public MainLayout(SecurityService securityService){
         createHeader();
         createDrawer();
+
         this.securityService = securityService;
+
+
         //isAdmin = checkAdminRole();
     }
 
@@ -155,6 +162,33 @@ public class MainLayout extends AppLayout {
 
     }
 
+    private boolean checkUserRole() {
+
+        // Überprüfen, ob der angemeldete Benutzer zur Gruppe "Admin" gehört
+
+        // Erhalten Sie den angemeldeten Benutzer
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // Überprüfen, ob der Benutzer authentifiziert ist und nicht anonym
+        if (authentication != null && !(authentication instanceof AnonymousAuthenticationToken)) {
+            Object principal = authentication.getPrincipal();
+
+            // Überprüfen, ob der angemeldete Benutzer ein UserDetails-Objekt ist
+            if (principal instanceof UserDetails) {
+                UserDetails userDetails = (UserDetails) principal;
+
+                // Überprüfen, ob der angemeldete Benutzer die Berechtigung "ROLE_ADMIN" hat
+                return userDetails.getAuthorities().stream()
+                        .anyMatch(authority -> authority.getAuthority().equals("ROLE_USER"));
+
+            }
+        }
+
+        return false;
+
+    }
+
+
 
     private void createDrawer() {
 
@@ -172,6 +206,10 @@ public class MainLayout extends AppLayout {
         RouterLink DashboardView = new RouterLink ("Dashboard (geplant)", DashboardView.class);
         RouterLink fileBrowserView = new RouterLink ("LogFileBrowser", FileBrowserView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
+
+
+        RouterLink link = new RouterLink("Login", LoginView.class);
+
 
         if (isAdmin) {
             addToDrawer(new VerticalLayout(
@@ -197,7 +235,7 @@ public class MainLayout extends AppLayout {
                     mailboxConfig
             ));
         }
-        else{
+        else if (isUser){
             addToDrawer(new VerticalLayout(
                     tableView,
                     metadatenView,
@@ -205,6 +243,10 @@ public class MainLayout extends AppLayout {
                 //    cockpitView,
                //     quarantaeneView
             ));
+        }
+        else
+        {
+            addToDrawer(new VerticalLayout(link));
         }
 
 
