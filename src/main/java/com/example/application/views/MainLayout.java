@@ -14,8 +14,13 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.HighlightConditions;
 import com.vaadin.flow.router.RouterLink;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.Collection;
 
 //@Route(value = "")
 
@@ -23,6 +28,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 public class MainLayout extends AppLayout {
 
     private final SecurityService securityService;
+    boolean isAdmin = checkAdminRole();
     public MainLayout(SecurityService securityService){
         createHeader();
         createDrawer();
@@ -56,6 +62,18 @@ public class MainLayout extends AppLayout {
 
 
 
+        if (isAdmin) {
+
+            System.out.println("Ein Admin ist angemeldet!");
+            // Benutzer ist ein Administrator
+            // Führen Sie hier den entsprechenden Code aus
+        } else {
+
+            System.out.println("Ein normaler User ist angemeldet!");
+            // Benutzer ist kein Administrator
+            // Führen Sie hier den entsprechenden Code aus
+        }
+
 
 
         Image image = new Image("images/dataport.png", "Dataport Image");
@@ -65,6 +83,7 @@ public class MainLayout extends AppLayout {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         System.out.println("angemeldeter User: " + auth.getName());
+
 
         HorizontalLayout header= new HorizontalLayout(new DrawerToggle(),logo, logout);
 
@@ -78,6 +97,31 @@ public class MainLayout extends AppLayout {
         header.setWidthFull();
         header.addClassNames("py-0", "px-m");
         addToNavbar(header);
+    }
+
+    private boolean checkAdminRole() {
+
+        // Überprüfen, ob der angemeldete Benutzer zur Gruppe "Admin" gehört
+
+        // Erhalten Sie den angemeldeten Benutzer
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // Überprüfen, ob der Benutzer authentifiziert ist und nicht anonym
+        if (authentication != null && !(authentication instanceof AnonymousAuthenticationToken)) {
+            Object principal = authentication.getPrincipal();
+
+            // Überprüfen, ob der angemeldete Benutzer ein UserDetails-Objekt ist
+            if (principal instanceof UserDetails) {
+                UserDetails userDetails = (UserDetails) principal;
+
+                // Überprüfen, ob der angemeldete Benutzer die Berechtigung "ROLE_ADMIN" hat
+                return userDetails.getAuthorities().stream()
+                        .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+            }
+        }
+
+        return false;
+
     }
 
     private void createDrawer() {
@@ -97,22 +141,37 @@ public class MainLayout extends AppLayout {
         RouterLink fileBrowserView = new RouterLink ("LogFileBrowser", FileBrowserView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
 
-        addToDrawer(new VerticalLayout(
-            //    tableExport,
-            //    mailboxConfig,
-            //    elaFavoriten,
-            //    listView,
-                tableView,
-                metadatenView,
-                MessageExport,
-                mailboxConfig,
-                cockpitView,
-                fileBrowserView,
-                quarantaeneView,
-                hangingMessagesView,
-                elaFavoriten,
-                DashboardView
-        ));
+        if (isAdmin) {
+            addToDrawer(new VerticalLayout(
+                    //    tableExport,
+                    //    mailboxConfig,
+                    //    elaFavoriten,
+                    //    listView,
+                    tableView,
+                    metadatenView,
+                    MessageExport,
+                    mailboxConfig,
+                    cockpitView,
+                    fileBrowserView,
+                    quarantaeneView,
+                    hangingMessagesView,
+                    elaFavoriten,
+                    DashboardView
+            ));
+
+        }
+        else{
+            addToDrawer(new VerticalLayout(
+                    tableView,
+                    metadatenView
+                //    cockpitView,
+               //     quarantaeneView
+            ));
+        }
+
+
+
+
 
     }
 

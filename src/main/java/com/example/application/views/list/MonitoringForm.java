@@ -218,14 +218,14 @@ public class MonitoringForm extends FormLayout {
 
     private Component createButtonLayout() {
         save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        delete.addThemeVariants(ButtonVariant.LUMO_ERROR);
+   //     delete.addThemeVariants(ButtonVariant.LUMO_ERROR);
         cancel.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
         save.addClickShortcut(Key.ENTER);
       //  save.addClickListener(e ->saveMonitor());
         cancel.addClickShortcut(Key.ESCAPE);
 
-        return new HorizontalLayout(save, delete,cancel);
+        return new HorizontalLayout(save,cancel);
     }
 
 
