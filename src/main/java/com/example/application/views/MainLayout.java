@@ -238,8 +238,8 @@ public class MainLayout extends AppLayout {
         else if (isUser){
             addToDrawer(new VerticalLayout(
                     tableView,
-                    metadatenView,
-                    mailboxConfig
+                    metadatenView
+                //    mailboxConfig
                 //    cockpitView,
                //     quarantaeneView
             ));

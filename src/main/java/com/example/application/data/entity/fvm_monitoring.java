@@ -3,6 +3,7 @@ package com.example.application.data.entity;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.validation.constraints.Null;
 import java.sql.Date;
 
 @Entity
@@ -11,6 +12,7 @@ public class fvm_monitoring {
     @Id
     private Integer ID;
     private String SQL;
+    private String SQL_Detail;
     private String Titel;
 
     private String Beschreibung;
@@ -18,7 +20,7 @@ public class fvm_monitoring {
     private Integer Check_Intervall;
     private Integer Warning_Schwellwert;
     private Integer Error_Schwellwert;
-
+    private Double Error_Prozent;
     private String IS_ACTIVE;
     private Date Zeitpunkt ;
     public String getIS_ACTIVE() {
@@ -30,9 +32,11 @@ public class fvm_monitoring {
     }
 
 
-private Double Error_Prozent;
-
     public Double getError_Prozent() {
+        if (Error_Prozent == null){
+            return 0.0;
+        }
+
         return Error_Prozent;
     }
 
@@ -120,4 +124,13 @@ private Double Error_Prozent;
     public void setError_Schwellwert(Integer error_Schwellwert) {
         Error_Schwellwert = error_Schwellwert;
     }
+
+    public String getSQL_Detail() {
+        return SQL_Detail;
+    }
+
+    public void setSQL_Detail(String SQL_Detail) {
+        this.SQL_Detail = SQL_Detail;
+    }
+
 }

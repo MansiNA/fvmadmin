@@ -28,6 +28,9 @@ import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.menubar.MenuBarVariant;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.BoxSizing;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -42,6 +45,9 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+/*import com.wontlost.ckeditor.Constants;
+import com.wontlost.ckeditor.VaadinCKEditor;
+import com.wontlost.ckeditor.VaadinCKEditorBuilder;*/
 import org.apache.poi.ss.formula.functions.T;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -51,19 +57,18 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.annotation.security.RolesAllowed;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
+import java.util.*;
 
 
 import org.w3c.dom.*;
@@ -103,7 +108,7 @@ public class CockpitView extends VerticalLayout{
 
 
 
-            String sql = "update FVM_MONITORING \n" +
+            /*String sql = "update FVM_MONITORING \n" +
                     "set SQL='" + mon.getSQL() + "',\n" +
                     "TITEL='" + mon.getTitel() + "',\n" +
                     "Beschreibung='" + mon.getBeschreibung() + "',\n" +
@@ -112,7 +117,21 @@ public class CockpitView extends VerticalLayout{
                     "WARNING_SCHWELLWERT=" + mon.getWarning_Schwellwert() + ",\n" +
                     "ERROR_SCHWELLWERT=" + mon.getError_Schwellwert() + ",\n" +
                     "IS_ACTIVE='" + mon.getIS_ACTIVE() + "'\n" +
+                    "SQL_Detail='"+ mon.getSQL_Detail() + "'\n" +
                     "where id=" + mon.getID();
+*/
+
+            String sql = "update FVM_MONITORING set " +
+                    " SQL=?, " +
+                    " TITEL=?," +
+                    " Beschreibung=?," +
+                    " Handlungs_Info=?," +
+                    " Check_Intervall=?, " +
+                    " WARNING_SCHWELLWERT=?, " +
+                    " ERROR_SCHWELLWERT=?, " +
+                    " IS_ACTIVE=?, " +
+                    " SQL_Detail=? " +
+                    "where id= ?";
 
 
             System.out.println("Update FVM_Monitoring (CockpitView.java): ");
@@ -128,7 +147,20 @@ public class CockpitView extends VerticalLayout{
 
             try {
                 jdbcTemplate.setDataSource(ds);
-                jdbcTemplate.update(sql);
+
+                jdbcTemplate.update(sql , mon.getSQL()
+                                        , mon.getTitel()
+                                        , mon.getBeschreibung()
+                                        , mon.getHandlungs_INFO()
+                                        , mon.getCheck_Intervall()
+                                        , mon.getWarning_Schwellwert()
+                                        , mon.getError_Schwellwert()
+                                        , mon.getIS_ACTIVE()
+                                        , mon.getSQL_Detail()
+                                        , mon.getID()
+                );
+
+           //     jdbcTemplate.update(sql);
                 System.out.println("Update durchgeführt");
 
             } catch (Exception e) {
@@ -147,6 +179,8 @@ public class CockpitView extends VerticalLayout{
     };
     Grid<fvm_monitoring> grid = new Grid<>(fvm_monitoring.class, false);
 
+    Grid<LinkedHashMap<String, Object>> grid_metadata = new Grid<>();
+
     Dialog dialog_Beschreibung = new Dialog();
     Dialog dialog_Editor = new Dialog();
 
@@ -159,6 +193,7 @@ public class CockpitView extends VerticalLayout{
     static VerticalLayout content = new VerticalLayout();;
     static Tab details;
     static Tab payment;
+    //static Tab data;
     //static TextField titel;
 
     static fvm_monitoring akt_mon;
@@ -255,6 +290,8 @@ public class CockpitView extends VerticalLayout{
 
         form = new MonitoringForm(callback);
         form.setVisible(false);
+
+
 
         add(getToolbar(),grid,form );
 
@@ -568,12 +605,12 @@ public class CockpitView extends VerticalLayout{
         public MonitorContextMenu(Grid<fvm_monitoring> target) {
             super(target);
 
-            addItem("Beschreibung", e -> e.getItem().ifPresent(person -> {
-                 System.out.printf("Edit: %s%n", person.getID());
-                dialog_Beschreibung.setHeaderTitle(person.getTitel());
+            addItem("Beschreibung", e -> e.getItem().ifPresent(a -> {
+                 System.out.printf("Edit: %s%n", a.getID());
+                dialog_Beschreibung.setHeaderTitle(a.getTitel());
               //  VerticalLayout dialogLayout = createDialogLayout(person.getBeschreibung());
 
-                VerticalLayout dialogLayout =showDialog(person);
+                VerticalLayout dialogLayout =showDialog(a);
 
                 dialog_Beschreibung.removeAll();
                 dialog_Beschreibung.add(dialogLayout);
@@ -586,8 +623,33 @@ public class CockpitView extends VerticalLayout{
             }));
 
 
+            addItem("Show Data", e -> e.getItem().ifPresent(a -> {
+              //  System.out.printf("Daten anzeigen für: %s%n", a.getID());
+
+                dialog_Beschreibung.setHeaderTitle("Detailabfrage für " + a.getTitel() + " (ID: " + a.getID() + ")");
+                VerticalLayout dialogLayout = null;
+                try {
+                    dialogLayout = createDialogData(a.getSQL_Detail());
+                } catch (SQLException ex) {
+                    throw new RuntimeException(ex);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+
+                dialog_Beschreibung.removeAll();
+                dialog_Beschreibung.add(dialogLayout);
+                dialog_Beschreibung.setModal(false);
+                dialog_Beschreibung.setDraggable(true);
+                dialog_Beschreibung.setResizable(true);
+                dialog_Beschreibung.open();
+
+            }));
+
+
+
+
             addItem("Historie", e -> e.getItem().ifPresent(monitor -> {
-                dialog_Beschreibung.setHeaderTitle("Historie für " + monitor.getTitel() + " (" + monitor.getID() + ")");
+                dialog_Beschreibung.setHeaderTitle("Historie für " + monitor.getTitel() + " (ID: " + monitor.getID() + ")");
                 VerticalLayout dialogLayout = createDialogGraph(monitor.getID());
 
                 dialog_Beschreibung.removeAll();
@@ -608,21 +670,7 @@ public class CockpitView extends VerticalLayout{
 
                 form.setVisible(true);
                 form.setContact(monitor);
-/*
-                dialog_Editor.setHeaderTitle(monitor.getTitel());
-                //  VerticalLayout dialogLayout = createDialogLayout(person.getBeschreibung());
 
-                VerticalLayout dialogLayout =showEditDialog(monitor);
-
-                dialog_Editor.removeAll();
-                dialog_Editor.add(dialogLayout);
-                dialog_Editor.setModal(false);
-                dialog_Editor.setDraggable(true);
-                dialog_Editor.setResizable(true);
-                dialog_Editor.setWidth("800px");
-                dialog_Editor.setHeight("600px");
-                dialog_Editor.open();
-*/
 
             }));
 
@@ -686,7 +734,131 @@ public class CockpitView extends VerticalLayout{
 
     }
 
+    private void fill_grid_metadata(String sql) throws SQLException, IOException {
+        System.out.println(sql);
+        // Create the grid and set its items
+        //Grid<LinkedHashMap<String, Object>> grid2 = new Grid<>();
+        grid_metadata.removeAllColumns();
 
+        //List<LinkedHashMap<String,Object>> rows = retrieveRows("select * from EKP.ELA_FAVORITEN where rownum<200");
+        List<LinkedHashMap<String,Object>> rows = retrieveRows(sql);
+
+        if(!rows.isEmpty()){
+            grid_metadata.setItems( rows); // rows is the result of retrieveRows
+
+            // Add the columns based on the first row
+            LinkedHashMap<String, Object> s = rows.get(0);
+            for (Map.Entry<String, Object> entry : s.entrySet()) {
+                grid_metadata.addColumn(h -> h.get(entry.getKey().toString())).setHeader(entry.getKey()).setAutoWidth(true).setResizable(true).setSortable(true);
+            }
+
+            grid_metadata.addThemeVariants(GridVariant.LUMO_WRAP_CELL_CONTENT);
+            grid_metadata.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+            grid_metadata.addThemeVariants(GridVariant.LUMO_COMPACT);
+            //   grid2.setAllRowsVisible(true);
+            grid_metadata.setPageSize(50);
+            grid_metadata.setHeight("800px");
+
+            grid_metadata.getStyle().set("resize", "vertical");
+            grid_metadata.getStyle().set("overflow", "auto");
+
+            //grid2.setPaginatorSize(5);
+            // Add the grid to the page
+
+            this.setPadding(false);
+            this.setSpacing(false);
+            this.setBoxSizing(BoxSizing.CONTENT_BOX);
+
+        }
+        else {
+            //Text txt = new Text("Es konnten keine Daten  abgerufen werden!");
+            //add(txt);
+        }
+
+    }
+
+    public List<LinkedHashMap<String,Object>> retrieveRows(String queryString) throws SQLException, IOException {
+
+
+        List<LinkedHashMap<String, Object>> rows = new LinkedList<LinkedHashMap<String, Object>>();
+
+        PreparedStatement s = null;
+        ResultSet rs = null;
+        try
+        {
+            //    String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
+            //    String user="SYSTEM";
+            //    String password="Michael123";
+
+            DriverManagerDataSource ds = new DriverManagerDataSource();
+            Configuration conf;
+            conf = comboBox.getValue();
+
+            Class.forName("oracle.jdbc.driver.OracleDriver");
+
+            //    Connection conn=DriverManager.getConnection(url, user, password);
+            Connection conn= DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), conf.getPassword());
+
+
+            s = conn.prepareStatement(queryString);
+
+            int timeout = s.getQueryTimeout();
+            if(timeout != 0)
+                s.setQueryTimeout(0);
+
+            rs = s.executeQuery();
+
+
+            List<String> columns = new LinkedList<>();
+            ResultSetMetaData resultSetMetaData = rs.getMetaData();
+            int colCount = resultSetMetaData.getColumnCount();
+            for(int i= 1 ; i < colCount+1 ; i++) {
+                columns.add(resultSetMetaData.getColumnLabel(i));
+            }
+
+            while (rs.next()) {
+                LinkedHashMap<String, Object> row  = new LinkedHashMap<String, Object>();
+                for(String col : columns) {
+                    int colIndex = columns.indexOf(col)+1;
+                    String object = rs.getObject(colIndex)== null ? "" : String.valueOf(rs.getObject(colIndex));
+                    row.put(col, object);
+                }
+
+                rows.add(row);
+            }
+        } catch (SQLException | IllegalArgumentException  | SecurityException e) {
+            // e.printStackTrace();
+            // add(new Text(e.getMessage()));
+
+            Notification notification = Notification.show(e.getMessage());
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+
+            return Collections.emptyList();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        } finally {
+
+            try { rs.close(); } catch (Exception e) { /* Ignored */ }
+            try { s.close(); } catch (Exception e) { /* Ignored */ }
+
+        }
+        // conn.close();
+        return rows;
+    }
+
+    private VerticalLayout createDialogData(String sql) throws SQLException, IOException {
+
+        //fill_grid_metadata("select nachrichtidintern,nachrichtidextern,status,art,eingangsdatumserver,fehlertag,verarbeitet,loeschtag,senderpostfachname,empfaengeraktenzeichen from ekp.metadaten\n where rownum < 5");
+        fill_grid_metadata(sql);
+
+        VerticalLayout dialogLayout = new VerticalLayout(grid_metadata);
+        dialogLayout.setPadding(false);
+        dialogLayout.setSpacing(false);
+        dialogLayout.setAlignItems(FlexComponent.Alignment.STRETCH);
+        dialogLayout.getStyle().set("width", "1200px").set("max-width", "100%");
+        dialogLayout.getStyle().set("height", "800px").set("max-height", "100%");
+        return dialogLayout;
+    }
     private VerticalLayout createDialogGraph(Integer id) {
 
         Chart chart = new Chart();
@@ -746,6 +918,7 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
 
     details = new Tab("Beschreibung");
     payment = new Tab("Handlungsanweisung");
+    //data = new Tab("Daten");
 
     Tabs tabs = new Tabs();
 
@@ -789,8 +962,8 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
         sql_text.setWidthFull();
 
         Label descriptionLb = new Label("Beschreibung");
-        RichTextEditor rte_Beschreibung = new RichTextEditor("nix");
-        RichTextEditor rte_Handlungsanweisung = new RichTextEditor("nix");
+        RichTextEditor rte_Beschreibung = new RichTextEditor();
+        RichTextEditor rte_Handlungsanweisung = new RichTextEditor();
 
 
         dialogInhalt = new VerticalLayout();
@@ -837,8 +1010,9 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
             content.add(rte);
 
             //content.add(inhalt.getHandlungs_INFO());
+
         } else {
-            content.add(new Paragraph("This is the Shipping tab"));
+            content.add(new Paragraph("ToDo"));
         }
     }
 
@@ -872,7 +1046,8 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
         //String sql = "SELECT ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT, ERROR_SCHWELLWERT FROM EKP.FVM_MONITORING";
 
         String sql = "SELECT m.ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
-                ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent, Zeitpunkt, m.is_active FROM FVM_MONITORING m\n" +
+                ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent" +
+                ", Zeitpunkt, m.is_active, nvl(m.sql_detail,'select ''Detail-SQL nicht definiert'' from dual') as sql_detail FROM FVM_MONITORING m\n" +
                 "left outer join FVM_MONITOR_RESULT mr\n" +
                 "on m.id=mr.id\n" +
                 "and mr.is_active='1'";
@@ -907,6 +1082,7 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
 
         return monitore;
     }
+
 
     private List<fvm_monitoring> getHistMonitoring(Integer id) {
 

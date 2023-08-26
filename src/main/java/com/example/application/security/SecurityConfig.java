@@ -4,6 +4,7 @@ import com.example.application.views.LoginView;
 import com.vaadin.flow.spring.security.VaadinWebSecurity;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -14,30 +15,15 @@ import org.springframework.security.provisioning.UserDetailsManager;
 
 import java.util.Collections;
 
-@EnableWebSecurity
+import static com.example.application.security.ApplicationUserRole.*;
 
+@EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)  //notwendig, damit an den Methoden @PreAuthorize verwendet werden kann!
 
 @Configuration
 public class SecurityConfig extends VaadinWebSecurity {
 
-    /**
-     * Demo SimpleInMemoryUserDetailsManager, which only provides
-     * two hardcoded in-memory users and their roles.
-     * NOTE: This shouldn't be used in real-world applications.
-     */
-    private static class SimpleInMemoryUserDetailsManager extends InMemoryUserDetailsManager {
-        public SimpleInMemoryUserDetailsManager() {
-            createUser(new User("user",
-                    "{noop}user#01",
-                    Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"))
-            ));
-            createUser(new User("admin",
-                    "{noop}admin#01",
-                    Collections.singleton(new SimpleGrantedAuthority("ROLE_ADMIN"))
-            ));
 
-        }
-    }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -62,19 +48,36 @@ public class SecurityConfig extends VaadinWebSecurity {
         UserDetails user =
                 User.withUsername("user")
                         .password("{noop}user")
-                        .roles("USER")
+                      //  .roles("USER")
+                      //  .roles(USER.name())
+                        .authorities(USER.getGrantedAuthorities())
+                        .build();
+        UserDetails user2 =
+                User.withUsername("user2")
+                        .password("{noop}fb_user2!")
+                       // .roles("USER")
+                       // .roles(USER.name())
+                        .authorities(USER.getGrantedAuthorities())
                         .build();
         UserDetails admin =
                 User.withUsername("admin")
                         .password("{noop}admin!2023")
-                        .roles("ADMIN")
+                      //  .roles("ADMIN")
+                       // .roles(ADMIN.name())
+                        .authorities(ADMIN.getGrantedAuthorities())
                         .build();
         UserDetails pf_admin =
                 User.withUsername("pf_admin")
                         .password("{noop}pf_admin!")
-                        .roles("PF_ADMIN")
+                        //.roles("PF_ADMIN")
+                        //.roles(PF_ADMIN.name())
+                        .authorities(PF_ADMIN.getGrantedAuthorities())
                         .build();
-        return new InMemoryUserDetailsManager(user, admin,pf_admin);
+        return new InMemoryUserDetailsManager(user,user2, admin,pf_admin);
+
+
+
+
     }
 
 

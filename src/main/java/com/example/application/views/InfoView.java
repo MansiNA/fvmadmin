@@ -1,12 +1,18 @@
 package com.example.application.views;
 
 import com.vaadin.flow.component.Html;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.richtexteditor.RichTextEditor;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+/*import com.wontlost.ckeditor.Config;
+import com.wontlost.ckeditor.Constants;
+import com.wontlost.ckeditor.VaadinCKEditor;
+import com.wontlost.ckeditor.VaadinCKEditorBuilder;*/
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -43,6 +49,39 @@ public class InfoView extends VerticalLayout {
 
         add(html_notLoggedin,html_Loggedin);
 
+/*        VaadinCKEditor classicEditor = new VaadinCKEditorBuilder().with(builder -> {
+            builder.editorData = "<p>This is a classic editor sample.</p>";
+            builder.editorType = Constants.EditorType.CLASSIC;
+            builder.theme = Constants.ThemeType.DARK;
+        }).createVaadinCKEditor();
+
+        VaadinCKEditor preview = new VaadinCKEditorBuilder().with(builder -> {
+            builder.editorData = classicEditor.getValue();
+            builder.editorType = Constants.EditorType.BALLOON;
+            builder.width = "70%";
+            builder.config = new Config();
+            builder.ghsEnabled = true;
+            //  config.setImage(new String[][]{}, "", new String[]{}, new String[]{}, new String[]{});
+            builder.readOnly = true;
+        }).createVaadinCKEditor();
+
+        classicEditor.addValueChangeListener(e->{
+            preview.setValue(classicEditor.getValue());
+
+        });
+
+        Button save = new Button("save content text");
+        save.addClickListener((event -> {
+            //content.getElement().setProperty("innerHTML", preview.getContentText());
+            String inhalt =  preview.getValue();
+            System.out.println(inhalt);
+
+        }));
+
+
+        add(save);
+        add(classicEditor);
+        add(preview);*/
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUserName = authentication.getName();
@@ -51,6 +90,7 @@ public class InfoView extends VerticalLayout {
         {
             html_Loggedin.setVisible(false);
             html_notLoggedin.setVisible(true);
+
 
         }
         else

@@ -23,6 +23,9 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
+/*import com.wontlost.ckeditor.Constants;
+import com.wontlost.ckeditor.VaadinCKEditor;
+import com.wontlost.ckeditor.VaadinCKEditorBuilder;*/
 
 import java.util.List;
 
@@ -31,13 +34,16 @@ public class MonitoringForm extends FormLayout {
 
     TextField Titel = new TextField ("Titel");
     TextArea SQL = new TextArea ("SQL-Abfrage");
+    TextArea SQL_Detail = new TextArea ("SQL-Detail Abfrage");
    // Checkbox is_active = new Checkbox("aktiv");
     TextField is_active = new TextField("aktiv");
     TextField Beschreibung = new TextField("Beschreibung");
     TextField Handlungs_INFO = new TextField("Handlungsinformation");
 
-    RichTextEditor rtf_Beschreibung = new RichTextEditor("Beschreibung");
-    RichTextEditor rtf_Handlungs_INFO = new RichTextEditor("Handlungsinformation");
+ //   RichTextEditor rtf_Beschreibung = new RichTextEditor("Beschreibung");
+
+
+    RichTextEditor rtf_Handlungs_INFO = new RichTextEditor();
 
 
     IntegerField Check_Intervall = new IntegerField("Check-Intervall");
@@ -129,6 +135,7 @@ public class MonitoringForm extends FormLayout {
         add(
                 Titel,
                 SQL,
+                SQL_Detail,
                 Check_Intervall,
                 Warning_Schwellwert,
                Error_Schwellwert,
@@ -144,7 +151,10 @@ public class MonitoringForm extends FormLayout {
 
         setColspan(Titel, 2);
         setColspan(SQL, 2);
-        setColspan(rtf_Beschreibung, 2);
+        setColspan(SQL_Detail, 2);
+        //setColspan(rtf_Beschreibung, 2);
+
+
         setColspan(rtf_Handlungs_INFO, 2);
         setColspan(Beschreibung, 2);
         setColspan(Handlungs_INFO, 2);
@@ -157,7 +167,8 @@ public class MonitoringForm extends FormLayout {
 
 
         binder.readBean(mon);
-        rtf_Beschreibung.setValue(Beschreibung.getValue());
+        //rtf_Beschreibung.setValue(Beschreibung.getValue());
+      //  classicEditor.setValue(Beschreibung.getValue());
         rtf_Handlungs_INFO.setValue(Handlungs_INFO.getValue());
 
     }

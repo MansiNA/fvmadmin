@@ -4,6 +4,7 @@ import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.Quarantine;
 import com.example.application.data.entity.TableInfo;
 import com.example.application.data.service.ConfigurationService;
+import com.example.application.security.ApplicationUserRole;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -32,6 +33,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
@@ -43,6 +46,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import static com.example.application.security.ApplicationUserRole.PF_ADMIN;
 import static org.apache.xmlbeans.impl.store.Public2.getStream;
 
 @PageTitle("Quarantäne Verwaltung")
@@ -64,6 +68,7 @@ public class QuarantaeneView extends VerticalLayout {
     private Anchor anchor = new Anchor(getStreamResource("quaran.xls", "default content"), "click to download");
     private Button smallButton = new Button("Export");
     ComboBox FehlertypCB;
+
 
     public QuarantaeneView(@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service) {
         this.service = service;

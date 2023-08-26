@@ -113,7 +113,7 @@ public class MetadatenView extends VerticalLayout {
         anchor.setEnabled(false);
 
 
-        searchAttribut.setItems("NachrichtIDIntern", "NachrichtIDExternAA", "Sender","Senderaktenzeichen","SenderGovelloID","SenderpostfachName","Sendergeschäftszeichen","Empfänger","Empfaengeraktenzeichen","EmpfaengerGovelloID","Empfaengerpostfachname","Weiterleitungsgovelloid","Weiterleitungspostfachname","Betreff","Bemerkung","Fachverfahren","Fachbereich","Bearbeitername");
+        searchAttribut.setItems("NachrichtIDIntern", "NachrichtIDExtern", "Sender","Senderaktenzeichen","SenderGovelloID","SenderpostfachName","Sendergeschäftszeichen","Empfänger","Empfaengeraktenzeichen","EmpfaengerGovelloID","Empfaengerpostfachname","Weiterleitungsgovelloid","Weiterleitungspostfachname","Betreff","Bemerkung","Fachverfahren","Fachbereich","Bearbeitername");
         searchAttribut.setWidth("200px");
         searchAttribut.setValue("NachrichtIDextern");
         searchAttribut.addValueChangeListener( e -> searchField.setPlaceholder(e.getValue().toString()));
