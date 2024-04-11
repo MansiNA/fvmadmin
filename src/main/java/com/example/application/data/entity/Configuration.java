@@ -1,9 +1,12 @@
 package com.example.application.data.entity;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.Table;
 import javax.validation.constraints.NotEmpty;
 
 @Entity
+@Table(name = "Configuration")
 public class Configuration extends AbstractEntity{
 
     @NotEmpty
@@ -12,6 +15,7 @@ public class Configuration extends AbstractEntity{
     @NotEmpty
     private String umgebung="";
     @NotEmpty
+    @Column(name = "USER_NAME")
     private String userName="";
     @NotEmpty
     private String password="";

@@ -2,6 +2,7 @@ package com.example.application.views;
 
 import com.example.application.security.SecurityService;
 import com.example.application.utils.OSInfoUtil;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
@@ -59,9 +60,10 @@ public class MainLayout extends AppLayout {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUserName = authentication.getName();
 
-        Button logout = new Button("Log out " + currentUserName, e -> securityService.logout());
-
-        if (currentUserName=="anonymousUser")
+        Button logout = new Button("Log out " + currentUserName, e -> {
+            securityService.logout();
+        });
+        if (currentUserName.equals("anonymousUser"))
         {
             logout.setVisible(false);
         }

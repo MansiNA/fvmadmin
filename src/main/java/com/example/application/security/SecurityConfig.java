@@ -43,42 +43,42 @@ public class SecurityConfig extends VaadinWebSecurity {
     }
 */
 
-    @Bean
-    public UserDetailsManager userDetailsService() {
-        UserDetails user =
-                User.withUsername("user")
-                        .password("{noop}user")
-                      //  .roles("USER")
-                      //  .roles(USER.name())
-                        .authorities(USER.getGrantedAuthorities())
-                        .build();
-        UserDetails user2 =
-                User.withUsername("user2")
-                        .password("{noop}fb_user2!")
-                       // .roles("USER")
-                       // .roles(USER.name())
-                        .authorities(USER.getGrantedAuthorities())
-                        .build();
-        UserDetails admin =
-                User.withUsername("admin")
-                        .password("{noop}admin!2023")
-                      //  .roles("ADMIN")
-                       // .roles(ADMIN.name())
-                        .authorities(ADMIN.getGrantedAuthorities())
-                        .build();
-        UserDetails pf_admin =
-                User.withUsername("pf_admin")
-                        .password("{noop}pf_admin!")
-                        //.roles("PF_ADMIN")
-                        //.roles(PF_ADMIN.name())
-                        .authorities(PF_ADMIN.getGrantedAuthorities())
-                        .build();
-        return new InMemoryUserDetailsManager(user,user2, admin,pf_admin);
-
-
-
-
-    }
+//    @Bean
+//    public UserDetailsManager userDetailsService() {
+//        UserDetails user =
+//                User.withUsername("user")
+//                        .password("{noop}user")
+//                      //  .roles("USER")
+//                      //  .roles(USER.name())
+//                        .authorities(USER.getGrantedAuthorities())
+//                        .build();
+//        UserDetails user2 =
+//                User.withUsername("user2")
+//                        .password("{noop}fb_user2!")
+//                       // .roles("USER")
+//                       // .roles(USER.name())
+//                        .authorities(USER.getGrantedAuthorities())
+//                        .build();
+//        UserDetails admin =
+//                User.withUsername("admin")
+//                        .password("{noop}admin!2023")
+//                      //  .roles("ADMIN")
+//                       // .roles(ADMIN.name())
+//                        .authorities(ADMIN.getGrantedAuthorities())
+//                        .build();
+//        UserDetails pf_admin =
+//                User.withUsername("pf_admin")
+//                        .password("{noop}pf_admin!")
+//                        //.roles("PF_ADMIN")
+//                        //.roles(PF_ADMIN.name())
+//                        .authorities(PF_ADMIN.getGrantedAuthorities())
+//                        .build();
+//        return new InMemoryUserDetailsManager(user,user2, admin,pf_admin);
+//
+//
+//
+//
+//    }
 
 
  /*   @Bean
