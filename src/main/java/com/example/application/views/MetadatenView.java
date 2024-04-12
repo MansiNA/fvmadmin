@@ -38,6 +38,7 @@ import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
+import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -50,8 +51,6 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
-import javax.annotation.security.PermitAll;
-import javax.annotation.security.RolesAllowed;
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;

@@ -9,6 +9,6 @@ import java.util.UUID;
 
 public interface ConfigurationRepository extends JpaRepository<Configuration, UUID> {
 
-    @Query("Select c from Configuration c where USER_NAME='Michi'")
+    @Query("Select c from Configuration c where c.userName='Michi'")
     List<Configuration> findByName();
 }

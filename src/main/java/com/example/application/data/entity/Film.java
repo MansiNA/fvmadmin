@@ -1,7 +1,7 @@
 package com.example.application.data.entity;
 
-import javax.persistence.Entity;
-import javax.validation.constraints.NotEmpty;
+import jakarta.persistence.Entity;
+import jakarta.validation.constraints.NotEmpty;
 
 @Entity
 public class Film extends AbstractEntity  {

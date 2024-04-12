@@ -48,6 +48,7 @@ import com.vaadin.flow.router.Route;
 /*import com.wontlost.ckeditor.Constants;
 import com.wontlost.ckeditor.VaadinCKEditor;
 import com.wontlost.ckeditor.VaadinCKEditorBuilder;*/
+import jakarta.annotation.security.RolesAllowed;
 import org.apache.poi.ss.formula.functions.T;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -56,7 +57,6 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
-import javax.annotation.security.RolesAllowed;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;

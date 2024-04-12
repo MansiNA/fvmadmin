@@ -12,7 +12,7 @@ public interface MetadatenRepository  extends JpaRepository<Metadaten, UUID>{
 
 
         @Query("select c from Metadaten c " +
-                "where lower(c.NACHRICHTIDINTERN) = :searchTerm " +
+                "where lower(cast(c.NACHRICHTIDINTERN as string)) = :searchTerm " +
                 "or lower(c.NACHRICHTIDEXTERN) like lower(concat('%', :searchTerm, '%'))")
         List<Metadaten> search(@Param("searchTerm") String searchTerm);
 

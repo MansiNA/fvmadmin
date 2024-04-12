@@ -21,6 +21,7 @@ import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
+import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.poi.hssf.usermodel.HSSFFont;
 import org.apache.poi.hssf.usermodel.HSSFRow;
@@ -36,8 +37,6 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
 
-import javax.annotation.security.PermitAll;
-import javax.annotation.security.RolesAllowed;
 import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;

@@ -31,9 +31,9 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.InputStreamFactory;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.StreamResourceWriter;
+import jakarta.annotation.security.RolesAllowed;
 import org.springframework.beans.factory.annotation.Value;
 
-import javax.annotation.security.RolesAllowed;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
