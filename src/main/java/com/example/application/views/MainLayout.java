@@ -213,6 +213,7 @@ public class MainLayout extends AppLayout {
         RouterLink cockpitView = new RouterLink ("eKP-Cockpit", CockpitView.class);
         RouterLink DashboardView = new RouterLink ("Dashboard (geplant)", DashboardView.class);
         RouterLink fileBrowserView = new RouterLink ("LogFileBrowser", FileBrowserView.class);
+        RouterLink configureView = new RouterLink ("Configuration", ConfigurationView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
 
 
@@ -234,7 +235,8 @@ public class MainLayout extends AppLayout {
                     quarantaeneView,
                     hangingMessagesView,
                     elaFavoriten,
-                    DashboardView
+                    DashboardView,
+                    configureView
             ));
 
         }
