@@ -166,7 +166,7 @@ public class HangingMessagesView extends VerticalLayout {
         List<Configuration> configList = conf_service.findMessageConfigurations();
 
         comboBox.setItems(configList);
-        comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
+        comboBox.setItemLabelGenerator(Configuration::getName);
 
        // comboBox.setValue(conf_service.findAllConfigurations().stream().findFirst().get());
 

@@ -1,44 +1,52 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
-import com.example.application.data.entity.QSql;
+import com.example.application.data.entity.SqlDefinition;
 import com.example.application.data.entity.TableInfo;
 import com.example.application.data.service.ConfigurationService;
-import com.vaadin.flow.component.ClickEvent;
-import com.vaadin.flow.component.ComponentEventListener;
+import com.example.application.data.service.SqlDefinitionService;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.Text;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.contextmenu.MenuItem;
-import com.vaadin.flow.component.contextmenu.SubMenu;
+import com.vaadin.flow.component.combobox.MultiSelectComboBox;
+import com.vaadin.flow.component.details.Details;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
+import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.H3;
-import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.orderedlayout.BoxSizing;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.*;
+import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.poi.hssf.usermodel.HSSFFont;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+//import org.vaadin.tatu.Tree;
 
+import javax.sql.DataSource;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @PageTitle("Table Viewer")
 @Route(value = "table-view", layout= MainLayout.class)
@@ -49,29 +57,39 @@ public class TableView extends VerticalLayout {
     String myPath;
 
     private ConfigurationService service;
+    private SqlDefinitionService sqlDefinitionService;
+    private JdbcTemplate jdbcTemplate;
     private static ComboBox<Configuration> comboBox;
+    private TreeGrid<SqlDefinition> treeGrid;
+
+    //private Article descriptionTextField;
+    private TextArea sqlTextField;
+    private Details queryDetails;
     public static Connection conn;
     private ResultSet resultset;
-    private Button smallButton = new Button("Export");
+    private Button exportButton = new Button("Export");
+    private Button runButton = new Button("Run");
     private String aktuelle_SQL="";
-    private String aktuelle_Tabelle="";
-    private Anchor anchor = new Anchor(getStreamResource(aktuelle_Tabelle + ".xls", "default content"), "click to download");
 
-    Grid<LinkedHashMap<String, Object>> grid2 = new Grid<>();
+    //private String aktuelle_Tabelle="";
+    Grid<Map<String, Object>> grid2 = new Grid<>();
+    List<Map<String,Object>> rows;
 
-   // PaginatedGrid<String, Object> grid = new PaginatedGrid<>();
+    // PaginatedGrid<String, Object> grid = new PaginatedGrid<>();
 
     private static String url;
     private static String user;
     private static String password;
 
-    public TableView(@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service) throws SQLException, IOException {
+    public TableView(@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service, SqlDefinitionService sqlDefinitionService, JdbcTemplate jdbcTemplate) throws SQLException, IOException {
         //add(new H1("Table View"));
-        this.exportPath=p_exportPath;
+        this.exportPath = p_exportPath;
+        this.sqlDefinitionService = sqlDefinitionService;
+        this.jdbcTemplate = jdbcTemplate;
+
         System.out.println("Export Path: " + exportPath);
-        anchor.getElement().setAttribute("download",true);
-        anchor.setEnabled(false);
-        smallButton.setVisible(false);
+        exportButton.setVisible(false);
+        runButton.setEnabled(false);
 
         comboBox = new ComboBox<>("Verbindung");
 
@@ -79,209 +97,355 @@ public class TableView extends VerticalLayout {
         comboBox.setItems(configList);
         comboBox.setValue(configList.get(1) );
 
-        comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
+        comboBox.setItemLabelGenerator(Configuration::getName);
 
-      //  comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
-
-        HorizontalLayout hl = new HorizontalLayout();
-        hl.add(comboBox);
-        hl.setAlignItems(FlexComponent.Alignment.BASELINE);
-        setSizeFull();
-       // add(hl);
-
-
-
-
-        MenuBar menuBar = new MenuBar();
-
-     /*   Properties properties = new Properties();
-        BufferedInputStream stream = null;
-        try {
-            stream = new BufferedInputStream(new FileInputStream("config.properties"));
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-        try {
-            properties.load(stream);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        try {
-            stream.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        url = properties.getProperty("tableview.url");
-        user = properties.getProperty("tableview.user");
-        password = properties.getProperty("tableview.password");*/
-
-
-
-        Text selected = new Text("");
-        //ComponentEventListener<ClickEvent<MenuItem>> listener = e -> selected.setText(e.getSource().getText());
-
-        //Read File for SQLs
-        File text = new File("sql.txt");
-        //Creating Scanner instance to read File in Java
-        Scanner scnr = null;
-        try {
-            scnr = new Scanner(text);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
-
-        List<QSql> aList = new ArrayList<QSql>();
-
-
-        ComponentEventListener<ClickEvent<MenuItem>> listener = e -> {
-                 selected.setText(e.getSource().getText());
-
-//                try {
-//                    if(e.getSource().getText().contains("ERV-Mapping")) {
-//                        show_grid("select * from books");
-//                    }
-//                    else {
-//                        show_grid("select * from customer");
-//                    }
-//                } catch (SQLException ex) {
-//                    throw new RuntimeException(ex);
-//                }
-//        };
-
-            System.out.println("Ausgewählt: " + e.getSource().getText());
-
-            System.out.println("Export-Path: " + exportPath);
-
-            for (QSql line : aList){
-                if(e.getSource().getText().contains(line.Name))
-                {
-                    try {
-                        System.out.println("jetzt Ausführen: " + line.SQL);
-                        aktuelle_SQL=line.SQL;
-                        aktuelle_Tabelle=line.Name;
-                        show_grid(line.SQL);
-                        anchor.setEnabled(false);
-                        smallButton.setVisible(true);
-                      //  TextField filenameTextField = new TextField("input file name here");
-                      //  filenameTextField.setValue("default.txt");
-                        //Anchor anchor = new Anchor(getStreamResource("default.txt", "default content"), "click me to download");
-
-                  //      byte[] bytes = Files.readAllBytes(Paths.get("c:\\tmp\\" + aktuelle_Tabelle + ".xls"));
-
-                    //    StreamResource resource = new StreamResource(aktuelle_Tabelle + ".xls",
-//                                () -> new ByteArrayInputStream(bytes));
-                        //    () -> new ByteArrayInputStream("Hello world".getBytes(StandardCharsets.UTF_8)));
-
-
-
-                       // anchor.setHref(getStreamResource(aktuelle_Tabelle + ".xls", " contains some text"));
-                 //       anchor.setHref(resource);
-
-
-                    } catch (SQLException ex) {
-                        throw new RuntimeException(ex);
-                    } catch (IOException ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-
-                System.out.println("Name: " + line.Name );
-              //  System.out.println("SQL: " + line.SQL );
-            }
-
-
-
-        };
-
-        //Div message = new Div(new Text("-->  "), selected);
-        H3 message = new H3(selected);
-
-        MenuItem move = menuBar.addItem("Auswahl");
-        SubMenu moveSubMenu = move.getSubMenu();
-
-
-
-        //Reading each line of the file using Scanner class
-        int lineNumber = 1;
-        while(scnr.hasNextLine()){
-            String line = scnr.nextLine();
-
-            QSql s = new QSql();
-            s.Name=line.split(";")[0];
-            s.SQL=line.split(";")[1];
-            //aList.add(Arrays.asList(line.split(";")));
-            aList.add(s);
-
-
-            //System.out.println("line " + lineNumber + " :" + line);
-            System.out.println("Table: " + line.split(";")[0]);
-            System.out.println("SQL: " + line.split(";")[1]);
-            moveSubMenu.addItem(line.split(";")[0], listener);
-            lineNumber++;
-        }
-
-
-        //Export Button
-
-        smallButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
-        smallButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
-        smallButton.addClickListener(clickEvent -> {
-            Notification.show("Exportiere " + aktuelle_Tabelle);
-            //System.out.println("aktuelle_SQL:" + aktuelle_SQL);
-            try {
-                generateExcel(exportPath + aktuelle_Tabelle + ".xls",aktuelle_SQL);
-
-                File file= new File(exportPath + aktuelle_Tabelle +".xls");
-                StreamResource streamResource = new StreamResource(file.getName(),()->getStream(file));
-
-                anchor.setHref(streamResource);
-                //anchor = new Anchor(streamResource, String.format("%s (%d KB)", file.getName(), (int) file.length() / 1024));
-
-                anchor.setEnabled(true);
-                smallButton.setVisible(false);
-          //      download("c:\\tmp\\" + aktuelle_Tabelle + ".xls");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        //  comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
+        // Add value change listener to comboBox
+        comboBox.addValueChangeListener(event -> {
+            if (event.getValue() != null) {
+                runButton.setEnabled(true);
             }
         });
 
+        HorizontalLayout hl = new HorizontalLayout();
+        hl.add(comboBox);
+
+        hl.setAlignItems(Alignment.BASELINE);
+
+        setSizeFull();
+        // add(hl);
+
+        //Export Button
+
+        exportButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        exportButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+        exportButton.addClickListener(clickEvent -> {
+
+            Notification.show("Exportiere Daten" );
+            generateExcelFile(rows, exportPath + "query.xlsx");
+        });
+
+        runButton.addClickListener(clickEvent -> {
+            try {
+                show_grid(sqlTextField.getValue());
+                exportButton.setVisible(true);
+                runButton.setEnabled(false);
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+
+        HorizontalLayout treehl = new HorizontalLayout();
 
 
+        TreeGrid tg= createTreeGrid();
 
-        HorizontalLayout TableChooser = new HorizontalLayout ();
-        //TableChooser.setAlignItems(Alignment.CENTER);
-        TableChooser.setAlignItems(Alignment.BASELINE );
-        TableChooser.add(menuBar);
-        TableChooser.add(message);
+        treehl.add(tg, createSQLTextField());
+        treehl.setFlexGrow(1, tg);
 
-        HorizontalLayout horizontalLayout = new HorizontalLayout ();
-        horizontalLayout.setWidth("100%");
-       // horizontalLayout.setAlignItems(Alignment.CENTER);
+        //  treehl.setWidthFull();
+        treehl.setAlignItems(Alignment.BASELINE);
+
+        queryDetails = new Details("SQL Auswahl",treehl);
+        queryDetails.setOpened(true);
+        queryDetails.setWidthFull();
+        queryDetails.setSummaryText("Bitte Abfrage auswählen");
+
+
+        add(hl, queryDetails);
+
+        HorizontalLayout horizontalLayout = new HorizontalLayout();
+        horizontalLayout.add(runButton, exportButton);
         horizontalLayout.setAlignItems(Alignment.BASELINE);
-        horizontalLayout.setSpacing(true);
-        horizontalLayout.setPadding(true);
-       // horizontalLayout.setMargin(true);
+        add(horizontalLayout, grid2);
+    }
 
-        horizontalLayout.add(hl,TableChooser);
-        horizontalLayout.add(smallButton);
-        horizontalLayout.add(anchor);
+    /*
+    private Article createDescriptionTextField() {
+        descriptionTextField = new Article();
+      //  descriptionTextField.setReadOnly(true); // Set as read-only as per your requirement
+        descriptionTextField.setWidthFull();
+        descriptionTextField.setText("Bitte Abfrage auswählen.");
+        return descriptionTextField;
+    }
+
+     */
+
+    private TextArea createSQLTextField() {
+        sqlTextField = new TextArea("Abfrage:");
+        sqlTextField.setReadOnly(true); // Set as read-only as per your requirement
+        //sqlTextField.setMaxLength(2000);
+        sqlTextField.setWidth("900px");
+        //  sqlTextField.setEnabled(false);
+        sqlTextField.setHelperText("SQL");
+
+        // sqlTextField.addClassName("no-boarder");
+        sqlTextField.getStyle().set("--vaadin-input-field-readonly-border", "0px");
+
+        //   sqlTextField.getStyle().set("--vaadin-input-field-label-font-weight", "800");
+
+        sqlTextField.addClassName("my-special-classname");
+
+        sqlTextField.addThemeVariants(
+                TextAreaVariant.LUMO_SMALL,
+                // TextAreaVariant.LUMO_ALIGN_RIGHT,
+                TextAreaVariant.LUMO_HELPER_ABOVE_FIELD
+        );
 
 
+        return sqlTextField;
+    }
+    private TreeGrid createTreeGrid() {
+        treeGrid = new TreeGrid<>();
+        treeGrid.setItems(sqlDefinitionService.getRootProjects(), sqlDefinitionService ::getChildProjects);
+        treeGrid.addHierarchyColumn(SqlDefinition::getName);
+        treeGrid.getColumns().forEach(col -> col.setAutoWidth(true));
 
+        treeGrid.setWidth("350px");
+        treeGrid.addExpandListener(event->
+                System.out.println(String.format("Expanded %s item(s)",event.getItems().size()))
+        );
+        treeGrid.addCollapseListener(event->
+                System.out.println(String.format("Collapsed %s item(s)",event.getItems().size()))
+        );
 
+        treeGrid.setThemeName("dense");
+        treeGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
+        treeGrid.addThemeVariants(GridVariant.LUMO_NO_ROW_BORDERS);
+        treeGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
 
-        horizontalLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.END);
+        treeGrid.asSingleSelect().addValueChangeListener(event->{
 
+            SqlDefinition selectedItem=event.getValue();
+            if(selectedItem != null){
+                String sql = selectedItem.getSql();
+                if(sql == null) {
+                    sql = "";
+                }
 
-        horizontalLayout.setFlexGrow(1,TableChooser);
-        add(horizontalLayout);
+                queryDetails.setSummaryText(selectedItem.getName() + ": " + selectedItem.getBeschreibung());
 
-        //show_grid("select 'Choose Table first!' as Info from dual");
+                sqlTextField.setValue(sql);
+                System.out.println("jetzt Ausführen: " + selectedItem.getSql());
+                aktuelle_SQL = sql;
+                // aktuelle_Tabelle = selectedItem.getName();
 
-        add(grid2);
+                runButton.setEnabled(true);
+            }
+        });
 
+        if(MainLayout.isAdmin) {
+            GridContextMenu<SqlDefinition> contextMenu = treeGrid.addContextMenu();
+            GridMenuItem<SqlDefinition> editItem = contextMenu.addItem("Edit", event -> {
+                showEditAndNewDialog(event.getItem().get(), "Edit");
+            });
+            GridMenuItem<SqlDefinition> newItem = contextMenu.addItem("New", event -> {
+                showEditAndNewDialog(event.getItem().get(), "New");
+            });
+            GridMenuItem<SqlDefinition> deleteItem = contextMenu.addItem("Delete", event -> {
+                deleteTreeGridItem(event.getItem().get());
+            });
+        }
+        return treeGrid;
+    }
+
+    private VerticalLayout showEditAndNewDialog(SqlDefinition sqlDefinition, String context){
+        VerticalLayout dialogLayout = new VerticalLayout();
+        Dialog dialog = new Dialog();
+        SqlDefinition newSqlDefinition = new SqlDefinition();
+
+        if(context.equals("New")){
+            List<SqlDefinition> sqlDefinitionList = sqlDefinitionService.getAllSqlDefinitions();
+            newSqlDefinition.setId((long) (sqlDefinitionList.size() + 1));
+            newSqlDefinition.setPid(sqlDefinition.getPid());
+            dialog.add(editSqlDefination(newSqlDefinition, true)); // For adding new entry
+        } else {
+            dialog.add(editSqlDefination(sqlDefinition, false)); // For editing existing entry
+        }
+
+        dialog.setDraggable(true);
+        dialog.setResizable(true);
+        dialog.setWidth("1000px");
+        dialog.setHeight("400px");
+        Button cancelButton = new Button("Cancel");
+        Button saveButton = new Button(context.equals("Edit") ? "Save" : "Add");
+        dialog.getFooter().add(saveButton, cancelButton);
+
+        cancelButton.addClickListener(cancelEvent -> {
+            dialog.close(); // Close the confirmation dialog
+        });
+
+        saveButton.addClickListener(saveEvent -> {
+            System.out.println("saved data....");
+            if(context.equals("New")) {
+                saveSqlDefinition(newSqlDefinition);
+            } else {
+                saveSqlDefinition(sqlDefinition);
+            }
+            sqlDefinitionService.getAllSqlDefinitions();
+            treeGrid.setItems(sqlDefinitionService.getRootProjects(), sqlDefinitionService ::getChildProjects);
+            //   rows = retrieveRows();
+            // treeg.setItems(param_Liste);
+            dialog.close(); // Close the confirmation dialog
+        });
+
+        dialog.open();
+
+        return dialogLayout;
 
     }
+
+    private Component editSqlDefination(SqlDefinition sqlDefinition, boolean isNew) {
+        VerticalLayout content = new VerticalLayout();
+
+        TextField name = new TextField("NAME");
+        name.setValue(isNew ? "" : (sqlDefinition.getName() != null ? sqlDefinition.getName() : ""));
+        name.setWidthFull();
+
+        TextField sql = new TextField("SQL");
+        sql.setValue(isNew ? "" : (sqlDefinition.getSql() != null ? sqlDefinition.getSql() : ""));
+        sql.setWidthFull();
+
+        TextField beschreibung = new TextField("BESCHREIBUNG");
+        beschreibung.setValue(isNew ? "" : (sqlDefinition.getBeschreibung() != null ? sqlDefinition.getBeschreibung() : ""));
+        beschreibung.setWidthFull();
+
+        TextField pid = new TextField("PID");
+        pid.setValue(sqlDefinition.getPid() != null ? sqlDefinition.getPid().toString() : "");
+        pid.setWidthFull();
+
+        MultiSelectComboBox<String> rolesComboBox = new MultiSelectComboBox<>("Roles");
+        List<SqlDefinition> sqlDefinitionList = sqlDefinitionService.getAllSqlDefinitions();
+        rolesComboBox.setWidthFull();
+
+        // Collect unique access roles from all SqlDefinition items
+        Set<String> uniqueAccessRoles = sqlDefinitionList.stream()
+                .map(SqlDefinition::getAccessRoles)
+                .filter(Objects::nonNull)
+                .flatMap(accessRoles -> Arrays.stream(accessRoles.split(",")))
+                .map(String::trim)
+                .collect(Collectors.toSet());
+        rolesComboBox.setItems(uniqueAccessRoles);
+
+        String accessRoles = sqlDefinition.getAccessRoles();
+        if(accessRoles != null) {
+            rolesComboBox.setValue(accessRoles.split(","));
+        }
+
+        // Add value change listeners to trigger binder updates
+        name.addValueChangeListener(event -> sqlDefinition.setName(event.getValue()));
+        sql.addValueChangeListener(event -> sqlDefinition.setSql(event.getValue()));
+        beschreibung.addValueChangeListener(event -> sqlDefinition.setBeschreibung(event.getValue()));
+        pid.addValueChangeListener(event -> {
+            try {
+                if (event.getValue() != null && !event.getValue().isEmpty()) {
+                    Long pidValue = Long.parseLong(event.getValue());
+                    sqlDefinition.setPid(pidValue);
+                } else {
+                    sqlDefinition.setPid(null);
+                }
+            } catch (NumberFormatException e) {
+                Notification.show(e.getCause().getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+        });
+
+        rolesComboBox.addValueChangeListener(event -> {
+            String selectedRolesString = String.join(",", event.getValue());
+            sqlDefinition.setAccessRoles(selectedRolesString);
+        });
+
+        content.add(name,sql,beschreibung, pid, rolesComboBox);
+        return content;
+    }
+
+    private Component deleteTreeGridItem(SqlDefinition sqlDefinition) {
+
+        VerticalLayout dialogLayout = new VerticalLayout();
+        Dialog dialog = new Dialog();
+        dialog.setDraggable(true);
+        dialog.setResizable(true);
+        dialog.setWidth("500px");
+        dialog.setHeight("150px");
+        Button cancelButton = new Button("Cancel");
+        Button deleteButton = new Button("Delete");
+        Text deleteConfirmationText = new Text("Are you sure you want to delete?");
+        dialog.add(deleteConfirmationText);
+        dialog.getFooter().add(deleteButton, cancelButton);
+
+        cancelButton.addClickListener(cancelEvent -> {
+            dialog.close(); // Close the confirmation dialog
+        });
+
+        deleteButton.addClickListener(saveEvent -> {
+            sqlDefinitionService.deleteSqlDefinitionById(sqlDefinition.getId());
+            sqlDefinitionService.getAllSqlDefinitions();
+            treeGrid.setItems(sqlDefinitionService.getRootProjects(), sqlDefinitionService ::getChildProjects);
+            dialog.close(); // Close the confirmation dialog
+        });
+
+        dialog.open();
+
+        return dialogLayout;
+    }
+
+  /*  private Tree createTree(){
+        Tree<SqlDefinition> tree = new Tree<>(
+                SqlDefinition::getName);
+        System.out.println(sqlDefinitionService.getRootProjects().size()+"..............vvvvvvvvvvvvvvvvvvvvvvvvvv");
+
+        tree.setAllRowsVisible(true);
+        tree.setItems(sqlDefinitionService.getRootProjects(),
+                sqlDefinitionService::getChildProjects);
+    //    tree.setItemIconProvider(item -> getIcon(item));
+     //   tree.setItemIconSrcProvider(item -> getImageIconSrc(item));
+      //  tree.setItemTitleProvider(SqlDefinition::getManager);
+
+        tree.addExpandListener(event->
+                System.out.println(String.format("Expanded%sitem(s)",event.getItems().size()))
+        );
+        tree.addCollapseListener(event->
+                System.out.println(String.format("Collapsed%sitem(s)",event.getItems().size()))
+        );
+        tree.asSingleSelect().addValueChangeListener(event -> {
+            if (event.getValue() != null)
+                System.out.println(event.getValue().getName() + " selected");
+        });
+        tree.setHeight("350px"); //tree.addClassNames("text-l","m-m");
+        tree.addClassNames(LumoUtility.FontSize.XXSMALL, LumoUtility.Margin.NONE);
+
+
+
+        // add(tree);
+        return tree;
+    }
+    private void createTreeOld(){
+
+        Tree<SqlDefinition> tree=new Tree<>(SqlDefinition::getName);
+        System.out.println(sqlDefinitionService.getAllSqlDefinitions()+"#######################");
+        tree.setItems(sqlDefinitionService.getRootProjects(),sqlDefinitionService::getChildProjects);
+
+        tree.addExpandListener(event->
+                System.out.println(String.format("Expanded%sitem(s)",event.getItems().size()))
+        );
+        tree.addCollapseListener(event->
+                System.out.println(String.format("Collapsed%sitem(s)",event.getItems().size()))
+        );
+        tree.asSingleSelect().addValueChangeListener(event->{
+
+            SqlDefinition selectedItem=event.getValue();
+            if(selectedItem!=null){
+                System.out.println("where..........");
+            }
+        });
+        tree.setAllRowsVisible(true);
+
+        tree.addClassNames(LumoUtility.FontSize.XXSMALL,LumoUtility.Margin.NONE);
+
+        add(tree);
+    }
+*/
 
 
     private InputStream getStream(File file) {
@@ -309,19 +473,21 @@ public class TableView extends VerticalLayout {
 
 
     private void show_grid(String sql) throws SQLException, IOException {
-        System.out.println(sql);
+
+        System.out.println("Execute SQL: " + sql );
+
         // Create the grid and set its items
         //Grid<LinkedHashMap<String, Object>> grid2 = new Grid<>();
         grid2.removeAllColumns();
 
         //List<LinkedHashMap<String,Object>> rows = retrieveRows("select * from EKP.ELA_FAVORITEN where rownum<200");
-        List<LinkedHashMap<String,Object>> rows = retrieveRows(sql);
+        rows = retrieveRows(sql);
 
         if(!rows.isEmpty()){
             grid2.setItems( rows); // rows is the result of retrieveRows
 
             // Add the columns based on the first row
-            LinkedHashMap<String, Object> s = rows.get(0);
+            Map<String, Object> s = rows.get(0);
             for (Map.Entry<String, Object> entry : s.entrySet()) {
                 grid2.addColumn(h -> h.get(entry.getKey().toString())).setHeader(entry.getKey()).setAutoWidth(true).setResizable(true).setSortable(true);
             }
@@ -335,13 +501,15 @@ public class TableView extends VerticalLayout {
 
             grid2.getStyle().set("resize", "vertical");
             grid2.getStyle().set("overflow", "auto");
+            grid2.setThemeName("dense");
 
             //grid2.setPaginatorSize(5);
             // Add the grid to the page
 
-            this.setPadding(false);
-            this.setSpacing(false);
-            this.setBoxSizing(BoxSizing.CONTENT_BOX);
+
+//            this.setPadding(false);
+//            this.setSpacing(false);
+//            this.setBoxSizing(BoxSizing.CONTENT_BOX);
 
         }
         else {
@@ -351,75 +519,168 @@ public class TableView extends VerticalLayout {
 
     }
 
-    public List<LinkedHashMap<String,Object>> retrieveRows(String queryString) throws SQLException, IOException {
+    public List<Map<String,Object>> retrieveRows(String queryString) {
+        List<Map<String, Object>> rows;
+        if (queryString != null) {
+            try {
+                Configuration conf = comboBox.getValue();
+                String password = Configuration.decodePassword(conf.getPassword());
+                DataSource dataSource = getDataSourceUsingParameter(conf.getDb_Url(), conf.getUserName(), password);
+                jdbcTemplate = new JdbcTemplate(dataSource);
+                rows = jdbcTemplate.queryForList(queryString);
+                connectionClose(jdbcTemplate);
+                return rows;
+            } catch (Exception e) {
+                e.printStackTrace();
+                Notification.show(e.getCause().getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+        }
 
+        return Collections.emptyList();
+    }
+
+    public void saveSqlDefinition(SqlDefinition sqlDefinition) {
+        sqlDefinitionService.saveSqlDefinition(sqlDefinition);
+    }
+
+    public List<LinkedHashMap<String,Object>> retrieveRows_old(String queryString) throws SQLException, IOException {
 
         List<LinkedHashMap<String, Object>> rows = new LinkedList<LinkedHashMap<String, Object>>();
 
-        PreparedStatement s = null;
-        ResultSet rs = null;
-        try
-        {
-        //    String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
-        //    String user="SYSTEM";
-        //    String password="Michael123";
+        if(queryString != null) {
 
-            DriverManagerDataSource ds = new DriverManagerDataSource();
-            Configuration conf;
-            conf = comboBox.getValue();
+            PreparedStatement s = null;
+            ResultSet rs = null;
+            try {
+                //    String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
+                //    String user="SYSTEM";
+                //    String password="Michael123";
 
-            Class.forName("oracle.jdbc.driver.OracleDriver");
+                DriverManagerDataSource ds = new DriverManagerDataSource();
+                Configuration conf;
+                conf = comboBox.getValue();
 
-        //    Connection conn=DriverManager.getConnection(url, user, password);
-            Connection conn=DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), conf.getPassword());
+                Class.forName("oracle.jdbc.driver.OracleDriver");
+                String password = Configuration.decodePassword(conf.getPassword());
 
-
-            s = conn.prepareStatement(queryString);
-
-            int timeout = s.getQueryTimeout();
-            if(timeout != 0)
-                s.setQueryTimeout(0);
-
-            rs = s.executeQuery();
+                //    Connection conn=DriverManager.getConnection(url, user, password);
+                Connection conn = DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), password);
 
 
-            List<String> columns = new LinkedList<>();
-            ResultSetMetaData resultSetMetaData = rs.getMetaData();
-            int colCount = resultSetMetaData.getColumnCount();
-            for(int i= 1 ; i < colCount+1 ; i++) {
-                columns.add(resultSetMetaData.getColumnLabel(i));
-            }
+                s = conn.prepareStatement(queryString);
 
-            while (rs.next()) {
-                LinkedHashMap<String, Object> row  = new LinkedHashMap<String, Object>();
-                for(String col : columns) {
-                    int colIndex = columns.indexOf(col)+1;
-                    String object = rs.getObject(colIndex)== null ? "" : String.valueOf(rs.getObject(colIndex));
-                    row.put(col, object);
+                int timeout = s.getQueryTimeout();
+                if (timeout != 0)
+                    s.setQueryTimeout(0);
+
+                rs = s.executeQuery();
+
+
+                List<String> columns = new LinkedList<>();
+                ResultSetMetaData resultSetMetaData = rs.getMetaData();
+                int colCount = resultSetMetaData.getColumnCount();
+                for (int i = 1; i < colCount + 1; i++) {
+                    columns.add(resultSetMetaData.getColumnLabel(i));
                 }
 
-                rows.add(row);
+                while (rs.next()) {
+                    LinkedHashMap<String, Object> row = new LinkedHashMap<String, Object>();
+                    for (String col : columns) {
+                        int colIndex = columns.indexOf(col) + 1;
+                        String object = rs.getObject(colIndex) == null ? "" : String.valueOf(rs.getObject(colIndex));
+                        row.put(col, object);
+                    }
+
+                    rows.add(row);
+                }
+            } catch (SQLException | IllegalArgumentException | SecurityException e) {
+                // e.printStackTrace();
+                // add(new Text(e.getMessage()));
+
+                Notification notification = Notification.show(e.getMessage());
+                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+
+                return Collections.emptyList();
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            } finally {
+
+                try {
+                    rs.close();
+                } catch (Exception e) { /* Ignored */ }
+                try {
+                    s.close();
+                } catch (Exception e) { /* Ignored */ }
+                try {
+                    conn.close();
+                } catch (Exception e) { /* Ignored */ }
+
+
             }
-        } catch (SQLException | IllegalArgumentException  | SecurityException e) {
-           // e.printStackTrace();
-           // add(new Text(e.getMessage()));
-
-            Notification notification = Notification.show(e.getMessage());
-            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-
-            return Collections.emptyList();
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } finally {
-
-            try { rs.close(); } catch (Exception e) { /* Ignored */ }
-            try { s.close(); } catch (Exception e) { /* Ignored */ }
-            try { conn.close(); } catch (Exception e) { /* Ignored */ }
-
-
         }
-       // conn.close();
         return rows;
+    }
+
+    private void generateExcelFile(List<Map<String, Object>> rows, String fileName) {
+        // Create a new Excel workbook and sheet
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("Sheet1");
+
+        // Create a header row with column names
+        Row headerRow = sheet.createRow(0);
+        int cellIndex = 0;
+        for (String columnName : rows.get(0).keySet()) {
+            Cell cell = headerRow.createCell(cellIndex++);
+            cell.setCellValue(columnName);
+        }
+
+        // Populate the data rows
+        int rowIndex = 1;
+        for (Map<String, Object> row : rows) {
+            Row dataRow = sheet.createRow(rowIndex++);
+            cellIndex = 0;
+            for (Object value : row.values()) {
+                Cell cell = dataRow.createCell(cellIndex++);
+                if (value != null) {
+                    if (value instanceof Number) {
+                        cell.setCellValue(((Number) value).doubleValue());
+                    } else if (value instanceof String) {
+                        cell.setCellValue((String) value);
+                    } else if (value instanceof Boolean) {
+                        cell.setCellValue((Boolean) value);
+                    } else {
+                        // Handle other data types as needed
+                        cell.setCellValue(value.toString());
+                    }
+                } else {
+                    cell.setCellValue(""); // Handle null values as empty strings
+                }
+            }
+        }
+
+        try {
+
+            // Write the workbook to the specified file
+            try (FileOutputStream fileOut = new FileOutputStream(fileName)) {
+                workbook.write(fileOut);
+            } catch (Exception e) {
+                // e.printStackTrace();
+                Notification.show(e.getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+            // Close the workbook
+            workbook.close();
+
+            File file = new File(fileName);
+            StreamResource streamResource = new StreamResource(file.getName(), () -> getStream(file));
+
+            Anchor anchor = new Anchor(streamResource, "");
+            anchor.getElement().setAttribute("download", true);
+            anchor.getElement().getStyle().set("display", "none");
+            add(anchor);
+            UI.getCurrent().getPage().executeJs("arguments[0].click()", anchor);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static void generateExcel(String file, String query) throws IOException {
@@ -435,9 +696,9 @@ public class TableView extends VerticalLayout {
 
 
             Class.forName("oracle.jdbc.driver.OracleDriver");
-
+            String password = Configuration.decodePassword(conf.getPassword());
             //    Connection conn=DriverManager.getConnection(url, user, password);
-            Connection conn=DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), conf.getPassword());
+            Connection conn=DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), password);
 
             //   DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
 
@@ -511,7 +772,7 @@ public class TableView extends VerticalLayout {
 
                 idx++;
                 row = sheet1.createRow(idx);
-              //  System.out.println(idx);
+                //  System.out.println(idx);
                 for (int i = 0; i < colCount; i++) {
 
                     c = row.createCell(i);
@@ -552,6 +813,48 @@ public class TableView extends VerticalLayout {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
+        }
+    }
+    public DataSource getDataSourceUsingParameter(String dbUrl, String dbUser, String dbPassword) {
+
+        if(dbUser != null) {
+            System.out.println(dbUrl);
+            System.out.println("Username = " + dbUser + " Password = " + dbPassword);
+            DataSource dataSource = DataSourceBuilder
+                    .create()
+                    .url(dbUrl)
+                    .username(dbUser)
+                    .password(dbPassword)
+                    .build();
+            return dataSource;
+        }
+
+        throw new RuntimeException("Database connection not found: " + dbUser);
+    }
+
+    public void connectionClose(JdbcTemplate jdbcTemplate) {
+        Connection connection = null;
+        DataSource dataSource = null;
+        try {
+            // Retrieve the connection from the DataSource
+            connection = jdbcTemplate.getDataSource().getConnection();
+            dataSource = jdbcTemplate.getDataSource();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+
+                    if (dataSource instanceof HikariDataSource) {
+                        ((HikariDataSource) dataSource).close();
+                    }
+
+                } catch (SQLException e) {
+
+                    e.printStackTrace();
+                }
+            }
         }
     }
 

@@ -1,55 +1,50 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
-import com.example.application.data.entity.Metadaten;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.utils.myCallback;
 import com.example.application.views.list.MonitoringForm;
 import com.vaadin.flow.component.*;
-import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.charts.Chart;
 import com.vaadin.flow.component.charts.model.*;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.contextmenu.MenuItem;
-import com.vaadin.flow.component.contextmenu.SubMenu;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.grid.GridSelectionModel;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
-import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
-import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.Label;
-import com.vaadin.flow.component.menubar.MenuBar;
-import com.vaadin.flow.component.menubar.MenuBarVariant;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.BoxSizing;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.richtexteditor.RichTextEditor;
 import com.vaadin.flow.component.richtexteditor.RichTextEditorVariant;
 import com.vaadin.flow.component.tabs.Tab;
+import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.tabs.Tabs;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-/*import com.wontlost.ckeditor.Constants;
-import com.wontlost.ckeditor.VaadinCKEditor;
-import com.wontlost.ckeditor.VaadinCKEditorBuilder;*/
+import com.wontlost.ckeditor.Config;
+import com.wontlost.ckeditor.Constants;
 import jakarta.annotation.security.RolesAllowed;
-import org.apache.poi.ss.formula.functions.T;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,21 +64,14 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-
-
-import org.w3c.dom.*;
-import org.w3c.dom.Node;
-import org.xml.sax.InputSource;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.StringReader;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import com.wontlost.ckeditor.VaadinCKEditor;
+import com.wontlost.ckeditor.VaadinCKEditorBuilder;
 
 @PageTitle("eKP-Cokpit | by DBUSS GmbH")
 @Route(value = "cockpit", layout= MainLayout.class)
@@ -138,29 +126,29 @@ public class CockpitView extends VerticalLayout{
             System.out.println(sql);
 
             DriverManagerDataSource ds = new DriverManagerDataSource();
-            Configuration conf;
+            com.example.application.data.entity.Configuration conf;
             conf = comboBox.getValue();
 
             ds.setUrl(conf.getDb_Url());
             ds.setUsername(conf.getUserName());
-            ds.setPassword(conf.getPassword());
+            ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
             try {
                 jdbcTemplate.setDataSource(ds);
 
                 jdbcTemplate.update(sql , mon.getSQL()
-                                        , mon.getTitel()
-                                        , mon.getBeschreibung()
-                                        , mon.getHandlungs_INFO()
-                                        , mon.getCheck_Intervall()
-                                        , mon.getWarning_Schwellwert()
-                                        , mon.getError_Schwellwert()
-                                        , mon.getIS_ACTIVE()
-                                        , mon.getSQL_Detail()
-                                        , mon.getID()
+                        , mon.getTitel()
+                        , mon.getBeschreibung()
+                        , mon.getHandlungs_INFO()
+                        , mon.getCheck_Intervall()
+                        , mon.getWarning_Schwellwert()
+                        , mon.getError_Schwellwert()
+                        , mon.getIS_ACTIVE()
+                        , mon.getSQL_Detail()
+                        , mon.getID()
                 );
 
-           //     jdbcTemplate.update(sql);
+                //     jdbcTemplate.update(sql);
                 System.out.println("Update durchgeführt");
 
             } catch (Exception e) {
@@ -174,7 +162,7 @@ public class CockpitView extends VerticalLayout{
 
         @Override
         public void cancel() {
-           form.setVisible(false);
+            form.setVisible(false);
         }
     };
     Grid<fvm_monitoring> grid = new Grid<>(fvm_monitoring.class, false);
@@ -184,7 +172,7 @@ public class CockpitView extends VerticalLayout{
     Dialog dialog_Beschreibung = new Dialog();
     Dialog dialog_Editor = new Dialog();
 
-   // RichTextEditor editor = new RichTextEditor();
+    // RichTextEditor editor = new RichTextEditor();
 
     private ComboBox<Configuration> comboBox;
     static List<fvm_monitoring> param_Liste = new ArrayList<fvm_monitoring>();
@@ -201,7 +189,7 @@ public class CockpitView extends VerticalLayout{
 
     Checkbox autorefresh = new Checkbox();
 
-     private Label lastRefreshLabel;
+    private Label lastRefreshLabel;
     private Label countdownLabel;
 
     private UI ui ;
@@ -254,7 +242,7 @@ public class CockpitView extends VerticalLayout{
 
 
 
-      //  add(xmlBt);
+        //  add(xmlBt);
 
 
         H2 h2 = new H2("ekP / EGVP-E Monitoring");
@@ -262,8 +250,8 @@ public class CockpitView extends VerticalLayout{
 
         //editor.setVisible(false);
 
-       // String htmlContent = "<h1>Beispielüberschrift</h1><p>Dies ist der Inhalt des Editors.</p>";
-       // editor.asHtml().setValue(htmlContent);
+        // String htmlContent = "<h1>Beispielüberschrift</h1><p>Dies ist der Inhalt des Editors.</p>";
+        // editor.asHtml().setValue(htmlContent);
 
         //add(editor);
         //editor.setVisible(false);
@@ -320,7 +308,7 @@ public class CockpitView extends VerticalLayout{
         comboBox = new ComboBox<>("Verbindung");
         List<Configuration> configList = service.findMessageConfigurations();
         comboBox.setItems(configList);
-        comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
+        comboBox.setItemLabelGenerator(Configuration::getName);
         comboBox.setValue(configList.get(1) );
 
         autorefresh.setLabel("Autorefresh");
@@ -345,7 +333,7 @@ public class CockpitView extends VerticalLayout{
 
         HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn,lastRefreshLabel, autorefresh, countdownLabel);
         layout.setPadding(false);
-        layout.setAlignItems(FlexComponent.Alignment.BASELINE);
+        layout.setAlignItems(Alignment.BASELINE);
 
         return layout;
 
@@ -400,22 +388,22 @@ public class CockpitView extends VerticalLayout{
 
         grid.setItemDetailsRenderer(createPersonDetailsRenderer());
         grid.setSelectionMode(Grid.SelectionMode.NONE);
-       // grid.setSelectionMode(Grid.SelectionMode.SINGLE);
-       // grid.setDetailsVisibleOnClick(false);
+        // grid.setSelectionMode(Grid.SelectionMode.SINGLE);
+        // grid.setDetailsVisibleOnClick(false);
 
         grid.addItemClickListener(event -> {
 
-          //  System.out.println("ClickEvent:" + event.getItem().getTitel());
+            //  System.out.println("ClickEvent:" + event.getItem().getTitel());
 
             if (((ClickEvent) event).getClickCount() == 2){
                 System.out.println("Double ClickEvent:" + event.getItem().getTitel());
                 grid.setDetailsVisible(event.getItem(), !grid.isDetailsVisible(event.getItem()));
             }
 
-         //   ClickEvent<fvm_monitoring> clickEvent = (ClickEvent<fvm_monitoring>) event;
-         //   if (clickEvent.getClickCount() == 2) {
-         //       grid.setDetailsVisible(event.getItem(), !grid.isDetailsVisible(event.getItem()));
-         //   }
+            //   ClickEvent<fvm_monitoring> clickEvent = (ClickEvent<fvm_monitoring>) event;
+            //   if (clickEvent.getClickCount() == 2) {
+            //       grid.setDetailsVisible(event.getItem(), !grid.isDetailsVisible(event.getItem()));
+            //   }
         });
 
 
@@ -425,6 +413,9 @@ public class CockpitView extends VerticalLayout{
         grid.setItems(param_Liste);
         grid.setHeight("800px");
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+        grid.addThemeVariants(GridVariant.LUMO_COMPACT);
+        grid.setThemeName("dense");
+
         MonitorContextMenu contextMenu = new MonitorContextMenu(grid);
 
         grid.setClassNameGenerator(person -> {
@@ -587,7 +578,7 @@ public class CockpitView extends VerticalLayout{
 
     public static String parse(String responseBody){
 
-         JSONArray albums = new JSONArray(responseBody);
+        JSONArray albums = new JSONArray(responseBody);
         for ( int i = 0; i < albums.length();i++){
             JSONObject album = albums.getJSONObject(i);
             int id = album.getInt("id");
@@ -606,9 +597,9 @@ public class CockpitView extends VerticalLayout{
             super(target);
 
             addItem("Beschreibung", e -> e.getItem().ifPresent(a -> {
-                 System.out.printf("Edit: %s%n", a.getID());
+                System.out.printf("Edit: %s%n", a.getID());
                 dialog_Beschreibung.setHeaderTitle(a.getTitel());
-              //  VerticalLayout dialogLayout = createDialogLayout(person.getBeschreibung());
+                //  VerticalLayout dialogLayout = createDialogLayout(person.getBeschreibung());
 
                 VerticalLayout dialogLayout =showDialog(a);
 
@@ -624,7 +615,7 @@ public class CockpitView extends VerticalLayout{
 
 
             addItem("Show Data", e -> e.getItem().ifPresent(a -> {
-              //  System.out.printf("Daten anzeigen für: %s%n", a.getID());
+                //  System.out.printf("Daten anzeigen für: %s%n", a.getID());
 
                 dialog_Beschreibung.setHeaderTitle("Detailabfrage für " + a.getTitel() + " (ID: " + a.getID() + ")");
                 VerticalLayout dialogLayout = null;
@@ -668,9 +659,10 @@ public class CockpitView extends VerticalLayout{
             addItem("edit", e -> e.getItem().ifPresent(monitor -> {
                 System.out.printf("Edit: %s%n", monitor.getID());
 
-                form.setVisible(true);
-                form.setContact(monitor);
+                //   form.setVisible(true);
+                //  form.setContact(monitor);
 
+                showEditDialog(monitor);
 
             }));
 
@@ -697,7 +689,7 @@ public class CockpitView extends VerticalLayout{
                 // Do not show context menu when header is clicked
                 if (person == null)
                     return false;
-               // emailItem.setText(String.format("Email: %s", person.getTitel()));
+                // emailItem.setText(String.format("Email: %s", person.getTitel()));
                 return true;
             });
         }
@@ -716,7 +708,7 @@ public class CockpitView extends VerticalLayout{
 
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         try {
 
@@ -796,8 +788,9 @@ public class CockpitView extends VerticalLayout{
 
             Class.forName("oracle.jdbc.driver.OracleDriver");
 
+            String password = Configuration.decodePassword(conf.getPassword());
             //    Connection conn=DriverManager.getConnection(url, user, password);
-            Connection conn= DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), conf.getPassword());
+            Connection conn= DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), password);
 
 
             s = conn.prepareStatement(queryString);
@@ -854,7 +847,7 @@ public class CockpitView extends VerticalLayout{
         VerticalLayout dialogLayout = new VerticalLayout(grid_metadata);
         dialogLayout.setPadding(false);
         dialogLayout.setSpacing(false);
-        dialogLayout.setAlignItems(FlexComponent.Alignment.STRETCH);
+        dialogLayout.setAlignItems(Alignment.STRETCH);
         dialogLayout.getStyle().set("width", "1200px").set("max-width", "100%");
         dialogLayout.getStyle().set("height", "800px").set("max-height", "100%");
         return dialogLayout;
@@ -865,6 +858,7 @@ public class CockpitView extends VerticalLayout{
         chart.getConfiguration().getChart().setType(ChartType.SPLINE);
 
         com.vaadin.flow.component.charts.model.Configuration conf = chart.getConfiguration();
+        // Configuration conf = chart.getConfiguration();
 
         conf.getxAxis().setType(AxisType.DATETIME);
 
@@ -904,7 +898,7 @@ public class CockpitView extends VerticalLayout{
         VerticalLayout dialogLayout = new VerticalLayout(chart);
         dialogLayout.setPadding(false);
         dialogLayout.setSpacing(false);
-        dialogLayout.setAlignItems(FlexComponent.Alignment.STRETCH);
+        dialogLayout.setAlignItems(Alignment.STRETCH);
         dialogLayout.getStyle().set("width", "1200px").set("max-width", "100%");
         dialogLayout.getStyle().set("height", "800px").set("max-height", "100%");
         return dialogLayout;
@@ -912,38 +906,234 @@ public class CockpitView extends VerticalLayout{
 
 
 
-private static VerticalLayout showDialog(fvm_monitoring Inhalt){
+    private static VerticalLayout showDialog(fvm_monitoring Inhalt){
 
         VerticalLayout dialogInhalt = new VerticalLayout();
 
-    details = new Tab("Beschreibung");
-    payment = new Tab("Handlungsanweisung");
-    //data = new Tab("Daten");
+        details = new Tab("Beschreibung");
+        payment = new Tab("Handlungsanweisung");
+        //data = new Tab("Daten");
 
-    Tabs tabs = new Tabs();
+        Tabs tabs = new Tabs();
 
-    tabs.addSelectedChangeListener(
-            event -> setContent(event.getSelectedTab(),Inhalt));
-
-
-    tabs.add(details, payment);
+        tabs.addSelectedChangeListener(
+                event -> setContent(event.getSelectedTab(),Inhalt));
 
 
-    content.setSpacing(false);
-    content.add(tabs);
-
-    setContent(tabs.getSelectedTab(),Inhalt);
-
-    dialogInhalt = new VerticalLayout();
-    dialogInhalt.add(tabs,content);
-
-    return dialogInhalt;
-
-}
+        tabs.add(details, payment);
 
 
+        content.setSpacing(false);
+        content.add(tabs);
 
-    private static VerticalLayout showEditDialog(fvm_monitoring Inhalt){
+        setContent(tabs.getSelectedTab(),Inhalt);
+
+        dialogInhalt = new VerticalLayout();
+        dialogInhalt.add(tabs,content);
+
+        return dialogInhalt;
+
+    }
+
+    private VerticalLayout showEditDialog(fvm_monitoring monitor){
+        VerticalLayout dialogLayout = new VerticalLayout();
+        Dialog dialog = new Dialog();
+        dialog.add(getTabsheet(monitor));
+        dialog.setDraggable(true);
+        dialog.setResizable(true);
+        dialog.setWidth("1000px");
+        dialog.setHeight("400px");
+        //  Button addButton = new Button("add");
+        Button cancelButton = new Button("Cancel");
+        Button saveButton = new Button("Save");
+        // Add buttons to the footer
+        dialog.getFooter().add(saveButton, cancelButton);
+
+        cancelButton.addClickListener(cancelEvent -> {
+            dialog.close(); // Close the confirmation dialog
+        });
+
+        saveButton.addClickListener(saveEvent -> {
+            System.out.println("saved data....");
+            saveEditedMonitor(monitor);
+            param_Liste=getMonitoring();
+            grid.setItems(param_Liste);
+            dialog.close(); // Close the confirmation dialog
+        });
+
+        dialog.open();
+
+        return dialogLayout;
+
+    }
+    private TabSheet getTabsheet(fvm_monitoring monitor) {
+
+        TabSheet tabSheet = new TabSheet();
+
+        tabSheet.add("General", getGeneral(monitor));
+        tabSheet.add("SQL-Abfrage", getSqlAbfrage(monitor));
+        tabSheet.add("Beschreibung", getBeschreibung(monitor));
+        tabSheet.add("Handlungsinformationen", getHandlungsinformationen(monitor));
+
+        tabSheet.setSizeFull();
+        tabSheet.setHeightFull();
+
+        return tabSheet;
+    }
+
+    private void saveEditedMonitor(fvm_monitoring monitor) {
+        callback.save(monitor);
+    }
+
+    private Component getHandlungsinformationen(fvm_monitoring monitor) {
+        VerticalLayout content = new VerticalLayout();
+        VaadinCKEditor editor;
+        Button saveBtn = new Button("save");
+        Button editBtn = new Button("edit");
+        saveBtn.setVisible(false);
+        editBtn.setVisible(true);
+
+        Config config = new Config();
+        config.setBalloonToolBar(Constants.Toolbar.values());
+        config.setImage(new String[][]{},
+                "", new String[]{"full", "alignLeft", "alignCenter", "alignRight"},
+                new String[]{"imageTextAlternative", "|",
+                        "imageStyle:alignLeft",
+                        "imageStyle:full",
+                        "imageStyle:alignCenter",
+                        "imageStyle:alignRight"}, new String[]{});
+
+        editor = new VaadinCKEditorBuilder().with(builder -> {
+
+            builder.editorType = Constants.EditorType.CLASSIC;
+            builder.width = "95%";
+            builder.hideToolbar=false;
+            builder.config = config;
+        }).createVaadinCKEditor();
+
+        //    editor.setReadOnly(true);
+        editor.getStyle().setMargin ("-5px");
+        editor.setValue(monitor.getHandlungs_INFO());
+        editor.addValueChangeListener(event -> monitor.setHandlungs_INFO(event.getValue()));
+//        saveBtn.addClickListener((event -> {
+//            editBtn.setVisible(true);
+//            saveBtn.setVisible(false);
+//            //editor.setReadOnly(true);
+//            editor.setReadOnlyWithToolbarAction(!editor.isReadOnly());
+//
+//        }));
+//
+//        editBtn.addClickListener(e->{
+//            editor.setReadOnlyWithToolbarAction(!editor.isReadOnly());
+//            editBtn.setVisible(false);
+//            saveBtn.setVisible(true);
+//            //editor.setReadOnly(false);
+//        });
+
+//        content.add(editor,editBtn,saveBtn);
+        content.add(editor);
+        return content;
+    }
+
+    private Component getBeschreibung(fvm_monitoring monitor) {
+        VerticalLayout content = new VerticalLayout();
+        VaadinCKEditor editor;
+        Button saveBtn = new Button("save");
+        Button editBtn = new Button("edit");
+        saveBtn.setVisible(false);
+        editBtn.setVisible(true);
+
+        Config config = new Config();
+        config.setBalloonToolBar(Constants.Toolbar.values());
+        config.setImage(new String[][]{},
+                "", new String[]{"full", "alignLeft", "alignCenter", "alignRight"},
+                new String[]{"imageTextAlternative", "|",
+                        "imageStyle:alignLeft",
+                        "imageStyle:full",
+                        "imageStyle:alignCenter",
+                        "imageStyle:alignRight"}, new String[]{});
+
+        editor = new VaadinCKEditorBuilder().with(builder -> {
+
+            builder.editorType = Constants.EditorType.CLASSIC;
+            builder.width = "95%";
+            builder.hideToolbar=false;
+            builder.config = config;
+        }).createVaadinCKEditor();
+
+        // editor.setReadOnly(true);
+        editor.getStyle().setMargin ("-5px");
+        editor.setValue(monitor.getBeschreibung());
+        editor.addValueChangeListener(event -> monitor.setBeschreibung(event.getValue()));
+//        saveBtn.addClickListener((event -> {
+//            editBtn.setVisible(true);
+//            saveBtn.setVisible(false);
+//            //editor.setReadOnly(true);
+//            editor.setReadOnlyWithToolbarAction(!editor.isReadOnly());
+//
+//        }));
+//
+//        editBtn.addClickListener(e->{
+//            editor.setReadOnlyWithToolbarAction(!editor.isReadOnly());
+//            editBtn.setVisible(false);
+//            saveBtn.setVisible(true);
+//            //editor.setReadOnly(false);
+//        });
+
+//        content.add(editor,editBtn,saveBtn);
+        content.add(editor);
+        return content;
+    }
+
+    private Component getSqlAbfrage(fvm_monitoring monitor) {
+        VerticalLayout content = new VerticalLayout();
+        TextField abfrage = new TextField("SQL-Abfrage");
+        abfrage.setValue(monitor.getSQL());
+        abfrage.setWidthFull();
+
+        TextField detailabfrage = new TextField("SQL-Detail Abfrage");
+        detailabfrage.setValue(monitor.getSQL_Detail());
+        detailabfrage.setWidthFull();
+
+        abfrage.addValueChangeListener(event -> monitor.setSQL(event.getValue()));
+        detailabfrage.addValueChangeListener(event -> monitor.setSQL_Detail(event.getValue()));
+        content.add(abfrage, detailabfrage);
+        return content;
+    }
+
+    private Component getGeneral(fvm_monitoring monitor) {
+        VerticalLayout content = new VerticalLayout();
+
+        TextField titel = new TextField("Titel");
+        titel.setValue(monitor.getTitel());
+        titel.setWidthFull();
+
+        IntegerField intervall = new IntegerField("Check-Intervall");
+        IntegerField infoSchwellwert = new IntegerField("Warning Schwellwert");
+        IntegerField errorSchwellwert = new IntegerField("Error Schwellwert");
+        Checkbox checkbox = new Checkbox("aktiv");
+
+        intervall.setValue(monitor.getCheck_Intervall());
+        infoSchwellwert.setValue(monitor.getWarning_Schwellwert());
+        errorSchwellwert.setValue(monitor.getError_Schwellwert());
+        if(monitor.getIS_ACTIVE().equals("1")){
+            checkbox.setValue(true);
+        }
+
+        // Add value change listeners to trigger binder updates
+        intervall.addValueChangeListener(event -> monitor.setCheck_Intervall(event.getValue()));
+        infoSchwellwert.addValueChangeListener(event -> monitor.setWarning_Schwellwert(event.getValue()));
+        errorSchwellwert.addValueChangeListener(event -> monitor.setError_Schwellwert(event.getValue()));
+        checkbox.addValueChangeListener(event -> monitor.setIS_ACTIVE(event.getValue() ? "1" : "0"));
+
+        HorizontalLayout hr = new HorizontalLayout(intervall,infoSchwellwert,errorSchwellwert, checkbox);
+        hr.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
+
+        content.add(titel, hr);
+        return content;
+    }
+
+    private static VerticalLayout showEditDialogOld(fvm_monitoring Inhalt){
 
         VerticalLayout dialogInhalt = new VerticalLayout();
         TextField titel = new TextField("Titel");
@@ -1032,7 +1222,7 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
         VerticalLayout dialogLayout = new VerticalLayout(rte);
         dialogLayout.setPadding(false);
         dialogLayout.setSpacing(false);
-        dialogLayout.setAlignItems(FlexComponent.Alignment.STRETCH);
+        dialogLayout.setAlignItems(Alignment.STRETCH);
         dialogLayout.getStyle().set("width", "1200px").set("max-width", "100%");
         dialogLayout.getStyle().set("height", "800px").set("max-height", "100%");
 
@@ -1062,7 +1252,7 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
 
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         try {
 
@@ -1099,7 +1289,7 @@ private static VerticalLayout showDialog(fvm_monitoring Inhalt){
 
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         try {
 

@@ -93,7 +93,7 @@ Icon icon;
 
         comboBox = new ComboBox<>("Ziel-Datenbank");
         comboBox.setItems(service.findMessageConfigurations());
-        comboBox.setItemLabelGenerator(Configuration::get_Message_Connection);
+        comboBox.setItemLabelGenerator(Configuration::getName);
 
         comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
       //  comboBox.setPlaceholder("Select Database");

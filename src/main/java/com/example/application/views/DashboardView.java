@@ -77,7 +77,7 @@ public class DashboardView extends VerticalLayout{
 
         comboBox = new ComboBox<>("Verbindung");
         comboBox.setItems(conf_service.findMessageConfigurations());
-        comboBox.setItemLabelGenerator(com.example.application.data.entity.Configuration::get_Message_Connection);
+        comboBox.setItemLabelGenerator(com.example.application.data.entity.Configuration::getName);
 
         //    comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
         comboBox.setPlaceholder("auswählen");

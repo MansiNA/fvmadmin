@@ -39,15 +39,15 @@ public class ConfigurationView extends VerticalLayout {
         updateList();
         closeEditor();
         //    cf = new ConfigForm();
-    //    cf.setWidth("25em");
-    //    add(new H1("Konfiguration"));
-    //    add (cf);
-    //    updateView();
+        //    cf.setWidth("25em");
+        //    add(new H1("Konfiguration"));
+        //    add (cf);
+        //    updateView();
 
-       // closeEditor();
+        // closeEditor();
 
-   //     config=new Configuration("User","Password","URL");
-   //     cf.setConfiguration(config);
+        //     config=new Configuration("User","Password","URL");
+        //     cf.setConfiguration(config);
 
     }
 
@@ -65,7 +65,7 @@ public class ConfigurationView extends VerticalLayout {
     private void configureGrid() {
         grid.addClassNames("configuration-grid");
         grid.setSizeFull();
-        grid.setColumns("land", "umgebung", "userName","db_Url");
+        grid.setColumns("name", "userName","db_Url");
 
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
 
@@ -81,7 +81,7 @@ public class ConfigurationView extends VerticalLayout {
         cf.setWidth("25em");
 
         cf.addListener(ConfigForm.SaveEvent.class, this::saveConfig);
-     //   cf.addListener(ConfigForm.DeleteEvent.class, this::deleteContact);
+        //   cf.addListener(ConfigForm.DeleteEvent.class, this::deleteContact);
         cf.addListener(ConfigForm.CloseEvent.class, e-> closeEditor());
 
     }

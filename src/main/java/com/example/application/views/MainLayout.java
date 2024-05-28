@@ -24,6 +24,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 //@Route(value = "")
 
@@ -32,18 +33,23 @@ public class MainLayout extends AppLayout {
 
     private final SecurityService securityService;
 
-    boolean isAdmin =checkAdminRole();
+    public static boolean isAdmin;
     boolean isPFUser =checkPFRole();
 
     boolean isUser =checkUserRole();
+    public static List<String> userRoles;
     public MainLayout(SecurityService securityService){
         createHeader();
         createDrawer();
 
         this.securityService = securityService;
 
-
-        //isAdmin = checkAdminRole();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        // Get all roles assigned to the user
+        userRoles = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+        isAdmin = checkAdminRole();
     }
 
     private void createHeader() {
