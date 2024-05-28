@@ -306,10 +306,17 @@ public class CockpitView extends VerticalLayout{
         });
 
         comboBox = new ComboBox<>("Verbindung");
-        List<Configuration> configList = service.findMessageConfigurations();
-        comboBox.setItems(configList);
-        comboBox.setItemLabelGenerator(Configuration::getName);
-        comboBox.setValue(configList.get(1) );
+        try {
+            List<Configuration> configList = service.findMessageConfigurations();
+            comboBox.setItems(configList);
+            comboBox.setValue(configList.get(1));
+
+            comboBox.setItemLabelGenerator(Configuration::getName);
+
+        } catch (Exception e) {
+            // Display the error message to the user
+            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
 
         autorefresh.setLabel("Autorefresh");
 

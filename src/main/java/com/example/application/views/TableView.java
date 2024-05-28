@@ -92,13 +92,18 @@ public class TableView extends VerticalLayout {
         runButton.setEnabled(false);
 
         comboBox = new ComboBox<>("Verbindung");
+        
+        try {
+            List<Configuration> configList = service.findMessageConfigurations();
+            comboBox.setItems(configList);
+            comboBox.setValue(configList.get(1));
 
-        List<Configuration> configList = service.findMessageConfigurations();
-        comboBox.setItems(configList);
-        comboBox.setValue(configList.get(1) );
+            comboBox.setItemLabelGenerator(Configuration::getName);
 
-        comboBox.setItemLabelGenerator(Configuration::getName);
-
+        } catch (Exception e) {
+            // Display the error message to the user
+            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
         //  comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
         // Add value change listener to comboBox
         comboBox.addValueChangeListener(event -> {
