@@ -263,7 +263,7 @@ public class MailboxConfigView  extends VerticalLayout {
 
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
         try {
 
             jdbcTemplate.setDataSource(ds);
@@ -295,9 +295,10 @@ public class MailboxConfigView  extends VerticalLayout {
         Configuration conf;
         conf = comboBox.getValue();
 
+
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         try {
 
@@ -312,8 +313,8 @@ public class MailboxConfigView  extends VerticalLayout {
             System.out.println("MAILBOX_CONFIG eingelesen");
 
         } catch (Exception e) {
-            System.out.println("Exception: " + e.getMessage());
-         //   Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+         //   System.out.println("Exception: " + e.getMessage());
+            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
 
         return mailboxen;

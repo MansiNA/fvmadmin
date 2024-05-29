@@ -549,7 +549,7 @@ public class DashboardView extends VerticalLayout{
 
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
 
         if (jdbcTemplate == null)
         {
@@ -853,7 +853,7 @@ public class DashboardView extends VerticalLayout{
 
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
 
 
         try {

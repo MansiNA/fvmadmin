@@ -366,7 +366,7 @@ public class HangingMessagesView extends VerticalLayout {
 
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
         try {
 
             jdbcTemplate.setDataSource(ds);
@@ -431,7 +431,7 @@ public class HangingMessagesView extends VerticalLayout {
 
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
         try {
 
             jdbcTemplate.setDataSource(ds);

@@ -229,9 +229,9 @@ public class QuarantaeneView extends VerticalLayout {
             //String password="Michael123";
 
             Class.forName("oracle.jdbc.driver.OracleDriver");
-
+            String password = Configuration.decodePassword(conf.getPassword());
             //    Connection conn=DriverManager.getConnection(url, user, password);
-            Connection conn= DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), conf.getPassword());
+            Connection conn= DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), password);
 
             //   DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
 
@@ -444,7 +444,7 @@ public class QuarantaeneView extends VerticalLayout {
 
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         //ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
         //ds.setUsername("SYSTEM");

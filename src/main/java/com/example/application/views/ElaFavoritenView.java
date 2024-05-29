@@ -507,7 +507,7 @@ private void countRows()
 
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         jdbcTemplate.setDataSource(ds);
         int result = jdbcTemplate.queryForObject(jdbc_sql, Integer.class);
@@ -545,7 +545,7 @@ private void countRows()
 
             ds.setUrl(conf.getDb_Url());
             ds.setUsername(conf.getUserName());
-            ds.setPassword(conf.getPassword());
+            ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
             jdbcTemplate.setDataSource(ds);
             jdbcTemplate.batchUpdate("INSERT INTO EKP.ELA_FAVORITEN_NEU (ID,BENUTZER_KENNUNG,NUTZER_ID,NAME,VORNAME,ORT,PLZ,STRASSE,HAUSNUMMER,ORGANISATION,VERSION) " +

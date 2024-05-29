@@ -324,7 +324,7 @@ public class MessageExportView extends VerticalLayout {
         conf=comboBox.getValue();
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(conf.getPassword());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         //ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
         //ds.setUsername("SYSTEM");
