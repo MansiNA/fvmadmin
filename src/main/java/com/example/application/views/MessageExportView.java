@@ -13,6 +13,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H6;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
@@ -83,15 +84,19 @@ public class MessageExportView extends VerticalLayout {
         System.out.println("Message Export Path: " + exportPath);
 
         uploadFolder = new File(exportPath);
-        linksArea = new DownloadLinksArea(uploadFolder);
-        linksArea.setWidth("1800px");
-        linksArea.setHeight("150px");
-
+       // uploadFolder = getUploadFolder();
+        if (!uploadFolder.exists() || !uploadFolder.isDirectory()) {
+            Notification.show("Error: Export directory does not exist.", 5000, Notification.Position.MIDDLE);
+        } else {
+            DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
+            linksArea.setWidth("1800px");
+            linksArea.setHeight("150px");
+            linksArea.addClassName("link-grid");
+            add(linksArea);
+        }
 
         live = new Tab("Prod");
         archive = new Tab("Archive");
-
-        linksArea.addClassName("link-grid");
 
         Tabs tabs = new Tabs(live, archive);
        // tabs.setAutoselect(false);
@@ -118,7 +123,7 @@ public class MessageExportView extends VerticalLayout {
 
 
 
-        uploadFolder = getUploadFolder();
+
 
         Button button = new Button("Start Export");
         Paragraph info = new Paragraph(infoText());
@@ -227,7 +232,7 @@ public class MessageExportView extends VerticalLayout {
         spinner.setWidth("800px");
         vertical.add(spinner);
 
-        vertical.add(linksArea);
+     //   vertical.add(linksArea);
 
      //   live_content.add(new H6("Message-Export"));
     //    live_content.add(textField);

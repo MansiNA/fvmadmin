@@ -55,6 +55,7 @@ public class MailboxConfigView  extends VerticalLayout {
     public MailboxConfigView(ConfigurationService service)  {
 
         this.service = service;
+        refresh.setEnabled(false);
 
         comboBox = new ComboBox<>("Verbindung");
         comboBox.setItems(service.findMessageConfigurations());
@@ -63,6 +64,11 @@ public class MailboxConfigView  extends VerticalLayout {
     //    comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
         comboBox.setPlaceholder("auswählen");
 
+        comboBox.addValueChangeListener(event -> {
+            if (event.getValue() != null) {
+                refresh.setEnabled(true);  // Enable the refresh button when an item is selected
+            }
+        });
 
         HorizontalLayout hl = new HorizontalLayout();
      //   hl.add(comboBox,button,refresh);
@@ -205,7 +211,9 @@ public class MailboxConfigView  extends VerticalLayout {
                         return;
                     }
                     else{
-                        grid.setItems(mailboxen);
+                        if(mailboxen!= null) {
+                            grid.setItems(mailboxen);
+                        }
                     }
 
                 });
@@ -305,6 +313,7 @@ public class MailboxConfigView  extends VerticalLayout {
 
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
+         //   Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
 
         return mailboxen;
@@ -315,7 +324,9 @@ public class MailboxConfigView  extends VerticalLayout {
 
         List<Mailbox> people = getMailboxes();
       // people.get(1).setLastName("hhh");
-        grid.setItems(people);
+        if(people != null) {
+            grid.setItems(people);
+        }
 
     }
 
