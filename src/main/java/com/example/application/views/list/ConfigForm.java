@@ -30,6 +30,8 @@ public class ConfigForm extends FormLayout {
 
     private Configuration configuration;
 
+    private String originalPassword;
+    private boolean hasChanges = false;
     public ConfigForm() {
         addClassName("config-form");
 
@@ -42,10 +44,13 @@ public class ConfigForm extends FormLayout {
                 db_Url,
                 createButtonLayout()
         );
+
     }
     public void setConfiguration(Configuration config){
         this.configuration = config;
+
         if(config != null) {
+            originalPassword = config.getPassword();
             config.setPassword("");
         }
 
@@ -98,9 +103,15 @@ public class ConfigForm extends FormLayout {
         save.addClickListener(event -> validateAndSave());
         delete.addClickListener(event -> fireEvent(new DeleteEvent(this, configuration)));
         cancel.addClickListener(event -> fireEvent(new CloseEvent(this)));
+        delete.setEnabled(false);
 
-        binder.addStatusChangeListener(e -> save.setEnabled(binder.isValid()));
+        binder.addStatusChangeListener(e -> {
+            boolean hasChanges = binder.hasChanges();
+            save.setEnabled(hasChanges);
+            System.out.println( binder.hasChanges()+"________________________________________");
+        });
 
+        //   binder.addStatusChangeListener(e -> save.setEnabled(binder.isValid() && hasChanges));
         return new HorizontalLayout(save,delete, cancel);
 
 
@@ -108,15 +119,25 @@ public class ConfigForm extends FormLayout {
 
     private void validateAndSave() {
         try {
+
             binder.writeBean(configuration);
+            if(configuration.getPassword().equals("")) {
+                configuration.setPassword(originalPassword);
+            }
+
             fireEvent(new SaveEvent(this,configuration));
+            save.setEnabled(false);
         }
         catch (ValidationException e){
             e.printStackTrace();
         }
     }
 
-
+    private void onValueChange() {
+        System.out.println("hashtag"+ hasChanges);
+        hasChanges = true;
+        //  save.setEnabled(true);
+    }
 
 
 
