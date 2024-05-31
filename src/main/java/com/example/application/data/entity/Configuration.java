@@ -17,15 +17,15 @@ public class Configuration {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @NotEmpty
+
     @Column(name = "NAME")
     private String name="";
-    @NotEmpty
+
     @Column(name = "USER_NAME")
     private String userName="";
-    @NotEmpty
+
     private String password="";
-    @NotEmpty
+
     private String db_Url="";
     @PrePersist
     @PreUpdate
