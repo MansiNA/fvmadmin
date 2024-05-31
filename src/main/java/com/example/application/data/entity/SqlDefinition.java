@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name = "SQLDEFINITION") // Replace "YOUR_TABLE_NAME" with the actual table name
+@Table(name = "SQL_DEFINITION") // Replace "YOUR_TABLE_NAME" with the actual table name
 public class SqlDefinition {
 
     @Id

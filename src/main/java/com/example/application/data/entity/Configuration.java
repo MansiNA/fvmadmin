@@ -11,9 +11,12 @@ import java.util.Base64;
 @Getter
 @Setter
 @Entity
-@Table(name = "Configuration")
-public class Configuration extends AbstractEntity{
+@Table(name = "SQL_CONFIGURATION")
+public class Configuration {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     @NotEmpty
     @Column(name = "NAME")
     private String name="";
