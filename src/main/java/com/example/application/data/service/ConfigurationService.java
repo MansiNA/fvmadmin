@@ -48,37 +48,44 @@ public class ConfigurationService {
         }
         //  String plainTextPassword = config.getPassword();
 
-        Optional<Configuration> existingConfigOptional = configurationRepository.findById(config.getId());
-        if (existingConfigOptional.isPresent()) {
-            Configuration existingConfig = existingConfigOptional.get();
-            System.out.println("password existing = "+existingConfig.getPassword());
-            boolean passwordChanged = !config.getPassword().equals(existingConfig.getPassword());
-            System.out.println("password new updated = "+config.getPassword());
-            System.out.println("password changed = "+passwordChanged);
-
-            if (passwordChanged) {
-                System.out.println("password changed!!!!");
-                String encodedPassword = Configuration.encodePassword(config.getPassword());
-                //  String encodedPassword = (config.getPassword());
-                configurationRepository.updateWithPassword(
-                        config.getId(),
-                        config.getName(),
-                        config.getUserName(),
-                        encodedPassword,
-                        config.getDb_Url()
-                );
-            } else {
-                System.out.println("password not changed!!!!");
-                configurationRepository.updateWithoutPassword(
-                        config.getId(),
-                        config.getName(),
-                        config.getUserName(),
-                        config.getDb_Url()
-                );
-            }
-        } else {
+        if (config.getId() == null) {
+            // New configuration, save it and let the database generate the ID
             config.setPassword(Configuration.encodePassword(config.getPassword()));
             configurationRepository.save(config);
+            System.out.println("New Configuration saved with ID: " + config.getId());
+        } else {
+            Optional<Configuration> existingConfigOptional = configurationRepository.findById(config.getId());
+            if (existingConfigOptional.isPresent()) {
+                Configuration existingConfig = existingConfigOptional.get();
+                System.out.println("password existing = " + existingConfig.getPassword());
+                boolean passwordChanged = !config.getPassword().equals(existingConfig.getPassword());
+                System.out.println("password new updated = " + config.getPassword());
+                System.out.println("password changed = " + passwordChanged);
+
+                if (passwordChanged) {
+                    System.out.println("password changed!!!!");
+                    String encodedPassword = Configuration.encodePassword(config.getPassword());
+                    //  String encodedPassword = (config.getPassword());
+                    configurationRepository.updateWithPassword(
+                            config.getId(),
+                            config.getName(),
+                            config.getUserName(),
+                            encodedPassword,
+                            config.getDb_Url()
+                    );
+                } else {
+                    System.out.println("password not changed!!!!");
+                    configurationRepository.updateWithoutPassword(
+                            config.getId(),
+                            config.getName(),
+                            config.getUserName(),
+                            config.getDb_Url()
+                    );
+                }
+            } else {
+                // Handle case where configuration might not exist
+                System.err.println("Configuration with name and ID " + config.getName() + "___"+ config.getId() + " not found!");
+            }
         }
     }
 }
