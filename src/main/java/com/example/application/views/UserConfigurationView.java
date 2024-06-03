@@ -3,7 +3,6 @@ package com.example.application.views;
 import com.example.application.data.GenericDataProvider;
 import com.example.application.data.Role;
 import com.example.application.data.entity.User;
-import com.example.application.data.service.ConnectionService;
 import com.example.application.data.service.UserService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
