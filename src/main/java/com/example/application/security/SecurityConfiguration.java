@@ -89,8 +89,8 @@ public class SecurityConfiguration extends VaadinWebSecurity {
             }
             else {
 
-             //   if(!passwordEncoder().matches(password,userDetails.getPassword()))
-                if(!password.equals(userDetails.getPassword()))
+                if(!passwordEncoder().matches(password,userDetails.getPassword()))
+            //    if(!password.equals(userDetails.getPassword()))
                 {
                     System.out.println("Falsches Passwort!");
 
