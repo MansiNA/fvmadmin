@@ -121,12 +121,11 @@ public class MetadatenView extends VerticalLayout {
         smallButton.setVisible(false);
         List<Configuration> configList = service.findMessageConfigurations();
 
-        comboBox.setItems(configList);
-        comboBox.setItemLabelGenerator(Configuration::getName);
-
-      //  comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
-
-        comboBox.setValue(configList.get(1) );
+        if (configList != null && !configList.isEmpty()) {
+            comboBox.setItems(configList);
+            comboBox.setItemLabelGenerator(Configuration::getName);
+            comboBox.setValue(configList.get(0));
+        }
 
         addClassName("list-view");
       //  setSizeFull();

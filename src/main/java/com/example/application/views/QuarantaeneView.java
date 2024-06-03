@@ -77,10 +77,12 @@ public class QuarantaeneView extends VerticalLayout {
         paragraph.setMaxHeight("400px");
 
         comboBox = new ComboBox<>("Verbindung");
-        comboBox.setItems(service.findMessageConfigurations());
-        comboBox.setItemLabelGenerator(Configuration::getName);
-
-        comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
+        List<Configuration> configList = service.findMessageConfigurations();
+        if (configList != null && !configList.isEmpty()) {
+            comboBox.setItems(configList);
+            comboBox.setItemLabelGenerator(Configuration::getName);
+            comboBox.setValue(configList.get(0));
+        }
 
         List<String> errorList = List.of("MESSAGE_INCOMPLETE", "CHECK_FILENAMES", "SERVER_NOT_REACHABLE","RECEIVERID_NOT_FOUND");
 

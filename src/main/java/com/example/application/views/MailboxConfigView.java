@@ -58,9 +58,11 @@ public class MailboxConfigView  extends VerticalLayout {
         refresh.setEnabled(false);
 
         comboBox = new ComboBox<>("Verbindung");
-        comboBox.setItems(service.findMessageConfigurations());
-        comboBox.setItemLabelGenerator(Configuration::getName);
-
+        List<Configuration> configList = service.findMessageConfigurations();
+        if (configList != null && !configList.isEmpty()) {
+            comboBox.setItems(configList);
+            comboBox.setItemLabelGenerator(Configuration::getName);
+        }
     //    comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
         comboBox.setPlaceholder("auswählen");
 

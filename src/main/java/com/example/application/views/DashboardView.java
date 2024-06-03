@@ -76,8 +76,11 @@ public class DashboardView extends VerticalLayout{
     //    this.service = service;
 
         comboBox = new ComboBox<>("Verbindung");
-        comboBox.setItems(conf_service.findMessageConfigurations());
-        comboBox.setItemLabelGenerator(com.example.application.data.entity.Configuration::getName);
+        List<com.example.application.data.entity.Configuration> configList = conf_service.findMessageConfigurations();
+        if (configList != null && !configList.isEmpty()) {
+            comboBox.setItems(configList);
+            comboBox.setItemLabelGenerator(com.example.application.data.entity.Configuration::getName);
+        }
 
         //    comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
         comboBox.setPlaceholder("auswählen");

@@ -92,12 +92,12 @@ Icon icon;
         this.service = service;
 
         comboBox = new ComboBox<>("Ziel-Datenbank");
-        comboBox.setItems(service.findMessageConfigurations());
-        comboBox.setItemLabelGenerator(Configuration::getName);
-
-        comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
-      //  comboBox.setPlaceholder("Select Database");
-        //comboBox.addValueChangeListener(e -> textField.setValue(String.valueOf(e.getValue())));
+        List<Configuration> configList = service.findMessageConfigurations();
+        if (configList != null && !configList.isEmpty()) {
+            comboBox.setItems(configList);
+            comboBox.setItemLabelGenerator(Configuration::getName);
+            comboBox.setValue(configList.get(0));
+        }
 
         targetDB = new ComboBox<>("Ziel Tabelle");
         targetDB.setItems("ELA_FAVORITEN_NEU","ELA_FAVORITEN");

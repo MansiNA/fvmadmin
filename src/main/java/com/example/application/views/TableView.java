@@ -95,10 +95,11 @@ public class TableView extends VerticalLayout {
         
         try {
             List<Configuration> configList = service.findMessageConfigurations();
-            comboBox.setItems(configList);
-            comboBox.setValue(configList.get(1));
-
-            comboBox.setItemLabelGenerator(Configuration::getName);
+            if (configList != null && !configList.isEmpty()) {
+                comboBox.setItems(configList);
+                comboBox.setItemLabelGenerator(Configuration::getName);
+                comboBox.setValue(configList.get(0));
+            }
 
         } catch (Exception e) {
             // Display the error message to the user

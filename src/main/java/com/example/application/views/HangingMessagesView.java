@@ -164,14 +164,11 @@ public class HangingMessagesView extends VerticalLayout {
 
         comboBox = new ComboBox<>("Verbindung");
         List<Configuration> configList = conf_service.findMessageConfigurations();
-
-        comboBox.setItems(configList);
-        comboBox.setItemLabelGenerator(Configuration::getName);
-
-       // comboBox.setValue(conf_service.findAllConfigurations().stream().findFirst().get());
-
-        comboBox.setValue(configList.get(1) );
-
+        if (configList != null && !configList.isEmpty()) {
+            comboBox.setItems(configList);
+            comboBox.setItemLabelGenerator(Configuration::getName);
+            comboBox.setValue(configList.get(0));
+        }
 
         add(new H2("Bearbeitung hängende Nachrichten"));
 
