@@ -11,7 +11,7 @@ import java.util.Set;
 @Getter
 @Setter
 @Entity
-@Table(name = "FVMADM_USER", schema = "EKP_MONITOR")
+@Table(name = "FVMADM_USER")
 public class User extends UserAbstractEntity{
 
     private String username;

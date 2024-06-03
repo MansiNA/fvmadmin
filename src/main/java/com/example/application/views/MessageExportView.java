@@ -88,11 +88,11 @@ public class MessageExportView extends VerticalLayout {
         if (!uploadFolder.exists() || !uploadFolder.isDirectory()) {
             Notification.show("Error: Export directory does not exist.", 5000, Notification.Position.MIDDLE);
         } else {
-            DownloadLinksArea linksArea = new DownloadLinksArea(uploadFolder);
+            linksArea = new DownloadLinksArea(uploadFolder);
             linksArea.setWidth("1800px");
             linksArea.setHeight("150px");
             linksArea.addClassName("link-grid");
-            add(linksArea);
+            // add(linksArea);
         }
 
         live = new Tab("Prod");
@@ -232,7 +232,7 @@ public class MessageExportView extends VerticalLayout {
         spinner.setWidth("800px");
         vertical.add(spinner);
 
-     //   vertical.add(linksArea);
+        vertical.add(linksArea);
 
      //   live_content.add(new H6("Message-Export"));
     //    live_content.add(textField);
