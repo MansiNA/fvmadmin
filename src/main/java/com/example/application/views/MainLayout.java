@@ -214,6 +214,7 @@ public class MainLayout extends AppLayout {
         RouterLink DashboardView = new RouterLink ("Dashboard (geplant)", DashboardView.class);
         RouterLink fileBrowserView = new RouterLink ("LogFileBrowser", FileBrowserView.class);
         RouterLink configureView = new RouterLink ("Configuration", ConfigurationView.class);
+        RouterLink userConfigView = new RouterLink ("User Configuration", UserConfigurationView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
 
 
@@ -236,7 +237,8 @@ public class MainLayout extends AppLayout {
                     hangingMessagesView,
                     elaFavoriten,
                     DashboardView,
-                    configureView
+                    configureView,
+                    userConfigView
             ));
 
         }
