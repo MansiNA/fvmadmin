@@ -1144,7 +1144,7 @@ public class CockpitView extends VerticalLayout{
 
         HorizontalLayout hr = new HorizontalLayout(intervall,infoSchwellwert,errorSchwellwert, checkbox);
         hr.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
-        System.out.println(monitor + "ahhhhhhhhhhhhhhhhhhhhhhhhhh 3");
+        System.out.println(monitor + "... 3");
         content.add(titel, hr);
         return content;
     }
