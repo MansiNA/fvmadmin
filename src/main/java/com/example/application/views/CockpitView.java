@@ -675,7 +675,7 @@ public class CockpitView extends VerticalLayout{
 
                 //   form.setVisible(true);
                 //  form.setContact(monitor);
-
+                System.out.println(monitor + " ...1");
                 showEditDialog(monitor);
 
             }));
@@ -1144,7 +1144,7 @@ public class CockpitView extends VerticalLayout{
 
         HorizontalLayout hr = new HorizontalLayout(intervall,infoSchwellwert,errorSchwellwert, checkbox);
         hr.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
-
+        System.out.println(monitor + "ahhhhhhhhhhhhhhhhhhhhhhhhhh 3");
         content.add(titel, hr);
         return content;
     }
