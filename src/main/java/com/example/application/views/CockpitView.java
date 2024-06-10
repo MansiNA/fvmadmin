@@ -300,7 +300,9 @@ public class CockpitView extends VerticalLayout{
         refreshBtn.addClickListener(clickEvent -> {
 
             param_Liste=getMonitoring();
-            grid.setItems(param_Liste);
+            if(param_Liste != null) {
+                grid.setItems(param_Liste);
+            }
             updateLastRefreshLabel();
 
         });
@@ -418,7 +420,9 @@ public class CockpitView extends VerticalLayout{
 
 
 
-        grid.setItems(param_Liste);
+        if(param_Liste != null) {
+            grid.setItems(param_Liste);
+        }
         grid.setHeight("800px");
         grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         grid.addThemeVariants(GridVariant.LUMO_COMPACT);
@@ -500,7 +504,9 @@ public class CockpitView extends VerticalLayout{
         if (remainingTime.isNegative()){
             startTime = Instant.now();
             param_Liste=getMonitoring();
-            grid.setItems(param_Liste);
+            if(param_Liste != null) {
+                grid.setItems(param_Liste);
+            }
             updateLastRefreshLabel();
             return;
         }
@@ -965,7 +971,9 @@ public class CockpitView extends VerticalLayout{
             System.out.println("saved data....");
             saveEditedMonitor(monitor);
             param_Liste=getMonitoring();
-            grid.setItems(param_Liste);
+            if(param_Liste != null) {
+                grid.setItems(param_Liste);
+            }
             dialog.close(); // Close the confirmation dialog
         });
 
@@ -1275,6 +1283,7 @@ public class CockpitView extends VerticalLayout{
             System.out.println("FVM_Monitoring eingelesen");
 
         } catch (Exception e) {
+            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             System.out.println("Exception: " + e.getMessage());
         }
 
