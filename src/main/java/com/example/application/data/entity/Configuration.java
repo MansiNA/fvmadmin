@@ -27,11 +27,6 @@ public class Configuration {
     private String password="";
 
     private String db_Url="";
-    @PrePersist
-    @PreUpdate
-    private void encryptPassword() {
-        this.password = encodePassword(this.password);
-    }
 
     // Method to encode a password to Base64
     // Method to encode a password to URL-safe Base64

@@ -48,7 +48,7 @@ import java.awt.*;
         import java.util.List;
 import java.util.stream.Collectors;
 
-@PageTitle("Configuration")
+@PageTitle("User Configuration")
 @Route(value = "userconfig", layout = MainLayout.class)
 @RolesAllowed({"ADMIN"})
 public class UserConfigurationView extends VerticalLayout {
