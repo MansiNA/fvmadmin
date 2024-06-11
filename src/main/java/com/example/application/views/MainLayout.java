@@ -39,8 +39,7 @@ public class MainLayout extends AppLayout {
     boolean isUser =checkUserRole();
     public static List<String> userRoles;
     public MainLayout(SecurityService securityService){
-        createHeader();
-        createDrawer();
+
 
         this.securityService = securityService;
 
@@ -50,6 +49,9 @@ public class MainLayout extends AppLayout {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
         isAdmin = checkAdminRole();
+
+        createHeader();
+        createDrawer();
     }
 
     private void createHeader() {
