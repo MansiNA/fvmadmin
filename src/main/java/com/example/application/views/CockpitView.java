@@ -299,10 +299,7 @@ public class CockpitView extends VerticalLayout{
         refreshBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         refreshBtn.addClickListener(clickEvent -> {
 
-            param_Liste=getMonitoring();
-            if(param_Liste != null) {
-                grid.setItems(param_Liste);
-            }
+            updateGrid();
             updateLastRefreshLabel();
 
         });
@@ -320,6 +317,8 @@ public class CockpitView extends VerticalLayout{
             // Display the error message to the user
             Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
+
+        comboBox.addValueChangeListener(event -> updateGrid());
 
         autorefresh.setLabel("Autorefresh");
 
@@ -354,6 +353,13 @@ public class CockpitView extends VerticalLayout{
         String formattedTime = currentTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
 
         lastRefreshLabel.setText("letzte Aktualisierung: " + formattedTime);
+    }
+
+    private void updateGrid() {
+        param_Liste = getMonitoring();
+        if(param_Liste != null) {
+            grid.setItems(param_Liste);
+        }
     }
 
     private void configureGrid() {
@@ -503,10 +509,7 @@ public class CockpitView extends VerticalLayout{
 
         if (remainingTime.isNegative()){
             startTime = Instant.now();
-            param_Liste=getMonitoring();
-            if(param_Liste != null) {
-                grid.setItems(param_Liste);
-            }
+            updateGrid();
             updateLastRefreshLabel();
             return;
         }
@@ -970,10 +973,7 @@ public class CockpitView extends VerticalLayout{
         saveButton.addClickListener(saveEvent -> {
             System.out.println("saved data....");
             saveEditedMonitor(monitor);
-            param_Liste=getMonitoring();
-            if(param_Liste != null) {
-                grid.setItems(param_Liste);
-            }
+            updateGrid();
             dialog.close(); // Close the confirmation dialog
         });
 
