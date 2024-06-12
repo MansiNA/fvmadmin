@@ -118,7 +118,7 @@ public class MessageExportView extends VerticalLayout {
             comboBox.setItemLabelGenerator(Configuration::getName);
         }
 
-        Button button = new Button("Start Export");
+        Button button = new Button("Download");
         Paragraph info = new Paragraph(infoText());
         info.setVisible(false);
         button.addClickListener(clickEvent -> {
