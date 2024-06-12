@@ -9,10 +9,8 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.details.Details;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H6;
-import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -22,6 +20,7 @@ import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.server.StreamResource;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,16 +30,17 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.support.lob.DefaultLobHandler;
 import org.springframework.jdbc.support.lob.LobHandler;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-
+import java.util.concurrent.TimeUnit;
 
 
 @PageTitle("MessageExport")
@@ -68,7 +68,7 @@ public class MessageExportView extends VerticalLayout {
     private final VerticalLayout main_content;
 
     private String NachrichtID;
-    DownloadLinksArea linksArea;
+  //  DownloadLinksArea linksArea;
     public LobHandler lobHandler;
 
     private  ComboBox<Configuration> comboBox;
@@ -87,12 +87,6 @@ public class MessageExportView extends VerticalLayout {
        // uploadFolder = getUploadFolder();
         if (!uploadFolder.exists() || !uploadFolder.isDirectory()) {
             Notification.show("Error: Export directory does not exist.", 5000, Notification.Position.MIDDLE);
-        } else {
-            linksArea = new DownloadLinksArea(uploadFolder);
-            linksArea.setWidth("1800px");
-            linksArea.setHeight("150px");
-            linksArea.addClassName("link-grid");
-            // add(linksArea);
         }
 
         live = new Tab("Prod");
@@ -211,11 +205,17 @@ public class MessageExportView extends VerticalLayout {
                  //   ZipMessage("c:/tmp/messages/", NachrichtID);
                     ZipMessage(exportPath , NachrichtID);
 
-                    linksArea.refreshFileLinks();
+                //    linksArea.refreshFileLinks();
                 });
             });
 
+            List<Anchor> anchor_list = new ArrayList<Anchor>();
 
+            for (File file : uploadFolder.listFiles()) {
+                // addLinkToFile(file);
+
+                anchor_list.add(getAnchor(file));
+            }
 
         });
 
@@ -231,7 +231,7 @@ public class MessageExportView extends VerticalLayout {
         spinner.setWidth("800px");
         vertical.add(spinner);
 
-        vertical.add(linksArea);
+     //   vertical.add(linksArea);
 
      //   live_content.add(new H6("Message-Export"));
     //    live_content.add(textField);
@@ -261,6 +261,44 @@ public class MessageExportView extends VerticalLayout {
 
         add(tabs,main_content);
 
+    }
+
+    private Anchor getAnchor(File file){
+        StreamResource streamResource = new StreamResource(file.getName(), () -> getStream(file));
+        BasicFileAttributes attr;
+        Date creationDate;
+        Path filepath = Paths.get(String.valueOf(file.getAbsoluteFile()));
+        try {
+            attr =  Files.readAttributes(filepath, BasicFileAttributes.class);
+            System.out.println("creationTime: " + attr.creationTime());
+            System.out.println("lastAccessTime: " + attr.lastAccessTime());
+            System.out.println("lastModifiedTime: " + attr.lastModifiedTime());
+
+            creationDate = new Date(attr.creationTime().to(TimeUnit.MILLISECONDS));
+
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        // Anchor link = new Anchor(streamResource, String.format("%s | %s | (%d KB)", file.getName(), creationDate.getDate() + "/" +  (creationDate.getMonth() + 1) + "/" +  (creationDate.getYear() + 1900) + " " + creationDate.getHours() + ":" +  creationDate.getMinutes() , (int) file.length() / 1024));
+        Anchor anchor = new Anchor(streamResource, "");
+        anchor.getElement().setAttribute("download", true);
+        anchor.getElement().getStyle().set("display", "none");
+        add(anchor);
+        UI.getCurrent().getPage().executeJs("arguments[0].click()", anchor);
+        return anchor;
+    }
+
+    private InputStream getStream(File file) {
+        FileInputStream stream = null;
+        try {
+            stream = new FileInputStream(file);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return stream;
     }
 
     private void read_parameter() {
