@@ -1,6 +1,7 @@
 package com.example.application.data.service;
 
 import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.ServerConfiguration;
 import com.example.application.data.repository.ConfigurationRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -87,5 +88,14 @@ public class ConfigurationService {
                 System.err.println("Configuration with name and ID " + config.getName() + "___"+ config.getId() + " not found!");
             }
         }
+    }
+
+    public void deleteConfiguration(Configuration config) {
+        if (config.getId() == null) {
+            System.err.println("ID is null!");
+            return;
+        }
+
+        configurationRepository.deleteById(config.getId());
     }
 }

@@ -1,8 +1,11 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.ServerConfiguration;
 import com.example.application.data.service.ConfigurationService;
+import com.example.application.data.service.ServerConfigurationService;
 import com.example.application.views.list.ConfigForm;
+import com.example.application.views.list.ServerConfigForm;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
@@ -15,18 +18,18 @@ import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
 
 
-@PageTitle("Configuration")
-@Route(value = "config", layout= MainLayout.class)
+@PageTitle("Server Configuration")
+@Route(value = "serverconfig", layout= MainLayout.class)
 @RolesAllowed("ADMIN")
-public class ConfigurationView extends VerticalLayout {
-    ConfigForm cf;
+public class ServerConfigurationView extends VerticalLayout {
+    ServerConfigForm cf;
     Configuration config;
-    private ConfigurationService service;
+    private ServerConfigurationService service;
 
-    Grid<Configuration> grid = new Grid<>(Configuration.class);
+    Grid<ServerConfiguration> grid = new Grid<>(ServerConfiguration.class);
     TextField filterText = new TextField();
 
-    public ConfigurationView(ConfigurationService service) {
+    public ServerConfigurationView(ServerConfigurationService service) {
         this.service = service;
 
         addClassName("configuration-view");
@@ -65,7 +68,7 @@ public class ConfigurationView extends VerticalLayout {
     private void configureGrid() {
         grid.addClassNames("configuration-grid");
         grid.setSizeFull();
-        grid.setColumns("name", "userName","db_Url");
+        grid.setColumns("hostName", "userName","pathList");
 
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
 
@@ -77,23 +80,22 @@ public class ConfigurationView extends VerticalLayout {
     }
 
     private void configureForm() {
-        cf = new ConfigForm();
+        cf = new ServerConfigForm();
         cf.setWidth("25em");
 
-        cf.addListener(ConfigForm.SaveEvent.class, this::saveConfig);
-        cf.addListener(ConfigForm.DeleteEvent.class, this::deleteConfig);
-        cf.addListener(ConfigForm.CloseEvent.class, e-> closeEditor());
+        cf.addListener(ServerConfigForm.SaveEvent.class, this::saveConfig);
+        cf.addListener(ServerConfigForm.DeleteEvent.class, this::deleteConfig);
+        cf.addListener(ServerConfigForm.CloseEvent.class, e-> closeEditor());
 
     }
-
-    private void deleteConfig(ConfigForm.DeleteEvent event) {
-        service.deleteConfiguration(event.getConfiguration());
+    private void saveConfig(ServerConfigForm.SaveEvent event) {
+        service.saveConfiguration(event.getConfiguration());
         updateList();
         closeEditor();
     }
 
-    private void saveConfig(ConfigForm.SaveEvent event) {
-        service.saveConfiguration(event.getConfiguration());
+    private void deleteConfig(ServerConfigForm.DeleteEvent event) {
+        service.deleteConfiguration(event.getConfiguration());
         updateList();
         closeEditor();
     }
@@ -113,7 +115,7 @@ public class ConfigurationView extends VerticalLayout {
 
     private void addContact() {
         grid.asSingleSelect().clear();
-        editConfig(new Configuration());
+        editConfig(new ServerConfiguration());
     }
     private void closeEditor() {
         cf.setConfiguration(null);
@@ -124,7 +126,7 @@ public class ConfigurationView extends VerticalLayout {
     private void updateView() {
 
     }
-    private void editConfig(Configuration conf) {
+    private void editConfig(ServerConfiguration conf) {
         if(conf == null){
             closeEditor();
         } else {

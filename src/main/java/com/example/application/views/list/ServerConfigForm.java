@@ -1,6 +1,7 @@
 package com.example.application.views.list;
 
 import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.ServerConfiguration;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentEventListener;
@@ -16,72 +17,68 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.shared.Registration;
 
-public class ConfigForm extends FormLayout {
+public class ServerConfigForm extends FormLayout {
 
-    Binder<Configuration> binder = new BeanValidationBinder<>(Configuration.class);
-    TextField name = new TextField("Name");
+    Binder<ServerConfiguration> binder = new BeanValidationBinder<>(ServerConfiguration.class);
+    TextField hostName = new TextField("Host Name");
     TextField userName = new TextField("Username");
-    PasswordField password = new PasswordField("Password");
-    TextField db_Url = new TextField("DB-ConnectionString");
-
+    TextField sshPort = new TextField("SSH_PORT");
+    TextField pathList = new TextField("PATH_LIST");
+    TextField sshKey = new TextField("SSH_KEY");
     Button save=new Button("Save");
     Button delete = new Button("Delete");
     Button cancel = new Button("Cancel");
 
-    private Configuration configuration;
+    private ServerConfiguration serverConfiguration;
 
     private String originalPassword;
     private boolean hasChanges = false;
-    public ConfigForm() {
+    public ServerConfigForm() {
         addClassName("config-form");
 
         binder.bindInstanceFields(this);
 
         add(
-                name,
+                hostName,
                 userName,
-                password,
-                db_Url,
+                sshPort,
+                pathList,
+                sshKey,
                 createButtonLayout()
         );
 
     }
-    public void setConfiguration(Configuration config){
-        this.configuration = config;
-
-        if(config != null) {
-            originalPassword = config.getPassword();
-            config.setPassword("");
-        }
+    public void setConfiguration(ServerConfiguration config){
+        this.serverConfiguration = config;
 
         binder.readBean(config);
     }
 
     // Events
-    public static abstract class ConfigFormEvent extends ComponentEvent<ConfigForm> {
-        private Configuration configuration;
+    public static abstract class ConfigFormEvent extends ComponentEvent<ServerConfigForm> {
+        private ServerConfiguration serverConfiguration;
 
-        protected ConfigFormEvent(ConfigForm source, Configuration configuration) {
+        protected ConfigFormEvent(ServerConfigForm source, ServerConfiguration configuration) {
             super(source, false);
-            this.configuration = configuration;
+            this.serverConfiguration = configuration;
         }
 
-        public Configuration getConfiguration() { return configuration; }
+        public ServerConfiguration getConfiguration() { return serverConfiguration; }
     }
 
     public static class SaveEvent extends ConfigFormEvent {
-        SaveEvent(ConfigForm source, Configuration config) { super(source, config);  }
+        SaveEvent(ServerConfigForm source, ServerConfiguration config) { super(source, config);  }
     }
 
     public static class DeleteEvent extends ConfigFormEvent {
-        DeleteEvent(ConfigForm source, Configuration config) {
+        DeleteEvent(ServerConfigForm source, ServerConfiguration config) {
             super(source, config);
         }
 
     }
 
     public static class CloseEvent extends ConfigFormEvent {
-        CloseEvent(ConfigForm source) {
+        CloseEvent(ServerConfigForm source) {
             super(source, null);
         }
     }
@@ -101,9 +98,8 @@ public class ConfigForm extends FormLayout {
         cancel.addClickShortcut(Key.ESCAPE);
 
         save.addClickListener(event -> validateAndSave());
-        delete.addClickListener(event -> fireEvent(new DeleteEvent(this, configuration)));
+        delete.addClickListener(event -> fireEvent(new DeleteEvent(this, serverConfiguration)));
         cancel.addClickListener(event -> fireEvent(new CloseEvent(this)));
-      //  delete.setEnabled(false);
 
         binder.addStatusChangeListener(e -> {
             boolean hasChanges = binder.hasChanges();
@@ -120,12 +116,9 @@ public class ConfigForm extends FormLayout {
     private void validateAndSave() {
         try {
 
-            binder.writeBean(configuration);
-            if(configuration.getPassword().equals("")) {
-                configuration.setPassword(originalPassword);
-            }
+            binder.writeBean(serverConfiguration);
 
-            fireEvent(new SaveEvent(this,configuration));
+            fireEvent(new SaveEvent(this,serverConfiguration));
             save.setEnabled(false);
         }
         catch (ValidationException e){
