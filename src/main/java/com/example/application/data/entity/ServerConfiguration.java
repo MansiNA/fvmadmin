@@ -20,7 +20,7 @@ public class ServerConfiguration {
     private String hostName="";
 
     @Column(name = "SSH_PORT")
-    private String sshPort="";
+    private String sshPort;
 
     @Column(name = "PATH_LIST")
     private String pathList="";
@@ -31,13 +31,4 @@ public class ServerConfiguration {
     @Column(name = "SSH_KEY")
     private String sshKey="";
 
-    public static String encodePassword(String plainTextPassword) {
-        return Base64.getUrlEncoder().encodeToString(plainTextPassword.getBytes());
-    }
-
-    // Method to decode a password from URL-safe Base64
-    public static String decodePassword(String encodedPassword) {
-        byte[] decodedBytes = Base64.getUrlDecoder().decode(encodedPassword);
-        return new String(decodedBytes);
-    }
 }

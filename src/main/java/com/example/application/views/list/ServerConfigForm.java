@@ -36,8 +36,14 @@ public class ServerConfigForm extends FormLayout {
     public ServerConfigForm() {
         addClassName("config-form");
 
-        binder.bindInstanceFields(this);
+        binder.forField(hostName).bind(ServerConfiguration::getHostName, ServerConfiguration::setHostName);
+        binder.forField(userName).bind(ServerConfiguration::getUserName, ServerConfiguration::setUserName);
+        binder.forField(pathList).bind(ServerConfiguration::getPathList, ServerConfiguration::setPathList);
+        binder.forField(sshKey).bind(ServerConfiguration::getSshKey, ServerConfiguration::setSshKey);
 
+        binder.forField(sshPort)
+                .withValidator(value -> value != null && value.matches("\\d+"), "SSH Port must be a numeric value")
+                .bind(ServerConfiguration::getSshPort, ServerConfiguration::setSshPort);
         add(
                 hostName,
                 userName,

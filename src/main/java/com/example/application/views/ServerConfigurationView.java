@@ -9,6 +9,7 @@ import com.example.application.views.list.ServerConfigForm;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -89,15 +90,26 @@ public class ServerConfigurationView extends VerticalLayout {
 
     }
     private void saveConfig(ServerConfigForm.SaveEvent event) {
-        service.saveConfiguration(event.getConfiguration());
-        updateList();
-        closeEditor();
+        try {
+            service.saveConfiguration(event.getConfiguration());
+            Notification.show("Upload sceessfully", 3000, Notification.Position.MIDDLE);
+            updateList();
+            closeEditor();
+        } catch (Exception e) {
+            Notification.show(e.getMessage(), 3000, Notification.Position.MIDDLE);
+        }
     }
 
     private void deleteConfig(ServerConfigForm.DeleteEvent event) {
-        service.deleteConfiguration(event.getConfiguration());
-        updateList();
-        closeEditor();
+
+        try {
+            service.deleteConfiguration(event.getConfiguration());
+            Notification.show("delete sceessfully", 3000, Notification.Position.MIDDLE);
+            updateList();
+            closeEditor();
+        } catch (Exception e) {
+            Notification.show(e.getMessage(), 3000, Notification.Position.MIDDLE);
+        }
     }
     private HorizontalLayout getToolbar() {
         filterText.setPlaceholder("Filter by name...");
