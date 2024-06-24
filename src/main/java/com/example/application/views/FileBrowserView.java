@@ -59,12 +59,14 @@ public class FileBrowserView extends VerticalLayout {
     Long von;
     Long bis;
     private TextArea tailTextArea = new TextArea();
-    ComboBox<String> umgebungComboBox = new ComboBox<>("Umgebung");
+    ComboBox<String> pathCombobox = new ComboBox<>("Choose Path");
     ComboBox<ServerConfiguration> serverconfigComboBox = new ComboBox<>("Server Config");
     TaskStatus stat = new TaskStatus();
     Label Filelabel = new Label();
 
     UI ui=UI.getCurrent();
+    private String selectedPath;
+    private ServerConfiguration selectedServerConfig;
 
     public FileBrowserView (@Value("${SSHDownloadPath}") String sshDownloadPath, ConfigurationService service, ServerConfigurationService serverConfigurationService) throws JSchException, SftpException {
 
@@ -75,13 +77,24 @@ public class FileBrowserView extends VerticalLayout {
             if (serverConfigList != null && !serverConfigList.isEmpty()) {
                 serverconfigComboBox.setItems(serverConfigList);
                 serverconfigComboBox.setItemLabelGenerator(ServerConfiguration::getHostName);
-                serverconfigComboBox.setValue(serverConfigList.get(0));
+                selectedServerConfig = serverConfigList.get(0);
+                serverconfigComboBox.setValue(selectedServerConfig);
+                populatePathCombobox(selectedServerConfig);
             }
-
         } catch (Exception e) {
-            // Display the error message to the user
             Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
+
+        serverconfigComboBox.addValueChangeListener(event -> {
+            selectedServerConfig = event.getValue();
+            if (selectedServerConfig != null) {
+                populatePathCombobox(selectedServerConfig);
+            }
+        });
+
+        pathCombobox.addValueChangeListener(event -> {
+            selectedPath = event.getValue();
+        });
 
 
         add(new H3("Logfile-Browser"));
@@ -183,8 +196,7 @@ public class FileBrowserView extends VerticalLayout {
                 @Override
                 public InputStream createInputStream(){
                     try {
-                        ServerConfiguration  serverConfiguration = serverconfigComboBox.getValue();
-                        return new ByteArrayInputStream(getByteFile(serverConfiguration.getHostName(), serverConfiguration.getPathList() ,file.getName(),sshDownloadPath));
+                        return new ByteArrayInputStream(getByteFile(selectedServerConfig.getHostName(), selectedPath ,file.getName(),sshDownloadPath));
                     } catch (JSchException e) {
                         throw new RuntimeException(e);
                     } catch (SftpException e) {
@@ -204,8 +216,7 @@ public class FileBrowserView extends VerticalLayout {
         grid.addComponentColumn(file -> {
             Button editButton = new Button("Tail -f");
             editButton.addClickListener(e -> {
-                ServerConfiguration  serverConfiguration = serverconfigComboBox.getValue();
-                System.out.println("Tail-Button gedrückt für: " + serverConfiguration.getPathList() + "/" + file.getName());
+                System.out.println("Tail-Button gedrückt für: " + selectedPath + "/" + file.getName());
                 stat.setActive(false);
                 EndTaskBtn.setVisible(true);
 
@@ -216,7 +227,7 @@ public class FileBrowserView extends VerticalLayout {
 
 
                 try {
-                    tail(serverConfiguration.getPathList() + "/" + file.getName());
+                    tail(selectedPath+ "/" + file.getName());
                 } catch (JSchException ex) {
                     throw new RuntimeException(ex);
                 } catch (IOException ex) {
@@ -231,10 +242,9 @@ public class FileBrowserView extends VerticalLayout {
         grid.addComponentColumn(file -> {
             Button editButton = new Button("Show");
             editButton.addClickListener(e -> {
-                ServerConfiguration  serverConfiguration = serverconfigComboBox.getValue();
-                System.out.println("Show-Button gedrückt für: " + serverConfiguration.getPathList() + "/" + file.getName());
+                System.out.println("Show-Button gedrückt für: " + selectedPath + "/" + file.getName());
                 try {
-                    showFile(serverConfiguration.getPathList() + "/" + file.getName());
+                    showFile(selectedPath + "/" + file.getName());
                 } catch (JSchException ex) {
                     throw new RuntimeException(ex);
                 } catch (IOException ex) {
@@ -260,7 +270,6 @@ public class FileBrowserView extends VerticalLayout {
         button.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         button.addClickListener(e-> {
             try {
-                ServerConfiguration  serverConfiguration = serverconfigComboBox.getValue();
                 ZoneId berlinZone = ZoneId.of("Europe/Berlin");
 
                 ZonedDateTime selectedDateTime_von = startDateTimePicker.getValue().atZone(ZoneId.systemDefault());
@@ -270,7 +279,7 @@ public class FileBrowserView extends VerticalLayout {
                 ZonedDateTime berlinDateTime_bis = selectedDateTime_bis.withZoneSameInstant(ZoneId.of("Europe/Berlin"));
 
                 //refresh(verzeichnisComboBox.getValue(), umgebungComboBox.getValue(), startDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC), endDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC));
-                refresh(serverConfiguration.getPathList(), serverConfiguration.getHostName(), berlinDateTime_von, berlinDateTime_bis);
+                refresh(selectedPath, selectedServerConfig.getHostName(), berlinDateTime_von, berlinDateTime_bis);
             } catch (JSchException ex) {
                 throw new RuntimeException(ex);
             } catch (SftpException ex) {
@@ -279,7 +288,7 @@ public class FileBrowserView extends VerticalLayout {
         });
 
         HorizontalLayout hl1 = new HorizontalLayout();
-        hl1.add(serverconfigComboBox);
+        hl1.add(serverconfigComboBox, pathCombobox);
         hl1.setAlignItems(Alignment.BASELINE);
 
         HorizontalLayout hl2 = new HorizontalLayout();
@@ -301,8 +310,7 @@ public class FileBrowserView extends VerticalLayout {
     }
 
     private void tail(String file) throws JSchException, IOException, SftpException {
-        ServerConfiguration  serverConfiguration = serverconfigComboBox.getValue();
-        cl = new SftpClient(serverConfiguration.getHostName(),Integer.parseInt(serverConfiguration.getSshPort()),serverConfiguration.getUserName());
+        cl = new SftpClient(selectedServerConfig.getHostName(),Integer.parseInt(selectedServerConfig.getSshPort()),selectedServerConfig.getUserName());
         stat.setActive(true);
         stat.setLogfile((file));
 
@@ -323,32 +331,43 @@ public class FileBrowserView extends VerticalLayout {
 
 
         //cl.authPassword("7x24!admin4me");
-        cl.authKey(serverConfiguration.getSshKey(),"");
+        cl.authKey(selectedServerConfig.getSshKey(),"");
         cl.TailRemoteLogFile(tailTextArea, file, stat);
         Filelabel.setText(stat.getLogfile());
     }
 
+    private void populatePathCombobox(ServerConfiguration config) {
+        String pathList = config.getPathList();
+        if (pathList != null && !pathList.isEmpty()) {
+            List<String> paths = Arrays.asList(pathList.split(";"));
+            pathCombobox.setItems(paths);
+            System.out.println("selected path "+paths.get(0));
+            selectedPath = paths.get(0);
+            pathCombobox.setValue(selectedPath);
+        } else {
+            pathCombobox.clear();
+        }
+    }
     private void showFile(String file) throws JSchException, IOException, SftpException {
-        ServerConfiguration  serverConfiguration = serverconfigComboBox.getValue();
-        cl = new SftpClient(serverConfiguration.getHostName(),Integer.parseInt(serverConfiguration.getSshPort()),serverConfiguration.getUserName());
+
+        cl = new SftpClient(selectedServerConfig.getHostName(),Integer.parseInt(selectedServerConfig.getSshPort()),selectedServerConfig.getUserName());
         stat.setActive(false);
         stat.setLogfile((file));
 
         //cl.authPassword("7x24!admin4me");
-        cl.authKey(serverConfiguration.getSshKey(),"");
+        cl.authKey(selectedServerConfig.getSshKey(),"");
         cl.ReadRemoteLogFile(ui, tailTextArea, file);
         Filelabel.setText(stat.getLogfile());
     }
 
     //private void refresh(String ftp_Path, String host, Long von, Long bis) throws JSchException, SftpException {
     private void refresh(String ftp_Path, String host, ZonedDateTime von, ZonedDateTime bis) throws JSchException, SftpException {
-        ServerConfiguration  serverConfiguration = serverconfigComboBox.getValue();
 
         System.out.println("ftp_Path=" + ftp_Path );
-        System.out.println("sSHKeyfile=" + serverConfiguration.getSshKey() );
+        System.out.println("sSHKeyfile=" + selectedServerConfig.getSshKey() );
         System.out.println("host=" + host );
-        System.out.println("sSHPort=" + serverConfiguration.getSshPort() );
-        System.out.println("sSHUser=" + serverConfiguration.getUserName() );
+        System.out.println("sSHPort=" + selectedServerConfig.getSshPort() );
+        System.out.println("sSHUser=" + selectedServerConfig.getUserName() );
 
         System.out.println("Von: " + von.toString());
         System.out.println("Bis: " + bis.toString());
@@ -363,11 +382,11 @@ public class FileBrowserView extends VerticalLayout {
         System.out.println(formattedDate_bis);*/
 
       //  cl = new SftpClient("37.120.189.200",9021,"michael");
-        cl = new SftpClient(host, Integer.parseInt(serverConfiguration.getSshPort()),serverConfiguration.getUserName());
+        cl = new SftpClient(host, Integer.parseInt(selectedServerConfig.getSshPort()),selectedServerConfig.getUserName());
 
 
         //cl.authPassword("7x24!admin4me");
-        cl.authKey(serverConfiguration.getSshKey(),"");
+        cl.authKey(selectedServerConfig.getSshKey(),"");
 
         //List<FTPFile> files = cl.getFiles(ftp_Path, von.toEpochSecond() * 1_000_000_000L,bis.toEpochSecond() * 1_000_000_000L);
         List<FTPFile> files = cl.getFiles(ftp_Path, von.toEpochSecond() ,bis.toEpochSecond());
@@ -376,17 +395,17 @@ public class FileBrowserView extends VerticalLayout {
         cl.close();
     }
     private void getPlainFile(String sSHHost, String SourceFile, String TargetFile, String Downloadpath) throws JSchException, SftpException {
-        ServerConfiguration  serverConfiguration = serverconfigComboBox.getValue();
-        cl = new SftpClient(sSHHost, Integer.parseInt(serverConfiguration.getSshPort()),serverConfiguration.getUserName());
-        cl.authKey(serverConfiguration.getSshKey(),"");
+
+        cl = new SftpClient(sSHHost, Integer.parseInt(selectedServerConfig.getSshPort()),selectedServerConfig.getUserName());
+        cl.authKey(selectedServerConfig.getSshKey(),"");
         cl.downloadFile(SourceFile, Downloadpath + TargetFile  );
         cl.close();
     }
 
     private byte[] getByteFile(String sSHHost, String SourceFile, String TargetFile, String Downloadpath) throws JSchException, SftpException, IOException {
-        ServerConfiguration  serverConfiguration = serverconfigComboBox.getValue();
-        cl = new SftpClient(sSHHost, Integer.parseInt(serverConfiguration.getSshPort()),serverConfiguration.getUserName());
-        cl.authKey(serverConfiguration.getSshKey(),"");
+
+        cl = new SftpClient(sSHHost, Integer.parseInt(selectedServerConfig.getSshPort()),selectedServerConfig.getUserName());
+        cl.authKey(selectedServerConfig.getSshKey(),"");
         //cl.downloadFile(SourceFile, Downloadpath + TargetFile  );
         var ret = cl.readFile(SourceFile);
         cl.close();
