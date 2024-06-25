@@ -60,7 +60,7 @@ public class FileBrowserView extends VerticalLayout {
     Long bis;
     private TextArea tailTextArea = new TextArea();
     ComboBox<String> pathCombobox = new ComboBox<>("Choose Path");
-    ComboBox<ServerConfiguration> serverconfigComboBox = new ComboBox<>("Server Config");
+    ComboBox<ServerConfiguration> serverconfigComboBox = new ComboBox<>("Host");
     TaskStatus stat = new TaskStatus();
     Label Filelabel = new Label();
 
@@ -76,7 +76,7 @@ public class FileBrowserView extends VerticalLayout {
             List<ServerConfiguration> serverConfigList = serverConfigurationService.findAllConfigurations();
             if (serverConfigList != null && !serverConfigList.isEmpty()) {
                 serverconfigComboBox.setItems(serverConfigList);
-                serverconfigComboBox.setItemLabelGenerator(ServerConfiguration::getHostName);
+                serverconfigComboBox.setItemLabelGenerator(ServerConfiguration::getHostAlias);
                 selectedServerConfig = serverConfigList.get(0);
                 serverconfigComboBox.setValue(selectedServerConfig);
                 populatePathCombobox(selectedServerConfig);

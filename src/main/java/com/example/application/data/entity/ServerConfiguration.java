@@ -31,4 +31,7 @@ public class ServerConfiguration {
     @Column(name = "SSH_KEY")
     private String sshKey="";
 
+    @Column(name = "HOST_ALIAS")
+    private String hostAlias="";
+
 }

@@ -69,7 +69,7 @@ public class ServerConfigurationView extends VerticalLayout {
     private void configureGrid() {
         grid.addClassNames("configuration-grid");
         grid.setSizeFull();
-        grid.setColumns("hostName", "userName","pathList");
+        grid.setColumns("hostName", "hostAlias", "userName","pathList");
 
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
 

@@ -5,6 +5,7 @@ import com.example.application.utils.TaskStatus;
 import com.example.application.utils.Util;
 import com.jcraft.jsch.*;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
@@ -72,20 +73,27 @@ public final class SftpClient {
 
 
     public void authKey(String key, String pass) throws JSchException {
-        byte[] privateKey = key.getBytes();
-        jsch.addIdentity("identity_name", privateKey, null, pass != null ? pass.getBytes() : null);
-      //  jsch.addIdentity(key, pass);
-        //jsch.addIdentity(keyPath, pass);
-        session = jsch.getSession(username, host, port);
-        //disable known hosts checking
-        //if you want to set knows hosts file You can set with jsch.setKnownHosts("path to known hosts file");
-        var config = new Properties();
-        config.put("StrictHostKeyChecking", "no");
-        session.setConfig(config);
-        session.connect();
-     //   session.setTimeout(6000);
-        channel = (ChannelSftp) session.openChannel("sftp");
-        channel.connect();
+        try {
+            byte[] privateKey = key.getBytes();
+            jsch.addIdentity("identity_name", privateKey, null, pass != null ? pass.getBytes() : null);
+            //  jsch.addIdentity(key, pass);
+            //jsch.addIdentity(keyPath, pass);
+            session = jsch.getSession(username, host, port);
+            //disable known hosts checking
+            //if you want to set knows hosts file You can set with jsch.setKnownHosts("path to known hosts file");
+            var config = new Properties();
+            config.put("StrictHostKeyChecking", "no");
+            session.setConfig(config);
+            session.connect();
+            //   session.setTimeout(6000);
+            channel = (ChannelSftp) session.openChannel("sftp");
+            channel.connect();
+
+        } catch (JSchException e) {
+            Notification.show("Error during authentication or connection: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        } catch (Exception e) {
+            Notification.show("An unexpected error occurred: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
     }
 
     /**

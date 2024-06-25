@@ -22,6 +22,7 @@ public class ServerConfigForm extends FormLayout {
 
     Binder<ServerConfiguration> binder = new BeanValidationBinder<>(ServerConfiguration.class);
     TextField hostName = new TextField("Host Name");
+    TextField hostAlias = new TextField("Host Alias");
     TextField userName = new TextField("Username");
     TextField sshPort = new TextField("SSH_PORT");
     TextField pathList = new TextField("PATH_LIST");
@@ -42,12 +43,14 @@ public class ServerConfigForm extends FormLayout {
         binder.forField(userName).bind(ServerConfiguration::getUserName, ServerConfiguration::setUserName);
         binder.forField(pathList).bind(ServerConfiguration::getPathList, ServerConfiguration::setPathList);
         binder.forField(sshKey).bind(ServerConfiguration::getSshKey, ServerConfiguration::setSshKey);
+        binder.forField(hostAlias).bind(ServerConfiguration::getHostAlias, ServerConfiguration::setHostAlias);
 
         binder.forField(sshPort)
                 .withValidator(value -> value != null && value.matches("\\d+"), "SSH Port must be a numeric value")
                 .bind(ServerConfiguration::getSshPort, ServerConfiguration::setSshPort);
         add(
                 hostName,
+                hostAlias,
                 userName,
                 sshPort,
                 pathList,
