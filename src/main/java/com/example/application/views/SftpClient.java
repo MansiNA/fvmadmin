@@ -71,8 +71,11 @@ public final class SftpClient {
     }
 
 
-    public void authKey(String keyPath, String pass) throws JSchException {
-        jsch.addIdentity(keyPath, pass);
+    public void authKey(String key, String pass) throws JSchException {
+        byte[] privateKey = key.getBytes();
+        jsch.addIdentity("identity_name", privateKey, null, pass != null ? pass.getBytes() : null);
+      //  jsch.addIdentity(key, pass);
+        //jsch.addIdentity(keyPath, pass);
         session = jsch.getSession(username, host, port);
         //disable known hosts checking
         //if you want to set knows hosts file You can set with jsch.setKnownHosts("path to known hosts file");
