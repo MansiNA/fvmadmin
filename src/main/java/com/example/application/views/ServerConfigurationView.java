@@ -91,8 +91,12 @@ public class ServerConfigurationView extends VerticalLayout {
     }
     private void saveConfig(ServerConfigForm.SaveEvent event) {
         try {
-            service.saveConfiguration(event.getConfiguration());
-            Notification.show("Upload sceessfully", 3000, Notification.Position.MIDDLE);
+            String  result = service.saveConfiguration(event.getConfiguration());
+            if(result.equals("Ok")) {
+                Notification.show("Upload sceessfully", 3000, Notification.Position.MIDDLE);
+            } else {
+                Notification.show(result,5000, Notification.Position.MIDDLE);
+            }
             updateList();
             closeEditor();
         } catch (Exception e) {
