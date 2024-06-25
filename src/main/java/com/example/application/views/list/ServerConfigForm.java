@@ -11,6 +11,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
@@ -24,7 +25,7 @@ public class ServerConfigForm extends FormLayout {
     TextField userName = new TextField("Username");
     TextField sshPort = new TextField("SSH_PORT");
     TextField pathList = new TextField("PATH_LIST");
-    TextField sshKey = new TextField("SSH_KEY");
+    TextArea sshKey = new TextArea("SSH_KEY");
     Button save=new Button("Save");
     Button delete = new Button("Delete");
     Button cancel = new Button("Cancel");
@@ -36,6 +37,7 @@ public class ServerConfigForm extends FormLayout {
     public ServerConfigForm() {
         addClassName("config-form");
 
+        sshKey.setHeight("200px");
         binder.forField(hostName).bind(ServerConfiguration::getHostName, ServerConfiguration::setHostName);
         binder.forField(userName).bind(ServerConfiguration::getUserName, ServerConfiguration::setUserName);
         binder.forField(pathList).bind(ServerConfiguration::getPathList, ServerConfiguration::setPathList);
