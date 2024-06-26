@@ -68,8 +68,8 @@ public class FileBrowserView extends VerticalLayout {
     private String selectedPath;
     private ServerConfiguration selectedServerConfig;
 
-    public FileBrowserView (@Value("${SSHDownloadPath}") String sshDownloadPath, ConfigurationService service, ServerConfigurationService serverConfigurationService) throws JSchException, SftpException {
-
+    public FileBrowserView (ConfigurationService service, ServerConfigurationService serverConfigurationService) throws JSchException, SftpException {
+        String sshDownloadPath= "downloads/";
         this.serverConfigurationService = serverConfigurationService;
 
         try {
