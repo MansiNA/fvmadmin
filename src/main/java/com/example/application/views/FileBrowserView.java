@@ -1,8 +1,6 @@
 package com.example.application.views;
 
-import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.FTPFile;
-import com.example.application.data.entity.Metadaten;
 import com.example.application.data.entity.ServerConfiguration;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.ServerConfigurationService;
@@ -18,32 +16,25 @@ import com.vaadin.flow.component.datetimepicker.DateTimePicker;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.grid.SortOrderProvider;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Label;
-import com.vaadin.flow.component.messages.MessageList;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.data.provider.SortDirection;
-import com.vaadin.flow.dom.Element;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.InputStreamFactory;
 import com.vaadin.flow.server.StreamResource;
-import com.vaadin.flow.server.StreamResourceWriter;
 import jakarta.annotation.security.RolesAllowed;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
 import java.time.*;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -196,7 +187,8 @@ public class FileBrowserView extends VerticalLayout {
                 @Override
                 public InputStream createInputStream(){
                     try {
-                        return new ByteArrayInputStream(getByteFile(selectedServerConfig.getHostName(), selectedPath ,file.getName(),sshDownloadPath));
+                        System.out.println("download-Button gedrückt für: " + selectedPath + "/" + file.getName());
+                        return new ByteArrayInputStream(getByteFile(selectedServerConfig.getHostName(), selectedPath ,file.getName(), sshDownloadPath));
                     } catch (JSchException e) {
                         throw new RuntimeException(e);
                     } catch (SftpException e) {
@@ -406,8 +398,9 @@ public class FileBrowserView extends VerticalLayout {
 
         cl = new SftpClient(sSHHost, Integer.parseInt(selectedServerConfig.getSshPort()),selectedServerConfig.getUserName());
         cl.authKey(selectedServerConfig.getSshKey(),"");
-        //cl.downloadFile(SourceFile, Downloadpath + TargetFile  );
-        var ret = cl.readFile(SourceFile);
+   //     cl.downloadFile(SourceFile, Downloadpath + TargetFile  );
+        System.out.println("vvvvvvvvvvv "+ SourceFile);
+        var ret = cl.readFile(SourceFile + TargetFile);
         cl.close();
         System.out.println("In Methode getByteFile!");
         return ret;
