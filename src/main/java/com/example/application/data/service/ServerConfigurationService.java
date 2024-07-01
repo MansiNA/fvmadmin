@@ -33,23 +33,31 @@ public class ServerConfigurationService {
         }
         configurationRepository.save(config);
     }
+
     public String saveConfiguration(ServerConfiguration config) {
         if (config == null) {
             System.err.println("Configuration is null!");
             return "Configuration is null!";
         }
 
-        // Check if a configuration with the same hostname and username already exists
-        Optional<ServerConfiguration> existingConfig = configurationRepository.findByHostNameAndUserName(
-                config.getHostName(), config.getUserName());
+        // Check if the configuration has an ID
+        boolean isNewConfiguration = config.getId() == null;
 
-        if (existingConfig.isPresent()) {
-            return "Configuration with the same hostname and username already exists!";
+        if (isNewConfiguration) {
+            // Check if a configuration with the same hostname and username already exists
+            Optional<ServerConfiguration> existingConfig = configurationRepository.findByHostNameAndUserName(
+                    config.getHostName(), config.getUserName());
+
+            if (existingConfig.isPresent()) {
+                return "Configuration with the same hostname and username already exists!";
+            }
         }
 
+        // Save or update the configuration
         configurationRepository.save(config);
         return "Ok";
     }
+
     // Delete a configuration by ID
     public void deleteConfiguration(ServerConfiguration config) {
         if (config.getId() == null) {
