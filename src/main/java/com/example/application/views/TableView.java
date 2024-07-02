@@ -19,6 +19,7 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -27,6 +28,7 @@ import com.vaadin.flow.component.textfield.*;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.StreamResource;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
@@ -113,8 +115,13 @@ public class TableView extends VerticalLayout {
             }
         });
 
+        Button configureButton = new Button("Configure", VaadinIcon.COG.create());
+        configureButton.addClickListener(event -> {
+            UI.getCurrent().navigate(ConfigurationView.class);
+        });
+
         HorizontalLayout hl = new HorizontalLayout();
-        hl.add(comboBox);
+        hl.add(comboBox, configureButton);
 
         hl.setAlignItems(Alignment.BASELINE);
 

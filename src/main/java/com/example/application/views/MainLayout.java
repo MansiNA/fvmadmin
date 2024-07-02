@@ -307,7 +307,7 @@ public class MainLayout extends AppLayout {
                     hangingMessagesView,
                     elaFavoriten,
                     DashboardView,
-                    configureView,
+                 //   configureView,
                     userConfigView,
                     serverConfigView
             ));
