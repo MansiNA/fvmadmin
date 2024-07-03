@@ -344,12 +344,16 @@ public class JobManagerView extends VerticalLayout {
     }
 
     private void executeShellJob(JobManager jobManager) throws Exception {
-        String command = jobManager.getCommand();
+        String scriptPath = "D:\\file\\executer.cmd"; // Absolute path to the script
+        String jobName = jobManager.getCommand(); // Assuming this is the Jobname
+        String runID = "777"; // RunID for test purposes
+
         ProcessBuilder processBuilder;
         if (System.getProperty("os.name").toLowerCase().contains("win")) {
-            processBuilder = new ProcessBuilder("cmd.exe", "/c", command);
+            // Quote the script path to handle spaces and special characters
+            processBuilder = new ProcessBuilder("cmd.exe", "/c", "\"" + scriptPath + "\"", jobName, runID);
         } else {
-            processBuilder = new ProcessBuilder("sh", "-c", command);
+            processBuilder = new ProcessBuilder("sh", "-c", "\"" + scriptPath + "\" " + jobName + " " + runID);
         }
         processBuilder.redirectErrorStream(true);
         Process process = processBuilder.start();
