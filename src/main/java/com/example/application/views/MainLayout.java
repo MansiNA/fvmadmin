@@ -285,6 +285,7 @@ public class MainLayout extends AppLayout {
         RouterLink configureView = new RouterLink ("Configuration", ConfigurationView.class);
         RouterLink userConfigView = new RouterLink ("User Configuration", UserConfigurationView.class);
         RouterLink serverConfigView = new RouterLink ("Server Configuration", ServerConfigurationView.class);
+        RouterLink jobDefination = new RouterLink ("Job Defination", JobDefinationView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
 
 
@@ -308,6 +309,7 @@ public class MainLayout extends AppLayout {
                     elaFavoriten,
                     DashboardView,
                  //   configureView,
+                    jobDefination,
                     userConfigView,
                     serverConfigView
             ));
