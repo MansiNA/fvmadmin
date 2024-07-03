@@ -2,10 +2,17 @@ package com.example.application.utils;
 
 import com.example.application.data.entity.JobManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinSession;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.sql.Connection;
@@ -14,8 +21,16 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 public class JobExecutor implements Job {
+
+    @Value("${script.path}")
+    private String scriptPath;
+
+    @Value("${run.id}")
+    private String runID;
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
+        System.out.println("scriptPath: " + scriptPath);
+        System.out.println("runID: " + runID);
         String jobDefinitionString = context.getMergedJobDataMap().getString("jobManager");
         JobManager jobManager;
         try {
@@ -45,10 +60,17 @@ public class JobExecutor implements Job {
                     throw new Exception("Unsupported job type: " + jobManager.getTyp());
             }
         } catch (Exception e) {
-            Notification.show("Error executing job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+         //   Notification.show("Error executing job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+          //  handleJobExecutionError(e);
+            System.out.println(e.getMessage());
         }
     }
 
+    private void handleJobExecutionError(Exception e) {
+        UI.getCurrent().access(() -> {
+            Notification.show("Error executing job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        });
+    }
     private void executeSQLJob(JobManager jobManager) throws Exception {
         String jdbcUrl = "jdbc:your_database_url";
         String username = "your_db_username";
@@ -78,9 +100,9 @@ public class JobExecutor implements Job {
     }
 
     private void executeShellJob(JobManager jobManager) throws Exception {
-        String scriptPath = "D:\\file\\executer.cmd";
+        scriptPath = "D:\\file\\executer.cmd";
         String jobName = jobManager.getCommand();
-        String runID = "777";
+        runID = "777";
 
         ProcessBuilder processBuilder;
         if (System.getProperty("os.name").toLowerCase().contains("win")) {
