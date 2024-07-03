@@ -12,7 +12,7 @@ import java.io.Serializable;
 @Setter
 @Entity
 @Table(name = "JOB_DEFINITION")
-public class JobDefinition implements Serializable {
+public class JobManager implements Serializable {
 
     @Id
     private Integer id;

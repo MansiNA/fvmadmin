@@ -1,12 +1,9 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.User;
-import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.UserService;
 import com.example.application.security.AuthenticatedUser;
-import com.example.application.security.SecurityService;
 import com.example.application.utils.OSInfoUtil;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
@@ -16,7 +13,6 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.login.LoginForm;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
@@ -32,7 +28,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -285,7 +280,7 @@ public class MainLayout extends AppLayout {
         RouterLink configureView = new RouterLink ("Configuration", ConfigurationView.class);
         RouterLink userConfigView = new RouterLink ("User Configuration", UserConfigurationView.class);
         RouterLink serverConfigView = new RouterLink ("Server Configuration", ServerConfigurationView.class);
-        RouterLink jobDefination = new RouterLink ("Job Defination", JobDefinationView.class);
+        RouterLink jobManager = new RouterLink ("Job Manager", JobManagerView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation() );
 
 
@@ -309,7 +304,7 @@ public class MainLayout extends AppLayout {
                     elaFavoriten,
                     DashboardView,
                  //   configureView,
-                    jobDefination,
+                    jobManager,
                     userConfigView,
                     serverConfigView
             ));

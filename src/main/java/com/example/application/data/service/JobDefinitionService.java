@@ -1,7 +1,6 @@
 package com.example.application.data.service;
 
-import com.example.application.data.entity.JobDefinition;
-import com.example.application.data.entity.SqlDefinition;
+import com.example.application.data.entity.JobManager;
 import com.example.application.data.repository.JobDefinitionRepository;
 import com.example.application.views.MainLayout;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,34 +15,34 @@ import java.util.stream.Collectors;
 public class JobDefinitionService {
 
     private final JobDefinitionRepository jobDefinitionRepository;
-    private List<JobDefinition> jobDefinitionList;
+    private List<JobManager> jobManagerList;
 
     @Autowired
     public JobDefinitionService(JobDefinitionRepository jobDefinitionRepository) {
         this.jobDefinitionRepository = jobDefinitionRepository;
-        this.jobDefinitionList = jobDefinitionRepository.findAll();
+        this.jobManagerList = jobDefinitionRepository.findAll();
     }
 
-    public List<JobDefinition> findAll() {
-        jobDefinitionList = jobDefinitionRepository.findAll();
-        return jobDefinitionList;
+    public List<JobManager> findAll() {
+        jobManagerList = jobDefinitionRepository.findAll();
+        return jobManagerList;
     }
 
-    public Optional<JobDefinition> findById(Integer id) {
+    public Optional<JobManager> findById(Integer id) {
         return jobDefinitionRepository.findById(id);
     }
 
-    public JobDefinition save(JobDefinition jobDefinition) {
-        return jobDefinitionRepository.save(jobDefinition);
+    public JobManager save(JobManager jobManager) {
+        return jobDefinitionRepository.save(jobManager);
     }
 
     public void deleteById(Integer id) {
         jobDefinitionRepository.deleteById(id);
     }
 
-    public List<JobDefinition> getRootProjects() {
-        System.out.println("-----------"+jobDefinitionList.size()+"-----------------------------");
-        List<JobDefinition> rootProjects = jobDefinitionList
+    public List<JobManager> getRootProjects() {
+        System.out.println("-----------"+ jobManagerList.size()+"-----------------------------");
+        List<JobManager> rootProjects = jobManagerList
                 .stream()
                 .filter(sqlDef -> sqlDef.getPid() == 0)
                 .collect(Collectors.toList());
@@ -54,9 +53,9 @@ public class JobDefinitionService {
         return rootProjects;
     }
 
-    public List<JobDefinition> getChildProjects(JobDefinition parent) {
+    public List<JobManager> getChildProjects(JobManager parent) {
 
-        List<JobDefinition> childProjects = jobDefinitionList
+        List<JobManager> childProjects = jobManagerList
                 .stream()
                 .filter(sqlDef -> Objects.equals(sqlDef.getPid(), parent.getId()))
                 .collect(Collectors.toList());
