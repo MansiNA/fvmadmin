@@ -48,7 +48,7 @@ public class JobDefinitionService {
                 .collect(Collectors.toList());
 
         // Log the names of root projects
-        rootProjects.forEach(project -> System.out.println("Root Project: " + project.getName()));
+        rootProjects.forEach(project -> System.out.println("Root Project: " + project.toString()));
 
         return rootProjects;
     }

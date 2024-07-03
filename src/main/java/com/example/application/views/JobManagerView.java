@@ -74,7 +74,7 @@ public class JobManagerView extends VerticalLayout {
 
     private TreeGrid<JobManager> createTreeGrid() {
         treeGrid = new TreeGrid<>();
-
+        jobDefinitionService.findAll();
         treeGrid.setItems(jobDefinitionService.getRootProjects(), jobDefinitionService::getChildProjects);
 
         // Add the hierarchy column for displaying the hierarchical data
@@ -99,7 +99,8 @@ public class JobManagerView extends VerticalLayout {
             Button startButton = new Button("Start");
             startButton.addClickListener(event -> {
                 try {
-                    executeJob(jobManager);
+                    scheduleJob(jobManager);
+                //    executeJob(jobManager);
                 } catch (Exception e) {
                     Notification.show("Error executing job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
@@ -272,9 +273,9 @@ public class JobManagerView extends VerticalLayout {
 
         JobDataMap jobDataMap = new JobDataMap();
         try {
-            jobDataMap.put("jobDefinition", JobDefinitionUtils.serializeJobDefinition(jobManager));
+            jobDataMap.put("jobManager", JobDefinitionUtils.serializeJobDefinition(jobManager));
         } catch (JsonProcessingException e) {
-            e.getMessage();
+            Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             return;
         }
 
@@ -283,13 +284,16 @@ public class JobManagerView extends VerticalLayout {
                 .usingJobData(jobDataMap)
                 .build();
 
+        // Using the cron expression from the JobManager
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("trigger-" + jobManager.getId(), "group1")
-                .startNow()
+                .withSchedule(CronScheduleBuilder.cronSchedule(jobManager.getCron()))
+                .forJob(jobDetail)
                 .build();
 
         scheduler.scheduleJob(jobDetail, trigger);
     }
+
 
     private void executeJob(JobManager jobManager) {
         System.out.println("Executing job: " + jobManager.getName());
