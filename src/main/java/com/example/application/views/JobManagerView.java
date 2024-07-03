@@ -45,6 +45,7 @@ public class JobManagerView extends VerticalLayout {
     private Dialog dialog;
     private Dialog resetPasswordDialog;
     private TreeGrid<JobManager> treeGrid;
+    private Scheduler scheduler;
 
     public JobManagerView(JobDefinitionService jobDefinitionService) {
 
@@ -100,13 +101,26 @@ public class JobManagerView extends VerticalLayout {
             startButton.addClickListener(event -> {
                 try {
                     scheduleJob(jobManager);
-                //    executeJob(jobManager);
+                //   executeJob(jobManager);
                 } catch (Exception e) {
                     Notification.show("Error executing job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
             });
             return startButton;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader("Start Actions").setAutoWidth(true);
+
+        treeGrid.addComponentColumn(jobManager -> {
+            Button stopButton = new Button("Stop");
+            stopButton.addClickListener(event -> {
+                try {
+                    stopJob(jobManager);
+                    Notification.show("Job stopped successfully", 3000, Notification.Position.MIDDLE);
+                } catch (Exception e) {
+                    Notification.show("Error stopping job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                }
+            });
+            return stopButton;
+        }).setHeader("Stop Action").setAutoWidth(true);
 //
 //        treeGrid.asSingleSelect().addValueChangeListener(event -> {
 //            JobManager selectedJob = event.getValue();
@@ -268,7 +282,7 @@ public class JobManagerView extends VerticalLayout {
     }
 
     private void scheduleJob(JobManager jobManager) throws SchedulerException {
-        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+        scheduler = StdSchedulerFactory.getDefaultScheduler();
         scheduler.start();
 
         JobDataMap jobDataMap = new JobDataMap();
@@ -294,7 +308,10 @@ public class JobManagerView extends VerticalLayout {
         scheduler.scheduleJob(jobDetail, trigger);
     }
 
-
+    public void stopJob(JobManager jobManager) throws SchedulerException {
+        JobKey jobKey = new JobKey("job-" + jobManager.getId(), "group1");
+        scheduler.deleteJob(jobKey);
+    }
     private void executeJob(JobManager jobManager) {
         System.out.println("Executing job: " + jobManager.getName());
 
