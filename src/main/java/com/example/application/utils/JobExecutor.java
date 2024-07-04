@@ -27,10 +27,12 @@ public class JobExecutor implements Job {
 
     @Value("${run.id}")
     private String runID;
+
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        System.out.println("scriptPath: " + scriptPath);
-        System.out.println("runID: " + runID);
+        scriptPath = context.getMergedJobDataMap().getString("scriptPath");
+        runID = context.getMergedJobDataMap().getString("runID");
+
         String jobDefinitionString = context.getMergedJobDataMap().getString("jobManager");
         JobManager jobManager;
         try {
@@ -100,15 +102,14 @@ public class JobExecutor implements Job {
     }
 
     private void executeShellJob(JobManager jobManager) throws Exception {
-        scriptPath = "D:\\file\\executer.cmd";
-        String jobName = jobManager.getCommand();
-        runID = "777";
+        String jobName = jobManager.getName();
+        String sPath = scriptPath + jobManager.getCommand();
 
         ProcessBuilder processBuilder;
         if (System.getProperty("os.name").toLowerCase().contains("win")) {
-            processBuilder = new ProcessBuilder("cmd.exe", "/c", "\"" + scriptPath + "\"", jobName, runID);
+            processBuilder = new ProcessBuilder("cmd.exe", "/c", "\"" + sPath + "\"", jobName, jobManager.getParameter());
         } else {
-            processBuilder = new ProcessBuilder("sh", "-c", "\"" + scriptPath + "\" " + jobName + " " + runID);
+            processBuilder = new ProcessBuilder("sh", "-c", "\"" + sPath + "\" " + jobName + " " + jobManager.getParameter());
         }
         processBuilder.redirectErrorStream(true);
         Process process = processBuilder.start();

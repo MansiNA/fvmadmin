@@ -1,6 +1,7 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.JobManager;
+import com.example.application.data.entity.User;
 import com.example.application.data.service.JobDefinitionService;
 import com.example.application.utils.JobDefinitionUtils;
 import com.example.application.utils.JobExecutor;
@@ -20,11 +21,14 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.treegrid.TreeGrid;
+import com.vaadin.flow.data.provider.DataProvider;
+import com.vaadin.flow.data.provider.Query;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -33,12 +37,18 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @PageTitle("Job Manager")
 @Route(value = "jobManager", layout = MainLayout.class)
 @RolesAllowed({"ADMIN"})
 public class JobManagerView extends VerticalLayout {
 
+    @Value("${script.path}")
+    private String scriptPath;
+
+    @Value("${run.id}")
+    private String runID;
     private JobDefinitionService jobDefinitionService;
     private Crud<JobManager> crud;
     private Grid<JobManager> jobDefinitionGrid;
@@ -46,12 +56,16 @@ public class JobManagerView extends VerticalLayout {
     private Dialog resetPasswordDialog;
     private TreeGrid<JobManager> treeGrid;
     private Scheduler scheduler;
+    private Button startButton = new Button("All Start");
+    private Button stopButton = new Button("All Stop");
 
     public JobManagerView(JobDefinitionService jobDefinitionService) {
 
         this.jobDefinitionService = jobDefinitionService;
 
-        add(new H2("Job Manager"));
+        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"), startButton, stopButton);
+        hl.setAlignItems(Alignment.BASELINE);
+        add(hl);
 
         HorizontalLayout treehl = new HorizontalLayout();
         treehl.setHeightFull();
@@ -86,6 +100,7 @@ public class JobManagerView extends VerticalLayout {
         treeGrid.addColumn(JobManager::getCommand).setHeader("Command").setAutoWidth(true);
         treeGrid.addColumn(JobManager::getCron).setHeader("Cron").setAutoWidth(true);
         treeGrid.addColumn(JobManager::getTyp).setHeader("Typ").setAutoWidth(true);
+        treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setAutoWidth(true);
 
         // Set additional properties for the tree grid
         treeGrid.setWidth("350px");
@@ -97,29 +112,29 @@ public class JobManagerView extends VerticalLayout {
 
         // Add a column with a button to start the job manually
         treeGrid.addComponentColumn(jobManager -> {
-            Button startButton = new Button("Start");
-            startButton.addClickListener(event -> {
+            Button startBtn = new Button("Start");
+            startBtn.addClickListener(event -> {
                 try {
-                    scheduleJob(jobManager);
-                //   executeJob(jobManager);
+                //    scheduleJob(jobManager);
+                   executeJob(jobManager);
                 } catch (Exception e) {
-                    Notification.show("Error executing job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                    Notification.show("Error executing job: "+ jobManager.getName()+" " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
             });
-            return startButton;
+            return startBtn;
         }).setHeader("Start Actions").setAutoWidth(true);
 
         treeGrid.addComponentColumn(jobManager -> {
-            Button stopButton = new Button("Stop");
-            stopButton.addClickListener(event -> {
+            Button stopBtn = new Button("Stop");
+            stopBtn.addClickListener(event -> {
                 try {
-                    stopJob(jobManager);
-                    Notification.show("Job stopped successfully", 3000, Notification.Position.MIDDLE);
+                    stopShellJob();
+                    Notification.show(jobManager.getName()+" stopped successfully", 3000, Notification.Position.MIDDLE);
                 } catch (Exception e) {
-                    Notification.show("Error stopping job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                    Notification.show("Error stopping job: "+ jobManager.getName()+" " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
             });
-            return stopButton;
+            return stopBtn;
         }).setHeader("Stop Action").setAutoWidth(true);
 //
 //        treeGrid.asSingleSelect().addValueChangeListener(event -> {
@@ -133,6 +148,32 @@ public class JobManagerView extends VerticalLayout {
 //                }
 //            }
 //        });
+
+        startButton.addClickListener(event -> {
+
+            List<JobManager> jobManagerList = jobDefinitionService.findAll();
+            Notification.show("start running...", 3000, Notification.Position.MIDDLE);
+            for (JobManager jobManager : jobManagerList) {
+                try {
+                    scheduleJob(jobManager);
+                } catch (Exception e) {
+                    Notification.show("Error executing job: " + jobManager.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                }
+            }
+
+        });
+
+        stopButton.addClickListener(event -> {
+            List<JobManager> jobManagerList = jobDefinitionService.findAll();
+            Notification.show("stop running...", 3000, Notification.Position.MIDDLE);
+            for (JobManager jobManager : jobManagerList) {
+                try {
+                    stopJob(jobManager);
+                } catch (Exception e) {
+                    Notification.show("Error stopping job: "+ jobManager.getName()+" " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                }
+            }
+        });
 
          if (MainLayout.isAdmin) {
              GridContextMenu<JobManager> contextMenu = treeGrid.addContextMenu();
@@ -156,7 +197,7 @@ public class JobManagerView extends VerticalLayout {
 
         if(context.equals("New")){
             List<JobManager> jobManagerList = jobDefinitionService.findAll();
-            newJobDefination.setId( (jobManagerList.size() + 1));
+        //    newJobDefination.setId( (jobManagerList.size() + 1));
             newJobDefination.setPid(jobManager.getPid());
             dialog.add(editJobDefinition(newJobDefination, true)); // For adding new entry
         } else {
@@ -219,6 +260,10 @@ public class JobManagerView extends VerticalLayout {
         typ.setValue(isNew ? "" : (jobManager.getTyp() != null ? jobManager.getTyp() : ""));
         typ.setWidthFull();
 
+        TextField parameter = new TextField("PARAMETER");
+        typ.setValue(isNew ? "" : (jobManager.getTyp() != null ? jobManager.getTyp() : ""));
+        typ.setWidthFull();
+
         IntegerField pid = new IntegerField("PID");
         pid.setValue(jobManager.getPid() != 0 ? jobManager.getPid() : 0);
         pid.setWidthFull();
@@ -229,6 +274,7 @@ public class JobManagerView extends VerticalLayout {
         command.addValueChangeListener(event -> jobManager.setCommand(event.getValue()));
         cron.addValueChangeListener(event -> jobManager.setCron(event.getValue()));
         typ.addValueChangeListener(event -> jobManager.setTyp(event.getValue()));
+        parameter.addValueChangeListener(event -> jobManager.setParameter(event.getValue()));
         pid.addValueChangeListener(event -> {
             try {
                 if (event.getValue() != 0) {
@@ -242,7 +288,7 @@ public class JobManagerView extends VerticalLayout {
         });
 
         // Add all fields to the content layout
-        content.add(name, namespace, command, cron, typ, pid);
+        content.add(name, namespace, command, cron, typ, parameter , pid);
         return content;
     }
 
@@ -292,6 +338,9 @@ public class JobManagerView extends VerticalLayout {
             Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             return;
         }
+
+        jobDataMap.put("scriptPath", scriptPath);
+        jobDataMap.put("runID", runID);
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
                 .withIdentity("job-" + jobManager.getId(), "group1")
@@ -364,20 +413,23 @@ public class JobManagerView extends VerticalLayout {
         }
     }
 
+    private Process process;
     private void executeShellJob(JobManager jobManager) throws Exception {
-        String scriptPath = "D:\\file\\executer.cmd"; // Absolute path to the script
-        String jobName = jobManager.getCommand(); // Assuming this is the Jobname
-        String runID = "777"; // RunID for test purposes
+        //   String scriptPath = "D:\\file\\executer.cmd"; // Absolute path to the script
+        //  String runID = "777"; // RunID for test purposes
+        String jobName = jobManager.getName();
+        String sPath = scriptPath + jobManager.getCommand();
+
 
         ProcessBuilder processBuilder;
         if (System.getProperty("os.name").toLowerCase().contains("win")) {
             // Quote the script path to handle spaces and special characters
-            processBuilder = new ProcessBuilder("cmd.exe", "/c", "\"" + scriptPath + "\"", jobName, runID);
+            processBuilder = new ProcessBuilder("cmd.exe", "/c", "\"" + sPath + "\"", jobName, jobManager.getParameter());
         } else {
-            processBuilder = new ProcessBuilder("sh", "-c", "\"" + scriptPath + "\" " + jobName + " " + runID);
+            processBuilder = new ProcessBuilder("sh", "-c", "\"" + sPath + "\" " + jobName + " " + jobManager.getParameter());
         }
         processBuilder.redirectErrorStream(true);
-        Process process = processBuilder.start();
+        process = processBuilder.start();
 
         // Capture the output
         StringBuilder output = new StringBuilder();
@@ -395,4 +447,9 @@ public class JobManagerView extends VerticalLayout {
         System.out.println("Shell script executed successfully:\n" + output);
     }
 
+    public void stopShellJob() {
+     //   if (process != null) {
+            process.destroy(); // Terminate the running process
+      //  }
+    }
 }

@@ -1,8 +1,6 @@
 package com.example.application.data.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,6 +13,7 @@ import java.io.Serializable;
 public class JobManager implements Serializable {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     private Integer pid;
     private String name;
@@ -22,6 +21,7 @@ public class JobManager implements Serializable {
     private String command;
     private String cron;
     private String typ;
+    private String parameter;
 
     @Override
     public String toString() {
