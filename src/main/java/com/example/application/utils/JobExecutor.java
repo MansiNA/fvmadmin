@@ -107,9 +107,9 @@ public class JobExecutor implements Job {
 
         ProcessBuilder processBuilder;
         if (System.getProperty("os.name").toLowerCase().contains("win")) {
-            processBuilder = new ProcessBuilder("cmd.exe", "/c", "\"" + sPath + "\"", jobName, jobManager.getParameter());
+            processBuilder = new ProcessBuilder("cmd.exe", "/c", "\"" + sPath + "\"", jobManager.getParameter());
         } else {
-            processBuilder = new ProcessBuilder("sh", "-c", "\"" + sPath + "\" " + jobName + " " + jobManager.getParameter());
+            processBuilder = new ProcessBuilder("sh", "-c", "\"" + sPath + "\" " + jobManager.getParameter());
         }
         processBuilder.redirectErrorStream(true);
         Process process = processBuilder.start();

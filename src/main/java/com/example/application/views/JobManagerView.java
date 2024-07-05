@@ -115,8 +115,8 @@ public class JobManagerView extends VerticalLayout {
             Button startBtn = new Button("Start");
             startBtn.addClickListener(event -> {
                 try {
-                //    scheduleJob(jobManager);
-                   executeJob(jobManager);
+                    scheduleJobWithoutCorn(jobManager);
+                //   executeJob(jobManager);
                 } catch (Exception e) {
                     Notification.show("Error executing job: "+ jobManager.getName()+" " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
@@ -128,7 +128,8 @@ public class JobManagerView extends VerticalLayout {
             Button stopBtn = new Button("Stop");
             stopBtn.addClickListener(event -> {
                 try {
-                    stopShellJob();
+                //    stopShellJob();
+                    stopJob(jobManager);
                     Notification.show(jobManager.getName()+" stopped successfully", 3000, Notification.Position.MIDDLE);
                 } catch (Exception e) {
                     Notification.show("Error stopping job: "+ jobManager.getName()+" " + e.getMessage(), 5000, Notification.Position.MIDDLE);
@@ -155,7 +156,9 @@ public class JobManagerView extends VerticalLayout {
             Notification.show("start running...", 3000, Notification.Position.MIDDLE);
             for (JobManager jobManager : jobManagerList) {
                 try {
-                    scheduleJob(jobManager);
+                    if(jobManager.getCron() != null) {
+                        scheduleJob(jobManager);
+                    }
                 } catch (Exception e) {
                     Notification.show("Error executing job: " + jobManager.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
@@ -261,8 +264,8 @@ public class JobManagerView extends VerticalLayout {
         typ.setWidthFull();
 
         TextField parameter = new TextField("PARAMETER");
-        typ.setValue(isNew ? "" : (jobManager.getTyp() != null ? jobManager.getTyp() : ""));
-        typ.setWidthFull();
+        parameter.setValue(isNew ? "" : (jobManager.getParameter() != null ? jobManager.getParameter() : ""));
+        parameter.setWidthFull();
 
         IntegerField pid = new IntegerField("PID");
         pid.setValue(jobManager.getPid() != 0 ? jobManager.getPid() : 0);
@@ -351,6 +354,36 @@ public class JobManagerView extends VerticalLayout {
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("trigger-" + jobManager.getId(), "group1")
                 .withSchedule(CronScheduleBuilder.cronSchedule(jobManager.getCron()))
+                .forJob(jobDetail)
+                .build();
+
+        scheduler.scheduleJob(jobDetail, trigger);
+    }
+
+    private void scheduleJobWithoutCorn(JobManager jobManager) throws SchedulerException {
+        scheduler = StdSchedulerFactory.getDefaultScheduler();
+        scheduler.start();
+
+        JobDataMap jobDataMap = new JobDataMap();
+        try {
+            jobDataMap.put("jobManager", JobDefinitionUtils.serializeJobDefinition(jobManager));
+        } catch (JsonProcessingException e) {
+            Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        jobDataMap.put("scriptPath", scriptPath);
+        jobDataMap.put("runID", runID);
+
+        JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
+                .withIdentity("job-" + jobManager.getId(), "group1")
+                .usingJobData(jobDataMap)
+                .build();
+
+        // Create a trigger to run immediately
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("trigger-" + jobManager.getId(), "group1")
+                .startNow() // Trigger will start immediately
                 .forJob(jobDetail)
                 .build();
 
