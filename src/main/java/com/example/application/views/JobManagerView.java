@@ -16,6 +16,7 @@ import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
@@ -110,34 +111,44 @@ public class JobManagerView extends VerticalLayout {
         treeGrid.setThemeName("dense");
         treeGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_NO_ROW_BORDERS, GridVariant.LUMO_COMPACT);
 
-        // Add a column with a button to start the job manually
         treeGrid.addComponentColumn(jobManager -> {
+            // Create a layout to hold the buttons for each row
+            HorizontalLayout buttonsLayout = new HorizontalLayout();
+
+            // Instantiate new buttons for each row
             Button startBtn = new Button("Start");
+            Button stopBtn = new Button("Stop");
+
+            startBtn.setEnabled(true);
+            stopBtn.setEnabled(false);
+
+            // Add click listeners for the buttons
             startBtn.addClickListener(event -> {
                 try {
                     scheduleJobWithoutCorn(jobManager);
-                //   executeJob(jobManager);
+                    startBtn.setEnabled(false);
+                    stopBtn.setEnabled(true);
                 } catch (Exception e) {
-                    Notification.show("Error executing job: "+ jobManager.getName()+" " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                    Notification.show("Error starting job: " + jobManager.getName() + " - " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
             });
-            return startBtn;
-        }).setHeader("Start Actions").setAutoWidth(true);
 
-        treeGrid.addComponentColumn(jobManager -> {
-            Button stopBtn = new Button("Stop");
             stopBtn.addClickListener(event -> {
                 try {
-                //    stopShellJob();
                     stopJob(jobManager);
-                    Notification.show(jobManager.getName()+" stopped successfully", 3000, Notification.Position.MIDDLE);
+                    startBtn.setEnabled(true);
+                    stopBtn.setEnabled(false);
+                    Notification.show(jobManager.getName() + " stopped successfully", 3000, Notification.Position.MIDDLE);
                 } catch (Exception e) {
-                    Notification.show("Error stopping job: "+ jobManager.getName()+" " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                    Notification.show("Error stopping job: " + jobManager.getName() + " - " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
             });
-            return stopBtn;
-        }).setHeader("Stop Action").setAutoWidth(true);
-//
+
+            // Add buttons to the layout
+            buttonsLayout.add(startBtn, stopBtn);
+            return buttonsLayout;
+        }).setHeader("Actions").setAutoWidth(true);
+
 //        treeGrid.asSingleSelect().addValueChangeListener(event -> {
 //            JobManager selectedJob = event.getValue();
 //            if (selectedJob != null) {
