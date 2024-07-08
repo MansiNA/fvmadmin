@@ -133,8 +133,8 @@ public class JobManagerView extends VerticalLayout {
                 ui.access(() -> {
                     Notification.show(message, 5000, Notification.Position.MIDDLE);
                     if (message.contains(jobManager.getName() + " executed successfully")) {
-                        startBtn.setEnabled(false);
-                        stopBtn.setEnabled(true);
+                        startBtn.setEnabled(true);
+                        stopBtn.setEnabled(false);
                         allStopButton.setEnabled(true);
                     }
                 });
@@ -148,6 +148,7 @@ public class JobManagerView extends VerticalLayout {
             startBtn.addClickListener(event -> {
                 try {
                     scheduleJobWithoutCorn(jobManager);
+                    startBtn.setEnabled(false);
                     stopBtn.setEnabled(true);
                 } catch (Exception e) {
                     Notification.show("Error starting job: " + jobManager.getName() + " - " + e.getMessage(), 5000, Notification.Position.MIDDLE);
