@@ -25,6 +25,8 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.data.provider.Query;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
@@ -45,7 +47,7 @@ import java.util.stream.Collectors;
 @PageTitle("Job Manager")
 @Route(value = "jobManager", layout = MainLayout.class)
 @RolesAllowed({"ADMIN"})
-public class JobManagerView extends VerticalLayout {
+public class JobManagerView extends VerticalLayout implements BeforeEnterObserver {
 
     @Value("${script.path}")
     private String scriptPath;
@@ -93,6 +95,29 @@ public class JobManagerView extends VerticalLayout {
 
 
     }
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        restoreButtonStates();
+        try {
+            scheduler = StdSchedulerFactory.getDefaultScheduler();
+        } catch (SchedulerException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    private void restoreButtonStates() {
+        // Restore button states from the UI instance
+        Boolean allStartEnabled = (Boolean) ui.getSession().getAttribute("allStartEnabled");
+        Boolean allStopEnabled = (Boolean) ui.getSession().getAttribute("allStopEnabled");
+
+        System.out.println("allStartEnabled "+allStartEnabled);
+        if (allStartEnabled != null) {
+            allStartButton.setEnabled(allStartEnabled);
+        }
+
+        if (allStopEnabled != null) {
+            allStopButton.setEnabled(allStopEnabled);
+        }
+    }
 
     private TreeGrid<JobManager> createTreeGrid() {
         treeGrid = new TreeGrid<>();
@@ -127,7 +152,17 @@ public class JobManagerView extends VerticalLayout {
 
             startBtn.setEnabled(true);
             stopBtn.setEnabled(false);
-            allStopButton.setEnabled(true);
+
+            // Retrieve session attributes for this row's buttons
+            Boolean startBtnEnabled = (Boolean) ui.getSession().getAttribute("startBtnEnabled_" + jobManager.getId());
+            Boolean stopBtnEnabled = (Boolean) ui.getSession().getAttribute("stopBtnEnabled_" + jobManager.getId());
+
+            if (startBtnEnabled != null) {
+                startBtn.setEnabled(startBtnEnabled);
+            }
+            if (stopBtnEnabled != null) {
+                stopBtn.setEnabled(stopBtnEnabled);
+            }
 
             // Create a message listener specific to this jobManager and buttons
             Consumer<String> messageListener = message -> {
@@ -136,6 +171,9 @@ public class JobManagerView extends VerticalLayout {
                     if (message.contains(jobManager.getName() + " executed successfully")) {
                         startBtn.setEnabled(true);
                         stopBtn.setEnabled(false);
+                        // Update session attributes when button states change
+                        ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), true);
+                        ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), false);
                     }
                 });
             };
@@ -150,6 +188,9 @@ public class JobManagerView extends VerticalLayout {
                     scheduleJobWithoutCorn(jobManager);
                     startBtn.setEnabled(false);
                     stopBtn.setEnabled(true);
+                    // Update session attributes when button states change
+                    ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), false);
+                    ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), true);
                 } catch (Exception e) {
                     Notification.show("Error starting job: " + jobManager.getName() + " - " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
@@ -157,6 +198,11 @@ public class JobManagerView extends VerticalLayout {
 
             stopBtn.addClickListener(event -> {
                 stopJob(jobManager);
+                startBtn.setEnabled(true);
+                stopBtn.setEnabled(false);
+                // Update session attributes when button states change
+                ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), true);
+                ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), false);
             });
 
             // Add buttons to the layout
@@ -182,6 +228,8 @@ public class JobManagerView extends VerticalLayout {
             Notification.show("start running...", 3000, Notification.Position.MIDDLE);
             allStartButton.setEnabled(false);
             allStopButton.setEnabled(true);
+            ui.getSession().setAttribute("allStartEnabled", false);
+            ui.getSession().setAttribute("allStopEnabled", true);
             for (JobManager jobManager : jobManagerList) {
                 try {
                     if(jobManager.getCron() != null) {
@@ -199,6 +247,8 @@ public class JobManagerView extends VerticalLayout {
             Notification.show("stop running...", 3000, Notification.Position.MIDDLE);
             allStartButton.setEnabled(true);
             allStopButton.setEnabled(false);
+            ui.getSession().setAttribute("allStartEnabled", true);
+            ui.getSession().setAttribute("allStopEnabled", false);
             for (JobManager jobManager : jobManagerList) {
                 try {
                     if(jobManager.getCron() != null) {
