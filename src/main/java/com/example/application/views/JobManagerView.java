@@ -127,6 +127,7 @@ public class JobManagerView extends VerticalLayout {
 
             startBtn.setEnabled(true);
             stopBtn.setEnabled(false);
+            allStopButton.setEnabled(true);
 
             // Create a message listener specific to this jobManager and buttons
             Consumer<String> messageListener = message -> {
@@ -135,7 +136,6 @@ public class JobManagerView extends VerticalLayout {
                     if (message.contains(jobManager.getName() + " executed successfully")) {
                         startBtn.setEnabled(true);
                         stopBtn.setEnabled(false);
-                        allStopButton.setEnabled(true);
                     }
                 });
             };
@@ -180,6 +180,8 @@ public class JobManagerView extends VerticalLayout {
 
             List<JobManager> jobManagerList = jobDefinitionService.findAll();
             Notification.show("start running...", 3000, Notification.Position.MIDDLE);
+            allStartButton.setEnabled(false);
+            allStopButton.setEnabled(true);
             for (JobManager jobManager : jobManagerList) {
                 try {
                     if(jobManager.getCron() != null) {
@@ -195,9 +197,13 @@ public class JobManagerView extends VerticalLayout {
         allStopButton.addClickListener(event -> {
             List<JobManager> jobManagerList = jobDefinitionService.findAll();
             Notification.show("stop running...", 3000, Notification.Position.MIDDLE);
+            allStartButton.setEnabled(true);
+            allStopButton.setEnabled(false);
             for (JobManager jobManager : jobManagerList) {
                 try {
-                    stopJob(jobManager);
+                    if(jobManager.getCron() != null) {
+                        stopJob(jobManager);
+                    }
                 } catch (Exception e) {
                     Notification.show("Error stopping job: "+ jobManager.getName()+" " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
@@ -424,7 +430,7 @@ public class JobManagerView extends VerticalLayout {
                 MessageService.addMessage("Job " + jobManager.getName() + " stopped successfully.");
             } else {
                 // Job was not found
-                MessageService.addMessage("Job " + jobManager.getName() + " not found.");
+                MessageService.addMessage("Job " + jobManager.getName() + " not found running.");
             }
         } catch (SchedulerException e) {
             // Handle the exception and add an error message
