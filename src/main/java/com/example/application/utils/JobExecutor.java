@@ -1,6 +1,7 @@
 package com.example.application.utils;
 
 import com.example.application.data.entity.JobManager;
+import com.example.application.service.MessageService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.notification.Notification;
@@ -61,18 +62,13 @@ public class JobExecutor implements Job {
                 default:
                     throw new Exception("Unsupported job type: " + jobManager.getTyp());
             }
+            MessageService.addMessage("Job " + jobManager.getName() + " executed successfully.");
         } catch (Exception e) {
-         //   Notification.show("Error executing job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-          //  handleJobExecutionError(e);
-            System.out.println(e.getMessage());
+            e.getMessage();
+            MessageService.addMessage("Error while Job " + jobManager.getName() + " executed.");
         }
     }
 
-    private void handleJobExecutionError(Exception e) {
-        UI.getCurrent().access(() -> {
-            Notification.show("Error executing job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-        });
-    }
     private void executeSQLJob(JobManager jobManager) throws Exception {
         String jdbcUrl = "jdbc:your_database_url";
         String username = "your_db_username";

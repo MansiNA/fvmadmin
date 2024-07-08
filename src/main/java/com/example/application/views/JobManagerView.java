@@ -3,6 +3,7 @@ package com.example.application.views;
 import com.example.application.data.entity.JobManager;
 import com.example.application.data.entity.User;
 import com.example.application.data.service.JobDefinitionService;
+import com.example.application.service.MessageService;
 import com.example.application.utils.JobDefinitionUtils;
 import com.example.application.utils.JobExecutor;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -38,6 +39,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @PageTitle("Job Manager")
@@ -57,16 +59,20 @@ public class JobManagerView extends VerticalLayout {
     private Dialog resetPasswordDialog;
     private TreeGrid<JobManager> treeGrid;
     private Scheduler scheduler;
-    private Button startButton = new Button("All Start");
-    private Button stopButton = new Button("All Stop");
+    private Button allStartButton = new Button("All Start");
+    private Button allStopButton = new Button("All Stop");
+    private final UI ui;
+    private boolean listenerRegistered = false;
 
     public JobManagerView(JobDefinitionService jobDefinitionService) {
 
         this.jobDefinitionService = jobDefinitionService;
-
-        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"), startButton, stopButton);
+        this.ui = UI.getCurrent();
+        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"), allStartButton, allStopButton);
         hl.setAlignItems(Alignment.BASELINE);
         add(hl);
+        System.out.println("How to solve............................................");
+        allStopButton.setEnabled(false);
 
         HorizontalLayout treehl = new HorizontalLayout();
         treehl.setHeightFull();
@@ -122,11 +128,26 @@ public class JobManagerView extends VerticalLayout {
             startBtn.setEnabled(true);
             stopBtn.setEnabled(false);
 
+            // Create a message listener specific to this jobManager and buttons
+            Consumer<String> messageListener = message -> {
+                ui.access(() -> {
+                    Notification.show(message, 5000, Notification.Position.MIDDLE);
+                    if (message.contains(jobManager.getName() + " executed successfully")) {
+                        startBtn.setEnabled(false);
+                        stopBtn.setEnabled(true);
+                        allStopButton.setEnabled(true);
+                    }
+                });
+            };
+
+            MessageService.addListener(messageListener);
+            // Remove the listener when the component is detached to avoid memory leaks
+            buttonsLayout.addDetachListener(event -> MessageService.removeListener(messageListener));
+
             // Add click listeners for the buttons
             startBtn.addClickListener(event -> {
                 try {
                     scheduleJobWithoutCorn(jobManager);
-                    startBtn.setEnabled(false);
                     stopBtn.setEnabled(true);
                 } catch (Exception e) {
                     Notification.show("Error starting job: " + jobManager.getName() + " - " + e.getMessage(), 5000, Notification.Position.MIDDLE);
@@ -134,14 +155,7 @@ public class JobManagerView extends VerticalLayout {
             });
 
             stopBtn.addClickListener(event -> {
-                try {
-                    stopJob(jobManager);
-                    startBtn.setEnabled(true);
-                    stopBtn.setEnabled(false);
-                    Notification.show(jobManager.getName() + " stopped successfully", 3000, Notification.Position.MIDDLE);
-                } catch (Exception e) {
-                    Notification.show("Error stopping job: " + jobManager.getName() + " - " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-                }
+                stopJob(jobManager);
             });
 
             // Add buttons to the layout
@@ -161,7 +175,7 @@ public class JobManagerView extends VerticalLayout {
 //            }
 //        });
 
-        startButton.addClickListener(event -> {
+        allStartButton.addClickListener(event -> {
 
             List<JobManager> jobManagerList = jobDefinitionService.findAll();
             Notification.show("start running...", 3000, Notification.Position.MIDDLE);
@@ -177,7 +191,7 @@ public class JobManagerView extends VerticalLayout {
 
         });
 
-        stopButton.addClickListener(event -> {
+        allStopButton.addClickListener(event -> {
             List<JobManager> jobManagerList = jobDefinitionService.findAll();
             Notification.show("stop running...", 3000, Notification.Position.MIDDLE);
             for (JobManager jobManager : jobManagerList) {
@@ -401,10 +415,22 @@ public class JobManagerView extends VerticalLayout {
         scheduler.scheduleJob(jobDetail, trigger);
     }
 
-    public void stopJob(JobManager jobManager) throws SchedulerException {
+    public void stopJob(JobManager jobManager) {
         JobKey jobKey = new JobKey("job-" + jobManager.getId(), "group1");
-        scheduler.deleteJob(jobKey);
+        try {
+            if (scheduler.deleteJob(jobKey)) {
+                // Job was found and deleted successfully
+                MessageService.addMessage("Job " + jobManager.getName() + " stopped successfully.");
+            } else {
+                // Job was not found
+                MessageService.addMessage("Job " + jobManager.getName() + " not found.");
+            }
+        } catch (SchedulerException e) {
+            // Handle the exception and add an error message
+            MessageService.addMessage("Error stopping job: " + jobManager.getName() + " - " + e.getMessage());
+        }
     }
+
     private void executeJob(JobManager jobManager) {
         System.out.println("Executing job: " + jobManager.getName());
 
