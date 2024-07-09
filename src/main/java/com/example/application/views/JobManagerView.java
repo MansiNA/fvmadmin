@@ -20,15 +20,14 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.data.provider.Query;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
-import com.vaadin.flow.router.PageTitle;
-import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.*;
+import com.vaadin.flow.server.VaadinSession;
 import jakarta.annotation.security.RolesAllowed;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
@@ -43,6 +42,7 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
 
 @PageTitle("Job Manager")
 @Route(value = "jobManager", layout = MainLayout.class)
@@ -93,18 +93,18 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         add(treehl);
 
-
     }
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        restoreButtonStates();
+        restoreGlobalButtonStates();
         try {
             scheduler = StdSchedulerFactory.getDefaultScheduler();
         } catch (SchedulerException e) {
             throw new RuntimeException(e);
         }
     }
-    private void restoreButtonStates() {
+
+    private void restoreGlobalButtonStates() {
         // Restore button states from the UI instance
         Boolean allStartEnabled = (Boolean) ui.getSession().getAttribute("allStartEnabled");
         Boolean allStopEnabled = (Boolean) ui.getSession().getAttribute("allStopEnabled");
@@ -167,7 +167,20 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             // Create a message listener specific to this jobManager and buttons
             Consumer<String> messageListener = message -> {
                 ui.access(() -> {
-                    Notification.show(message, 5000, Notification.Position.MIDDLE);
+                    Boolean startButtonEnabled = (Boolean) ui.getSession().getAttribute("startBtnEnabled_" + jobManager.getId());
+                    Boolean stopButtonEnabled = (Boolean) ui.getSession().getAttribute("stopBtnEnabled_" + jobManager.getId());
+
+                    if (startButtonEnabled != null) {
+                        startBtn.setEnabled(startButtonEnabled);
+                    }
+                    if (stopButtonEnabled != null) {
+                        stopBtn.setEnabled(stopButtonEnabled);
+                    }
+                    restoreGlobalButtonStates();
+                    if(message != null && !message.equals("")) {
+                        Notification.show(message, 5000, Notification.Position.MIDDLE);
+                    }
+
                     if (message.contains(jobManager.getName() + " executed successfully")) {
                         startBtn.setEnabled(true);
                         stopBtn.setEnabled(false);
@@ -188,6 +201,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                     scheduleJobWithoutCorn(jobManager);
                     startBtn.setEnabled(false);
                     stopBtn.setEnabled(true);
+                    MessageService.addMessage("");
                     // Update session attributes when button states change
                     ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), false);
                     ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), true);
@@ -225,11 +239,12 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         allStartButton.addClickListener(event -> {
 
             List<JobManager> jobManagerList = jobDefinitionService.findAll();
-            Notification.show("start running...", 3000, Notification.Position.MIDDLE);
+         //   Notification.show("start running...", 3000, Notification.Position.MIDDLE);
             allStartButton.setEnabled(false);
             allStopButton.setEnabled(true);
             ui.getSession().setAttribute("allStartEnabled", false);
             ui.getSession().setAttribute("allStopEnabled", true);
+            MessageService.addMessage("start running...");
             for (JobManager jobManager : jobManagerList) {
                 try {
                     if(jobManager.getCron() != null) {
