@@ -178,6 +178,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 stopBtn.setEnabled(stopBtnEnabled);
             }
 
+            restoreGlobalButtonStates();
+
             startButtons.put(jobManager.getId(), startBtn);
             stopButtons.put(jobManager.getId(), stopBtn);
 
@@ -189,8 +191,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 //                    stopBtn.setEnabled(true);
                     notifySubscribers(",,"+jobManager.getId());
                     // Update session attributes when button states change
-                    ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), false);
-                    ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), true);
+//                    ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), false);
+//                    ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), true);
                 } catch (Exception e) {
                     Notification.show("Error starting job: " + jobManager.getName() + " - " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
@@ -201,8 +203,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 startBtn.setEnabled(true);
                 stopBtn.setEnabled(false);
                 // Update session attributes when button states change
-                ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), true);
-                ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), false);
+//                ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), true);
+//                ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), false);
             });
 
             // Add buttons to the layout
@@ -229,8 +231,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
          //   Notification.show("start running...", 3000, Notification.Position.MIDDLE);
             allStartButton.setEnabled(false);
             allStopButton.setEnabled(true);
-            ui.getSession().setAttribute("allStartEnabled", false);
-            ui.getSession().setAttribute("allStopEnabled", true);
+//            ui.getSession().setAttribute("allStartEnabled", false);
+//            ui.getSession().setAttribute("allStopEnabled", true);
             notifySubscribers("start running all...");
             for (JobManager jobManager : jobManagerList) {
                 try {
@@ -249,8 +251,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             Notification.show("stop running...", 3000, Notification.Position.MIDDLE);
             allStartButton.setEnabled(true);
             allStopButton.setEnabled(false);
-            ui.getSession().setAttribute("allStartEnabled", true);
-            ui.getSession().setAttribute("allStopEnabled", false);
+//            ui.getSession().setAttribute("allStartEnabled", true);
+//            ui.getSession().setAttribute("allStopEnabled", false);
             for (JobManager jobManager : jobManagerList) {
                 try {
                     if(jobManager.getCron() != null) {
@@ -588,6 +590,10 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
             subscriber = message -> {
                 ui.access(() -> {
+                    if (!ui.isAttached()) {
+                        // UI is detached, stop processing
+                        return;
+                    }
                     String[] parts = message.split(",,");
                     System.out.println(message + "######################################");
                     String displayMessage = parts[0].trim();
@@ -601,15 +607,21 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                     if (displayMessage.contains("start running all")) {
                         allStartButton.setEnabled(false);
                         allStopButton.setEnabled(true);
+                        ui.getSession().setAttribute("allStartEnabled", false);
+                        ui.getSession().setAttribute("allStopEnabled", true);
                     } else if (displayMessage.contains("stopped successfully") || displayMessage.contains("not found running") || displayMessage.contains("Error stopping job")) {
                         allStartButton.setEnabled(true);
                         allStopButton.setEnabled(false);
+                        ui.getSession().setAttribute("allStartEnabled", true);
+                        ui.getSession().setAttribute("allStopEnabled", false);
                         if(jobId != 0) {
                             Button startBtn = startButtons.get(jobId);
                             Button stopBtn = stopButtons.get(jobId);
 
                             startBtn.setEnabled(true);
                             stopBtn.setEnabled(false);
+                            ui.getSession().setAttribute("startBtnEnabled_" + jobId, true);
+                            ui.getSession().setAttribute("stopBtnEnabled_" + jobId, false);
                         }
                     }
 
@@ -619,9 +631,13 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                         if (displayMessage.equals("")) {
                             startBtn.setEnabled(false);
                             stopBtn.setEnabled(true);
+                            ui.getSession().setAttribute("startBtnEnabled_" + jobId, false);
+                            ui.getSession().setAttribute("stopBtnEnabled_" + jobId, true);
                         }  else if (displayMessage.contains("executed successfully")) {
                             startBtn.setEnabled(true);
                             stopBtn.setEnabled(false);
+                            ui.getSession().setAttribute("startBtnEnabled_" + jobId, true);
+                            ui.getSession().setAttribute("stopBtnEnabled_" + jobId, false);
                         }
                     }
                 });
