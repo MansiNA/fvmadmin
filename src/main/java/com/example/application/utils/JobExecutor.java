@@ -2,6 +2,7 @@ package com.example.application.utils;
 
 import com.example.application.data.entity.JobManager;
 import com.example.application.service.MessageService;
+import com.example.application.views.JobManagerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.notification.Notification;
@@ -62,10 +63,12 @@ public class JobExecutor implements Job {
                 default:
                     throw new Exception("Unsupported job type: " + jobManager.getTyp());
             }
-            MessageService.addMessage("Job " + jobManager.getName() + " executed successfully.");
+            JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId());
+         //   MessageService.addMessage("Job " + jobManager.getName() + " executed successfully.");
         } catch (Exception e) {
             e.getMessage();
-            MessageService.addMessage("Error while Job " + jobManager.getName() + " executed.");
+            JobManagerView.notifySubscribers("Error while Job " + jobManager.getName() + " executed,,"+jobManager.getId());
+          //  MessageService.addMessage("Error while Job " + jobManager.getName() + " executed.");
         }
     }
 

@@ -26,6 +26,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.data.provider.Query;
+import com.vaadin.flow.function.SerializableConsumer;
 import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.VaadinSession;
 import jakarta.annotation.security.RolesAllowed;
@@ -39,7 +40,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -64,11 +67,22 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Button allStartButton = new Button("All Start");
     private Button allStopButton = new Button("All Stop");
     private final UI ui;
-    private boolean listenerRegistered = false;
+    private static final Set<SerializableConsumer<String>> subscribers = new HashSet<>();
+    private static final Set<SerializableConsumer<String>> start_subscribers = new HashSet<>();
+    private static final ExecutorService notifierThread = Executors.newSingleThreadExecutor();
+    private static final ExecutorService startnotifierThread = Executors.newSingleThreadExecutor();
+    private SerializableConsumer<String> subscriber;
+    Map<Integer, Button> startButtons = new HashMap<>();
+    Map<Integer, Button> stopButtons = new HashMap<>();
+    List<JobManager> listOfJobManager;
 
     public JobManagerView(JobDefinitionService jobDefinitionService) {
 
         this.jobDefinitionService = jobDefinitionService;
+
+        addAttachListener(event -> updateJobManagerSubscription());
+        addDetachListener(event -> updateJobManagerSubscription());
+
         this.ui = UI.getCurrent();
         HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"), allStartButton, allStopButton);
         hl.setAlignItems(Alignment.BASELINE);
@@ -96,7 +110,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     }
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        restoreGlobalButtonStates();
+    //    restoreGlobalButtonStates();
         try {
             scheduler = StdSchedulerFactory.getDefaultScheduler();
         } catch (SchedulerException e) {
@@ -121,8 +135,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     private TreeGrid<JobManager> createTreeGrid() {
         treeGrid = new TreeGrid<>();
-        jobDefinitionService.findAll();
-        treeGrid.setItems(jobDefinitionService.getRootProjects(), jobDefinitionService::getChildProjects);
+        updateGrid();
 
         // Add the hierarchy column for displaying the hierarchical data
         treeGrid.addHierarchyColumn(JobManager::getName).setHeader("Name").setAutoWidth(true);
@@ -141,6 +154,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         treeGrid.setThemeName("dense");
         treeGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_NO_ROW_BORDERS, GridVariant.LUMO_COMPACT);
+
 
         treeGrid.addComponentColumn(jobManager -> {
             // Create a layout to hold the buttons for each row
@@ -164,44 +178,16 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 stopBtn.setEnabled(stopBtnEnabled);
             }
 
-            // Create a message listener specific to this jobManager and buttons
-            Consumer<String> messageListener = message -> {
-                ui.access(() -> {
-                    Boolean startButtonEnabled = (Boolean) ui.getSession().getAttribute("startBtnEnabled_" + jobManager.getId());
-                    Boolean stopButtonEnabled = (Boolean) ui.getSession().getAttribute("stopBtnEnabled_" + jobManager.getId());
-
-                    if (startButtonEnabled != null) {
-                        startBtn.setEnabled(startButtonEnabled);
-                    }
-                    if (stopButtonEnabled != null) {
-                        stopBtn.setEnabled(stopButtonEnabled);
-                    }
-                    restoreGlobalButtonStates();
-                    if(message != null && !message.equals("")) {
-                        Notification.show(message, 5000, Notification.Position.MIDDLE);
-                    }
-
-                    if (message.contains(jobManager.getName() + " executed successfully")) {
-                        startBtn.setEnabled(true);
-                        stopBtn.setEnabled(false);
-                        // Update session attributes when button states change
-                        ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), true);
-                        ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), false);
-                    }
-                });
-            };
-
-            MessageService.addListener(messageListener);
-            // Remove the listener when the component is detached to avoid memory leaks
-            buttonsLayout.addDetachListener(event -> MessageService.removeListener(messageListener));
+            startButtons.put(jobManager.getId(), startBtn);
+            stopButtons.put(jobManager.getId(), stopBtn);
 
             // Add click listeners for the buttons
             startBtn.addClickListener(event -> {
                 try {
                     scheduleJobWithoutCorn(jobManager);
-                    startBtn.setEnabled(false);
-                    stopBtn.setEnabled(true);
-                    MessageService.addMessage("");
+//                    startBtn.setEnabled(false);
+//                    stopBtn.setEnabled(true);
+                    notifySubscribers(",,"+jobManager.getId());
                     // Update session attributes when button states change
                     ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), false);
                     ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), true);
@@ -224,6 +210,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             return buttonsLayout;
         }).setHeader("Actions").setAutoWidth(true);
 
+        updateJobManagerSubscription();
 //        treeGrid.asSingleSelect().addValueChangeListener(event -> {
 //            JobManager selectedJob = event.getValue();
 //            if (selectedJob != null) {
@@ -244,7 +231,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             allStopButton.setEnabled(true);
             ui.getSession().setAttribute("allStartEnabled", false);
             ui.getSession().setAttribute("allStopEnabled", true);
-            MessageService.addMessage("start running...");
+            notifySubscribers("start running all...");
             for (JobManager jobManager : jobManagerList) {
                 try {
                     if(jobManager.getCron() != null) {
@@ -423,7 +410,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     }
 
     private void updateGrid() {
-        jobDefinitionService.findAll();
+        listOfJobManager = jobDefinitionService.findAll();
         treeGrid.setItems(jobDefinitionService.getRootProjects(), jobDefinitionService ::getChildProjects);
     }
 
@@ -492,14 +479,14 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         try {
             if (scheduler.deleteJob(jobKey)) {
                 // Job was found and deleted successfully
-                MessageService.addMessage("Job " + jobManager.getName() + " stopped successfully.");
+                notifySubscribers("Job " + jobManager.getName() + " stopped successfully,,"+jobManager.getId());
             } else {
                 // Job was not found
-                MessageService.addMessage("Job " + jobManager.getName() + " not found running.");
+                notifySubscribers("Job " + jobManager.getName() + " not found running,,"+jobManager.getId());
             }
         } catch (SchedulerException e) {
             // Handle the exception and add an error message
-            MessageService.addMessage("Error stopping job: " + jobManager.getName() + " - " + e.getMessage());
+            notifySubscribers("Error stopping job: " + jobManager.getName() + " - " + e.getMessage()+",,"+jobManager.getId());
         }
     }
 
@@ -587,6 +574,95 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         // Print the successful output for debugging
         System.out.println("Shell script executed successfully:\n" + output);
+    }
+
+    private void updateJobManagerSubscription() {
+        UI ui = getUI().orElse(null);
+
+        // Subscribe if the view is attached
+        if (ui != null) {
+            if (subscriber != null) {
+                // Already subscribed
+                return;
+            }
+
+            subscriber = message -> {
+                ui.access(() -> {
+                    String[] parts = message.split(",,");
+                    System.out.println(message + "######################################");
+                    String displayMessage = parts[0].trim();
+                    int jobId = 0;
+                    if (parts.length == 2) {
+                        jobId = Integer.parseInt(parts[1].trim());
+                    }
+                    if (displayMessage != null && !displayMessage.isEmpty()) {
+                        Notification.show(displayMessage, 5000, Notification.Position.MIDDLE);
+                    }
+                    if (displayMessage.contains("start running all")) {
+                        allStartButton.setEnabled(false);
+                        allStopButton.setEnabled(true);
+                    } else if (displayMessage.contains("stopped successfully") || displayMessage.contains("not found running") || displayMessage.contains("Error stopping job")) {
+                        allStartButton.setEnabled(true);
+                        allStopButton.setEnabled(false);
+                        if(jobId != 0) {
+                            Button startBtn = startButtons.get(jobId);
+                            Button stopBtn = stopButtons.get(jobId);
+
+                            startBtn.setEnabled(true);
+                            stopBtn.setEnabled(false);
+                        }
+                    }
+
+                    if (jobId != 0) {
+                        Button startBtn = startButtons.get(jobId);
+                        Button stopBtn = stopButtons.get(jobId);
+                        if (displayMessage.equals("")) {
+                            startBtn.setEnabled(false);
+                            stopBtn.setEnabled(true);
+                        }  else if (displayMessage.contains("executed successfully")) {
+                            startBtn.setEnabled(true);
+                            stopBtn.setEnabled(false);
+                        }
+                    }
+                });
+            };
+
+            synchronized (subscribers) {
+                subscribers.add(subscriber);
+            }
+        } else {
+            if (subscriber == null) {
+                // Already unsubscribed
+                return;
+            }
+
+            synchronized (subscribers) {
+                subscribers.remove(subscriber);
+            }
+            subscriber = null;
+        }
+    }
+
+
+    public static void notifySubscribers(String message) {
+        Set<SerializableConsumer<String>> subscribersSnapshot;
+        synchronized (subscribers) {
+            subscribersSnapshot = new HashSet<>(subscribers);
+        }
+
+        for (SerializableConsumer<String> subscriber : subscribersSnapshot) {
+            notifierThread.execute(
+                    () -> {
+                        try {
+                            subscriber.accept(message);
+
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+            );
+        }
     }
 
     public void stopShellJob() {
