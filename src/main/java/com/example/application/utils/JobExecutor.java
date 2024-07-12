@@ -16,11 +16,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JobExecutor implements Job {
 
@@ -29,6 +33,9 @@ public class JobExecutor implements Job {
 
     @Value("${run.id}")
     private String runID;
+    private static final ConcurrentHashMap<Integer, Process> runningProcesses = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, ProcessBuilder> runningProcessBuilders = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, AtomicBoolean> stopFlags = new ConcurrentHashMap<>();
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
@@ -45,6 +52,7 @@ public class JobExecutor implements Job {
 
         executeJob(jobManager);
     }
+
 
     private void executeJob(JobManager jobManager) {
         System.out.println("Executing job: " + jobManager.getName());
@@ -67,7 +75,11 @@ public class JobExecutor implements Job {
          //   MessageService.addMessage("Job " + jobManager.getName() + " executed successfully.");
         } catch (Exception e) {
             e.getMessage();
-            JobManagerView.notifySubscribers("Error while Job " + jobManager.getName() + " executed,,"+jobManager.getId());
+            if(e.getMessage().contains("was stopped manually")) {
+                System.out.println(e.getMessage());
+            } else {
+                JobManagerView.notifySubscribers("Error while Job " + jobManager.getName() + " executed,,"+jobManager.getId());
+            }
           //  MessageService.addMessage("Error while Job " + jobManager.getName() + " executed.");
         }
     }
@@ -103,7 +115,7 @@ public class JobExecutor implements Job {
     private void executeShellJob(JobManager jobManager) throws Exception {
         String jobName = jobManager.getName();
         String sPath = scriptPath + jobManager.getCommand();
-
+        System.out.println("start executeShellJob");
         ProcessBuilder processBuilder;
         if (System.getProperty("os.name").toLowerCase().contains("win")) {
             processBuilder = new ProcessBuilder("cmd.exe", "/c", "\"" + sPath + "\"", jobManager.getParameter());
@@ -112,18 +124,84 @@ public class JobExecutor implements Job {
         }
         processBuilder.redirectErrorStream(true);
         Process process = processBuilder.start();
+        System.out.println("middle executeShellJob");
+        runningProcesses.put(jobManager.getId(), process);
+        runningProcessBuilders.put(jobManager.getId(), processBuilder);
+        stopFlags.put(jobManager.getId(), new AtomicBoolean(false));
 
+        // Capture the output
         StringBuilder output = new StringBuilder();
         BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
         String line;
-        while ((line = reader.readLine()) != null) {
-            output.append(line).append("\n");
-        }
-        int exitCode = process.waitFor();
-        if (exitCode != 0) {
-            throw new Exception("Shell script execution failed with exit code " + exitCode + "\nOutput:\n" + output);
-        }
 
+        try {
+            while ((line = reader.readLine()) != null) {
+                if (stopFlags.get(jobManager.getId()).get()) {
+                    process.destroyForcibly(); // Forcefully terminate the process
+                    throw new Exception("Job " + jobName + " was stopped manually.");
+                }
+                output.append(line).append("\n");
+            }
+            if (stopFlags.get(jobManager.getId()).get()) {
+                System.out.println("Job " + jobName + " was stopped.");
+                process.destroyForcibly();
+                throw new Exception("Job " + jobName + " was stopped manually.");
+            }
+
+            int exitCode = process.waitFor();
+
+            if (exitCode != 0) {
+                throw new Exception("Shell script execution failed with exit code " + exitCode + "\nOutput:\n" + output);
+            }
+        } catch (IOException e) {
+            throw new Exception("IOException occurred during shell script execution: " + e.getMessage(), e);
+        } catch (InterruptedException e) {
+            process.destroyForcibly();
+            Thread.currentThread().interrupt();
+            throw new Exception("Job " + jobName + " was interrupted.", e);
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    System.err.println("Error closing reader: " + e.getMessage());
+                }
+            }
+        }
+        System.out.println("end executeShellJob");
         System.out.println("Shell script executed successfully:\n" + output);
+    }
+
+    public static void stopProcess(int jobId) {
+        Process process = runningProcesses.get(jobId);
+        ProcessBuilder processBuilder = runningProcessBuilders.get(jobId);
+        if (process != null) {
+            System.out.println("Stopping process for job id: " + jobId);
+            process.destroy();
+
+            try {
+                if (process.isAlive()) {
+                    process.waitFor(10, TimeUnit.SECONDS); // Wait for 10 seconds max
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                // Handle interruption if necessary
+            } finally {
+                if (process.isAlive()) {
+                    process.destroyForcibly(); // Forceful destroy if not terminated
+                }
+                runningProcesses.remove(jobId);
+             //   stopFlags.get(jobId).set(true);
+            }
+        }
+        process.destroyForcibly();
+        AtomicBoolean flag = stopFlags.get(jobId);
+
+        if (flag != null) {
+            flag.set(true);
+            System.out.println("stopFlags....... " + stopFlags );
+        } else {
+            System.out.println("No stop flag found for job id: " + jobId);
+        }
     }
 }

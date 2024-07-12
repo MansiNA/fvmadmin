@@ -43,6 +43,7 @@ import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -479,13 +480,17 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     public void stopJob(JobManager jobManager) {
         JobKey jobKey = new JobKey("job-" + jobManager.getId(), "group1");
         try {
+            // scheduler.interrupt(jobKey);
             if (scheduler.deleteJob(jobKey)) {
                 // Job was found and deleted successfully
                 notifySubscribers("Job " + jobManager.getName() + " stopped successfully,,"+jobManager.getId());
+
             } else {
                 // Job was not found
                 notifySubscribers("Job " + jobManager.getName() + " not found running,,"+jobManager.getId());
             }
+            JobExecutor.stopProcess(jobManager.getId());
+        //    stopNotifiers();
         } catch (SchedulerException e) {
             // Handle the exception and add an error message
             notifySubscribers("Error stopping job: " + jobManager.getName() + " - " + e.getMessage()+",,"+jobManager.getId());
@@ -615,6 +620,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                         ui.getSession().setAttribute("allStartEnabled", true);
                         ui.getSession().setAttribute("allStopEnabled", false);
                         if(jobId != 0) {
+
                             Button startBtn = startButtons.get(jobId);
                             Button stopBtn = stopButtons.get(jobId);
 
@@ -625,7 +631,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                         }
                     }
 
-                    if (jobId != 0) {
+                    if (jobId != 0) {                                                        
                         Button startBtn = startButtons.get(jobId);
                         Button stopBtn = stopButtons.get(jobId);
                         if (displayMessage.equals("")) {
