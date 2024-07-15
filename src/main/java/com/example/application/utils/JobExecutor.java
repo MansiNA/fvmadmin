@@ -75,9 +75,10 @@ public class JobExecutor implements Job {
          //   MessageService.addMessage("Job " + jobManager.getName() + " executed successfully.");
         } catch (Exception e) {
             e.getMessage();
+            System.out.println(e.getMessage());
             if(e.getMessage().contains("was stopped manually")) {
                 System.out.println(e.getMessage());
-            } else {
+            } else if (!stopFlags.get(jobManager.getId()).get()) {
                 JobManagerView.notifySubscribers("Error while Job " + jobManager.getName() + " executed,,"+jobManager.getId());
             }
           //  MessageService.addMessage("Error while Job " + jobManager.getName() + " executed.");
@@ -126,7 +127,6 @@ public class JobExecutor implements Job {
         Process process = processBuilder.start();
         System.out.println("middle executeShellJob");
         runningProcesses.put(jobManager.getId(), process);
-        runningProcessBuilders.put(jobManager.getId(), processBuilder);
         stopFlags.put(jobManager.getId(), new AtomicBoolean(false));
 
         // Capture the output
@@ -172,9 +172,8 @@ public class JobExecutor implements Job {
         System.out.println("Shell script executed successfully:\n" + output);
     }
 
-    public static void stopProcess(int jobId) {
+    public static void stopProcessold(int jobId) {
         Process process = runningProcesses.get(jobId);
-        ProcessBuilder processBuilder = runningProcessBuilders.get(jobId);
         if (process != null) {
             System.out.println("Stopping process for job id: " + jobId);
             process.destroy();
@@ -195,6 +194,43 @@ public class JobExecutor implements Job {
             }
         }
         process.destroyForcibly();
+        AtomicBoolean flag = stopFlags.get(jobId);
+
+        if (flag != null) {
+            flag.set(true);
+            System.out.println("stopFlags....... " + stopFlags );
+        } else {
+            System.out.println("No stop flag found for job id: " + jobId);
+        }
+    }
+    public static void stopProcess(int jobId) {
+        Process process = runningProcesses.get(jobId);
+        ProcessBuilder processBuilder = runningProcessBuilders.get(jobId);
+        if (process != null) {
+            System.out.println("Stopping process for job id: " + jobId);
+            try {
+                String killCommand="taskkill /PID " + process.pid() + " /T /F";
+                System.out.println("killCommand: " + killCommand);
+                Runtime.getRuntime().exec(killCommand);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            try {
+                if (process.isAlive()) {
+                    process.waitFor(10, TimeUnit.SECONDS); // Wait for 10 seconds max
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                // Handle interruption if necessary
+            } finally {
+                if (process.isAlive()) {
+                    process.destroyForcibly(); // Forceful destroy if not terminated
+                }
+                runningProcesses.remove(jobId);
+                //   stopFlags.get(jobId).set(true);
+            }
+        }
         AtomicBoolean flag = stopFlags.get(jobId);
 
         if (flag != null) {

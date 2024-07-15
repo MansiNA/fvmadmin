@@ -482,6 +482,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         try {
             // scheduler.interrupt(jobKey);
             if (scheduler.deleteJob(jobKey)) {
+                JobExecutor.stopProcess(jobManager.getId());
                 // Job was found and deleted successfully
                 notifySubscribers("Job " + jobManager.getName() + " stopped successfully,,"+jobManager.getId());
 
@@ -489,7 +490,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 // Job was not found
                 notifySubscribers("Job " + jobManager.getName() + " not found running,,"+jobManager.getId());
             }
-            JobExecutor.stopProcess(jobManager.getId());
+         //   JobExecutor.stopProcess(jobManager.getId());
         //    stopNotifiers();
         } catch (SchedulerException e) {
             // Handle the exception and add an error message
