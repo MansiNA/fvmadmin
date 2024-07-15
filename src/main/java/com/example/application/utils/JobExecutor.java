@@ -1,6 +1,8 @@
 package com.example.application.utils;
 
+import com.example.application.data.entity.JobHistory;
 import com.example.application.data.entity.JobManager;
+import com.example.application.data.service.JobHistoryService;
 import com.example.application.service.MessageService;
 import com.example.application.views.JobManagerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,10 +24,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Component
 public class JobExecutor implements Job {
 
     @Value("${script.path}")
@@ -33,15 +37,20 @@ public class JobExecutor implements Job {
 
     @Value("${run.id}")
     private String runID;
+
+    private JobHistoryService jobHistoryService;
     private static final ConcurrentHashMap<Integer, Process> runningProcesses = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Integer, ProcessBuilder> runningProcessBuilders = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Integer, AtomicBoolean> stopFlags = new ConcurrentHashMap<>();
+    private JobHistory jobHistory;
+    private int exitCode;
+    private long processID;
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         scriptPath = context.getMergedJobDataMap().getString("scriptPath");
         runID = context.getMergedJobDataMap().getString("runID");
-
+        jobHistoryService = SpringContextHolder.getBean(JobHistoryService.class);
         String jobDefinitionString = context.getMergedJobDataMap().getString("jobManager");
         JobManager jobManager;
         try {
@@ -49,10 +58,41 @@ public class JobExecutor implements Job {
         } catch (JsonProcessingException e) {
             throw new JobExecutionException("Error deserializing job definition", e);
         }
-
         executeJob(jobManager);
     }
 
+    private JobHistory createJobHistory(JobManager jobManager) {
+        JobHistory jobHistory = new JobHistory();
+        jobHistory.setProcessId(processID);
+        jobHistory.setJobName(jobManager.getName());
+        jobHistory.setNamespace(jobManager.getNamespace());
+        jobHistory.setParameter(jobManager.getParameter());
+        jobHistory.setStartType(jobManager.getTyp());
+        jobHistory.setMemoryUsage(getMemoryUsage()); // Placeholder, update with actual memory usage if available
+        jobHistory.setStartTime(new Date());
+        jobHistory.setEndTime(null); // Will be updated after job completion
+        jobHistory.setReturnValue(""); // Placeholder
+        jobHistory.setExitCode(null); // Will be updated after job completion
+        return jobHistory;
+    }
+    private String getMemoryUsage() {
+        Runtime runtime = Runtime.getRuntime();
+        long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+        return String.format("%d MB", usedMemory / (1024 * 1024)); // Convert bytes to MB
+    }
+    private void updateJobHistoryOnSuccess(JobHistory jobHistory) {
+        jobHistory.setEndTime(new Date());
+        jobHistory.setReturnValue("Job executed successfully.");
+        jobHistory.setExitCode(exitCode);
+        jobHistoryService.createOrUpdateJobHistory(jobHistory);
+    }
+
+    private void updateJobHistoryOnFailure(JobHistory jobHistory, Exception e) {
+        jobHistory.setEndTime(new Date());
+        jobHistory.setReturnValue(e.getMessage());
+        jobHistory.setExitCode(exitCode);
+        jobHistoryService.createOrUpdateJobHistory(jobHistory);
+    }
 
     private void executeJob(JobManager jobManager) {
         System.out.println("Executing job: " + jobManager.getName());
@@ -71,10 +111,12 @@ public class JobExecutor implements Job {
                 default:
                     throw new Exception("Unsupported job type: " + jobManager.getTyp());
             }
+            updateJobHistoryOnSuccess(jobHistory);
             JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId());
          //   MessageService.addMessage("Job " + jobManager.getName() + " executed successfully.");
         } catch (Exception e) {
             e.getMessage();
+            updateJobHistoryOnFailure(jobHistory, e);
             System.out.println(e.getMessage());
             if(e.getMessage().contains("was stopped manually")) {
                 System.out.println(e.getMessage());
@@ -125,6 +167,10 @@ public class JobExecutor implements Job {
         }
         processBuilder.redirectErrorStream(true);
         Process process = processBuilder.start();
+        processID = process.pid();
+        jobHistory = createJobHistory(jobManager);
+        jobHistoryService.createOrUpdateJobHistory(jobHistory);
+
         System.out.println("middle executeShellJob");
         runningProcesses.put(jobManager.getId(), process);
         stopFlags.put(jobManager.getId(), new AtomicBoolean(false));
@@ -148,7 +194,7 @@ public class JobExecutor implements Job {
                 throw new Exception("Job " + jobName + " was stopped manually.");
             }
 
-            int exitCode = process.waitFor();
+            exitCode = process.waitFor();
 
             if (exitCode != 0) {
                 throw new Exception("Shell script execution failed with exit code " + exitCode + "\nOutput:\n" + output);
