@@ -45,11 +45,14 @@ public class JobExecutor implements Job {
     private JobHistory jobHistory;
     private int exitCode;
     private long processID;
+    private String startType;
+    private StringBuilder output;
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         scriptPath = context.getMergedJobDataMap().getString("scriptPath");
         runID = context.getMergedJobDataMap().getString("runID");
+        startType = context.getMergedJobDataMap().getString("startType");
         jobHistoryService = SpringContextHolder.getBean(JobHistoryService.class);
         String jobDefinitionString = context.getMergedJobDataMap().getString("jobManager");
         JobManager jobManager;
@@ -61,35 +64,51 @@ public class JobExecutor implements Job {
         executeJob(jobManager);
     }
 
-    private JobHistory createJobHistory(JobManager jobManager) {
+    private JobHistory createJobHistory(JobManager jobManager) throws IOException {
         JobHistory jobHistory = new JobHistory();
         jobHistory.setProcessId(processID);
         jobHistory.setJobName(jobManager.getName());
         jobHistory.setNamespace(jobManager.getNamespace());
         jobHistory.setParameter(jobManager.getParameter());
-        jobHistory.setStartType(jobManager.getTyp());
-        jobHistory.setMemoryUsage(getMemoryUsage()); // Placeholder, update with actual memory usage if available
+        jobHistory.setStartType(startType);
         jobHistory.setStartTime(new Date());
         jobHistory.setEndTime(null); // Will be updated after job completion
         jobHistory.setReturnValue(""); // Placeholder
         jobHistory.setExitCode(null); // Will be updated after job completion
         return jobHistory;
     }
-    private String getMemoryUsage() {
-        Runtime runtime = Runtime.getRuntime();
-        long usedMemory = runtime.totalMemory() - runtime.freeMemory();
-        return String.format("%d MB", usedMemory / (1024 * 1024)); // Convert bytes to MB
-    }
-    private void updateJobHistoryOnSuccess(JobHistory jobHistory) {
-        jobHistory.setEndTime(new Date());
-        jobHistory.setReturnValue("Job executed successfully.");
-        jobHistory.setExitCode(exitCode);
-        jobHistoryService.createOrUpdateJobHistory(jobHistory);
+    private String getMemoryUsage(long processID) {
+        try {
+            // Command to get the memory usage of the process by its PID
+            String command = "tasklist /FI \"PID eq " + processID + "\" /FO CSV /NH";
+            Process process = Runtime.getRuntime().exec(command);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line = reader.readLine();
+            reader.close();  // Close the reader after reading
+
+            if (line != null) {
+                // The tasklist output is CSV formatted, so we need to split by comma and trim quotes
+                String[] columns = line.split(",");
+                if (columns.length >= 6) {
+                    // Memory usage is typically in the 5th or 6th column depending on tasklist output
+                    String memoryUsage = columns[4].replace("\"", "").trim(); // Adjust column index if necessary
+                    return memoryUsage;
+                }
+            }
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return "Memory usage not available";
     }
 
-    private void updateJobHistoryOnFailure(JobHistory jobHistory, Exception e) {
+    private void updateJobHistory() {
         jobHistory.setEndTime(new Date());
-        jobHistory.setReturnValue(e.getMessage());
+        if (output != null && output.length() > 0) {
+            jobHistory.setReturnValue(output.toString());
+        } else {
+            jobHistory.setReturnValue("No output or empty output.");
+        }
+        jobHistory.setMemoryUsage(getMemoryUsage( processID));
         jobHistory.setExitCode(exitCode);
         jobHistoryService.createOrUpdateJobHistory(jobHistory);
     }
@@ -111,12 +130,12 @@ public class JobExecutor implements Job {
                 default:
                     throw new Exception("Unsupported job type: " + jobManager.getTyp());
             }
-            updateJobHistoryOnSuccess(jobHistory);
+            updateJobHistory();
             JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId());
          //   MessageService.addMessage("Job " + jobManager.getName() + " executed successfully.");
         } catch (Exception e) {
             e.getMessage();
-            updateJobHistoryOnFailure(jobHistory, e);
+            updateJobHistory();
             System.out.println(e.getMessage());
             if(e.getMessage().contains("was stopped manually")) {
                 System.out.println(e.getMessage());
@@ -176,7 +195,7 @@ public class JobExecutor implements Job {
         stopFlags.put(jobManager.getId(), new AtomicBoolean(false));
 
         // Capture the output
-        StringBuilder output = new StringBuilder();
+        output = new StringBuilder();
         BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
         String line;
 

@@ -431,6 +431,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         jobDataMap.put("scriptPath", scriptPath);
         jobDataMap.put("runID", runID);
+        jobDataMap.put("startType", "cron");
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
                 .withIdentity("job-" + jobManager.getId(), "group1")
@@ -461,6 +462,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         jobDataMap.put("scriptPath", scriptPath);
         jobDataMap.put("runID", runID);
+        jobDataMap.put("startType", "manual");
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
                 .withIdentity("job-" + jobManager.getId(), "group1")
