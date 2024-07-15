@@ -635,12 +635,15 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                     if (jobId != 0) {                                                        
                         Button startBtn = startButtons.get(jobId);
                         Button stopBtn = stopButtons.get(jobId);
+                        System.out.println(startBtn + ".......startbtn" + startButtons.size());
+                        System.out.println(stopBtn + ".......startbtn" + stopButtons.size());
                         if (displayMessage.equals("")) {
                             startBtn.setEnabled(false);
                             stopBtn.setEnabled(true);
                             ui.getSession().setAttribute("startBtnEnabled_" + jobId, false);
                             ui.getSession().setAttribute("stopBtnEnabled_" + jobId, true);
-                        }  else if (displayMessage.contains("executed successfully")) {
+                        }  else if (displayMessage.contains("executed successfully") || displayMessage.contains("Error while Job")) {
+                            System.out.println(jobId +" jobid ...........");
                             startBtn.setEnabled(true);
                             stopBtn.setEnabled(false);
                             ui.getSession().setAttribute("startBtnEnabled_" + jobId, true);
