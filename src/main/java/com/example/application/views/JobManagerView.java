@@ -420,7 +420,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private void scheduleJob(JobManager jobManager) throws SchedulerException {
         scheduler = StdSchedulerFactory.getDefaultScheduler();
         scheduler.start();
-
+        notifySubscribers(",,"+jobManager.getId());
         JobDataMap jobDataMap = new JobDataMap();
         try {
             jobDataMap.put("jobManager", JobDefinitionUtils.serializeJobDefinition(jobManager));
@@ -477,6 +477,16 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 .build();
 
         scheduler.scheduleJob(jobDetail, trigger);
+    }
+
+    public boolean isJobRunning(int jobId) throws SchedulerException {
+        JobKey jobKey = new JobKey("job-" + jobId, "group1");
+        for (JobExecutionContext jobExecutionContext : scheduler.getCurrentlyExecutingJobs()) {
+            if (jobExecutionContext.getJobDetail().getKey().equals(jobKey)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void stopJob(JobManager jobManager) {
@@ -603,11 +613,15 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                         return;
                     }
                     String[] parts = message.split(",,");
-                    System.out.println(message + "######################################");
+                    System.out.println(message);
                     String displayMessage = parts[0].trim();
                     int jobId = 0;
+                    boolean isCron = false;
                     if (parts.length == 2) {
                         jobId = Integer.parseInt(parts[1].trim());
+                    } else if (parts.length == 3) {
+                        jobId = Integer.parseInt(parts[1].trim());
+                        isCron = parts[2].trim().contains("cron");
                     }
                     if (displayMessage != null && !displayMessage.isEmpty()) {
                         Notification.show(displayMessage, 5000, Notification.Position.MIDDLE);
@@ -637,19 +651,26 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                     if (jobId != 0) {                                                        
                         Button startBtn = startButtons.get(jobId);
                         Button stopBtn = stopButtons.get(jobId);
-                        System.out.println(startBtn + ".......startbtn" + startButtons.size());
-                        System.out.println(stopBtn + ".......startbtn" + stopButtons.size());
-                        if (displayMessage.equals("")) {
+                        if (displayMessage.equals("") ) {
+
                             startBtn.setEnabled(false);
                             stopBtn.setEnabled(true);
                             ui.getSession().setAttribute("startBtnEnabled_" + jobId, false);
                             ui.getSession().setAttribute("stopBtnEnabled_" + jobId, true);
                         }  else if (displayMessage.contains("executed successfully") || displayMessage.contains("Error while Job")) {
-                            System.out.println(jobId +" jobid ...........");
-                            startBtn.setEnabled(true);
-                            stopBtn.setEnabled(false);
-                            ui.getSession().setAttribute("startBtnEnabled_" + jobId, true);
-                            ui.getSession().setAttribute("stopBtnEnabled_" + jobId, false);
+
+                            if(isCron) {
+                                startBtn.setEnabled(false);
+                                stopBtn.setEnabled(true);
+                                ui.getSession().setAttribute("startBtnEnabled_" + jobId, false);
+                                ui.getSession().setAttribute("stopBtnEnabled_" + jobId, true);
+                            } else {
+                                startBtn.setEnabled(true);
+                                stopBtn.setEnabled(false);
+                                ui.getSession().setAttribute("startBtnEnabled_" + jobId, true);
+                                ui.getSession().setAttribute("stopBtnEnabled_" + jobId, false);
+                            }
+
                         }
                     }
                 });

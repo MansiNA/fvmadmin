@@ -10,6 +10,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
+import lombok.Getter;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -131,7 +132,7 @@ public class JobExecutor implements Job {
                     throw new Exception("Unsupported job type: " + jobManager.getTyp());
             }
             updateJobHistory();
-            JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId());
+            JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
          //   MessageService.addMessage("Job " + jobManager.getName() + " executed successfully.");
         } catch (Exception e) {
             e.getMessage();
