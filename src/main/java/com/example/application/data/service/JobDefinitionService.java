@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -16,15 +17,22 @@ public class JobDefinitionService {
 
     private final JobDefinitionRepository jobDefinitionRepository;
     private List<JobManager> jobManagerList;
-
+    private Map<Integer, JobManager> jobManagerMap;
     @Autowired
     public JobDefinitionService(JobDefinitionRepository jobDefinitionRepository) {
         this.jobDefinitionRepository = jobDefinitionRepository;
         this.jobManagerList = jobDefinitionRepository.findAll();
+        this.jobManagerMap = buildJobManagerMap(jobManagerList);
+    }
+
+    private Map<Integer, JobManager> buildJobManagerMap(List<JobManager> jobManagerList) {
+        return jobManagerList.stream()
+                .collect(Collectors.toMap(JobManager::getId, jobManager -> jobManager));
     }
 
     public List<JobManager> findAll() {
         jobManagerList = jobDefinitionRepository.findAll();
+        jobManagerMap = buildJobManagerMap(jobManagerList);  // Rebuild the map
         return jobManagerList;
     }
 
@@ -40,7 +48,7 @@ public class JobDefinitionService {
         jobDefinitionRepository.deleteById(id);
     }
 
-    public List<JobManager> getRootProjects() {
+    public List<JobManager> getRootJobManager() {
         System.out.println("-----------"+ jobManagerList.size()+"-----------------------------");
         List<JobManager> rootProjects = jobManagerList
                 .stream()
@@ -53,7 +61,7 @@ public class JobDefinitionService {
         return rootProjects;
     }
 
-    public List<JobManager> getChildProjects(JobManager parent) {
+    public List<JobManager> getChildJobManager(JobManager parent) {
 
         List<JobManager> childProjects = jobManagerList
                 .stream()
@@ -80,5 +88,8 @@ public class JobDefinitionService {
             }
         }
         return false;
+    }
+    public Map<Integer, JobManager> getJobManagerMap() {
+        return jobManagerMap;
     }
 }

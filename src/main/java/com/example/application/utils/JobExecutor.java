@@ -2,8 +2,8 @@ package com.example.application.utils;
 
 import com.example.application.data.entity.JobHistory;
 import com.example.application.data.entity.JobManager;
+import com.example.application.data.service.JobDefinitionService;
 import com.example.application.data.service.JobHistoryService;
-import com.example.application.service.MessageService;
 import com.example.application.views.JobManagerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.UI;
@@ -26,6 +26,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -38,7 +39,7 @@ public class JobExecutor implements Job {
 
     @Value("${run.id}")
     private String runID;
-
+    private JobDefinitionService jobDefinitionService;
     private JobHistoryService jobHistoryService;
     private static final ConcurrentHashMap<Integer, Process> runningProcesses = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Integer, ProcessBuilder> runningProcessBuilders = new ConcurrentHashMap<>();
@@ -48,6 +49,7 @@ public class JobExecutor implements Job {
     private long processID;
     private String startType;
     private StringBuilder output;
+    private JobManager jobManager;
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
@@ -55,8 +57,9 @@ public class JobExecutor implements Job {
         runID = context.getMergedJobDataMap().getString("runID");
         startType = context.getMergedJobDataMap().getString("startType");
         jobHistoryService = SpringContextHolder.getBean(JobHistoryService.class);
+        jobDefinitionService = SpringContextHolder.getBean(JobDefinitionService.class);
         String jobDefinitionString = context.getMergedJobDataMap().getString("jobManager");
-        JobManager jobManager;
+
         try {
             jobManager = JobDefinitionUtils.deserializeJobDefinition(jobDefinitionString);
         } catch (JsonProcessingException e) {
@@ -112,6 +115,10 @@ public class JobExecutor implements Job {
         jobHistory.setMemoryUsage(getMemoryUsage( processID));
         jobHistory.setExitCode(exitCode);
         jobHistoryService.createOrUpdateJobHistory(jobHistory);
+
+        jobManager.setExitCode(exitCode);
+        Map<Integer, JobManager> jobManagerMap = jobDefinitionService.getJobManagerMap();
+        jobManagerMap.put(jobManager.getId(), jobManager);
     }
 
     private void executeJob(JobManager jobManager) {

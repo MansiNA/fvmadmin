@@ -23,6 +23,8 @@ public class JobManager implements Serializable {
     private String typ;
     private String parameter;
 
+    @Transient  // Indicates that this field is not persistent
+    private Integer exitCode;
     @Override
     public String toString() {
         return "JobDefinition{" +

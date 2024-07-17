@@ -1,9 +1,7 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.JobManager;
-import com.example.application.data.entity.User;
 import com.example.application.data.service.JobDefinitionService;
-import com.example.application.service.MessageService;
 import com.example.application.utils.JobDefinitionUtils;
 import com.example.application.utils.JobExecutor;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -17,18 +15,13 @@ import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.treegrid.TreeGrid;
-import com.vaadin.flow.data.provider.DataProvider;
-import com.vaadin.flow.data.provider.Query;
 import com.vaadin.flow.function.SerializableConsumer;
 import com.vaadin.flow.router.*;
-import com.vaadin.flow.server.VaadinSession;
 import jakarta.annotation.security.RolesAllowed;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
@@ -43,9 +36,6 @@ import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 
 @PageTitle("Job Manager")
@@ -149,7 +139,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setAutoWidth(true);
 
         // Set additional properties for the tree grid
-        treeGrid.setWidth("350px");
+      //  treeGrid.setWidth("350px");
         treeGrid.addExpandListener(event -> System.out.println(String.format("Expanded %s item(s)", event.getItems().size())));
         treeGrid.addCollapseListener(event -> System.out.println(String.format("Collapsed %s item(s)", event.getItems().size())));
 
@@ -191,6 +181,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 //                    startBtn.setEnabled(false);
 //                    stopBtn.setEnabled(true);
                     notifySubscribers(",,"+jobManager.getId());
+
                     // Update session attributes when button states change
 //                    ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), false);
 //                    ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), true);
@@ -213,6 +204,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             return buttonsLayout;
         }).setHeader("Actions").setAutoWidth(true);
 
+        System.out.println(".......................xxxxxx "+ startButtons.size() + " xxxxxxx................");
         updateJobManagerSubscription();
 //        treeGrid.asSingleSelect().addValueChangeListener(event -> {
 //            JobManager selectedJob = event.getValue();
@@ -414,7 +406,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     private void updateGrid() {
         listOfJobManager = jobDefinitionService.findAll();
-        treeGrid.setItems(jobDefinitionService.getRootProjects(), jobDefinitionService ::getChildProjects);
+        treeGrid.setItems(jobDefinitionService.getRootJobManager(), jobDefinitionService ::getChildJobManager);
     }
 
     private void scheduleJob(JobManager jobManager) throws SchedulerException {
@@ -510,6 +502,21 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         }
     }
 
+    public void triggerChildJobs(int jobManagerId) {
+        Map<Integer, JobManager> jobManagerMap = jobDefinitionService.getJobManagerMap();
+        JobManager jobManager = jobManagerMap.get(jobManagerId);
+        if (jobManager != null && jobManager.getExitCode() != null && jobManager.getExitCode() == 0) {
+            List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
+            for (JobManager childJob : childJobs) {
+                try {
+                    scheduleJobWithoutCorn(childJob);
+                    notifySubscribers(",,"+jobManager.getId());
+                } catch (SchedulerException e) {
+                    System.out.println("Error scheduling child job: " + childJob.getName() + " - " + e.getMessage());
+                }
+            }
+        }
+    }
     private void executeJob(JobManager jobManager) {
         System.out.println("Executing job: " + jobManager.getName());
 
@@ -651,6 +658,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                     if (jobId != 0) {                                                        
                         Button startBtn = startButtons.get(jobId);
                         Button stopBtn = stopButtons.get(jobId);
+                        System.out.println(startButtons.size() + "    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+                        System.out.println(stopButtons.size() + "    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
                         if (displayMessage.equals("") ) {
 
                             startBtn.setEnabled(false);
@@ -665,10 +674,14 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                                 ui.getSession().setAttribute("startBtnEnabled_" + jobId, false);
                                 ui.getSession().setAttribute("stopBtnEnabled_" + jobId, true);
                             } else {
+
+
                                 startBtn.setEnabled(true);
                                 stopBtn.setEnabled(false);
                                 ui.getSession().setAttribute("startBtnEnabled_" + jobId, true);
                                 ui.getSession().setAttribute("stopBtnEnabled_" + jobId, false);
+                                System.out.println("Job id = "+jobId+ " startBtn = "+startBtn+" stopBtn = "+stopBtn);
+                                triggerChildJobs(jobId);
                             }
 
                         }
