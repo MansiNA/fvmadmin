@@ -67,6 +67,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     Map<Integer, Button> startButtons = new HashMap<>();
     Map<Integer, Button> stopButtons = new HashMap<>();
     List<JobManager> listOfJobManager;
+    boolean isContinueChildJob = false;
 
     public JobManagerView(JobDefinitionService jobDefinitionService) {
 
@@ -79,7 +80,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"), allStartButton, allStopButton);
         hl.setAlignItems(Alignment.BASELINE);
         add(hl);
-        System.out.println("How to solve............................................");
+
         allStopButton.setEnabled(false);
 
         HorizontalLayout treehl = new HorizontalLayout();
@@ -115,7 +116,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         Boolean allStartEnabled = (Boolean) ui.getSession().getAttribute("allStartEnabled");
         Boolean allStopEnabled = (Boolean) ui.getSession().getAttribute("allStopEnabled");
 
-        System.out.println("allStartEnabled "+allStartEnabled);
         if (allStartEnabled != null) {
             allStartButton.setEnabled(allStartEnabled);
         }
@@ -174,18 +174,18 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
             startButtons.put(jobManager.getId(), startBtn);
             stopButtons.put(jobManager.getId(), stopBtn);
-            System.out.println("...........................................xxxxxx "+ startButtons.size() + " xxxxxxx.........................................");
+       //     System.out.println("...........................................xxxxxx "+ startButtons.size() + " xxxxxxx.........................................");
             // Add click listeners for the buttons
             startBtn.addClickListener(event -> {
                 try {
-                    scheduleJobWithoutCorn(jobManager);
-//                    startBtn.setEnabled(false);
-//                    stopBtn.setEnabled(true);
-                    notifySubscribers(",,"+jobManager.getId());
 
-                    // Update session attributes when button states change
-//                    ui.getSession().setAttribute("startBtnEnabled_" + jobManager.getId(), false);
-//                    ui.getSession().setAttribute("stopBtnEnabled_" + jobManager.getId(), true);
+                    List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
+                    boolean hasChildren = !childJobs.isEmpty();
+                    if (hasChildren) {
+                        showJobDialog(jobManager);
+                    } else {
+                       executeJob(jobManager);
+                    }
                 } catch (Exception e) {
                     Notification.show("Error starting job: " + jobManager.getName() + " - " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
@@ -281,6 +281,51 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             expandAll(childItems);
         }
     }
+
+    private void showJobDialog(JobManager jobManager) {
+        Dialog dialog = new Dialog();
+        dialog.add(new Text(" Do you want to execute only this job or the entire job chain?"));
+
+        Button onlyThisJobButton = new Button("Only this job", event -> {
+            executeJob(jobManager);
+            dialog.close();
+        });
+
+        Button entireChainButton = new Button("Entire job chain", event -> {
+            executeJobChain(jobManager);
+            dialog.close();
+        });
+
+        HorizontalLayout dialogButtons = new HorizontalLayout(onlyThisJobButton, entireChainButton);
+        dialog.add(dialogButtons);
+        dialog.open();
+    }
+
+    private void executeJob(JobManager jobManager) {
+        try {
+            scheduleJobWithoutCorn(jobManager);
+
+            notifySubscribers(",," + jobManager.getId());
+
+        } catch (Exception e) {
+            Notification.show("Error starting job: " + jobManager.getName() + " - " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
+
+    private void executeJobChain(JobManager jobManager) {
+        Notification.show("Executing job chain starting with: " + jobManager.getName());
+        isContinueChildJob = true;
+        executeJob(jobManager);
+
+//        int exitCode = jobManager.getExitCode();
+//        if (exitCode == 0) {
+//            List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
+//            for (JobManager childJobManager : childJobs) {
+//                executeJobChain(childJobManager);
+//            }
+//        }
+    }
+
     private VerticalLayout showEditAndNewDialog(JobManager jobManager, String context){
         VerticalLayout dialogLayout = new VerticalLayout();
         Dialog dialog = new Dialog();
@@ -308,7 +353,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         });
 
         saveButton.addClickListener(saveEvent -> {
-            System.out.println("saved data....");
             if(context.equals("New")) {
                 saveSqlDefinition(newJobDefination);
             } else {
@@ -513,7 +557,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         }
     }
 
-  private void executeJob(JobManager jobManager) {
+  private void executeJobold(JobManager jobManager) {
         System.out.println("Executing job: " + jobManager.getName());
 
         try {
@@ -600,7 +644,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     }
 
     private void updateJobManagerSubscription() {
-        UI ui = getUI().orElse(null);
+//        UI ui = getUI().orElse(null);
 
         if (ui != null) {
             if (subscriber != null) {
@@ -698,40 +742,43 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     }
 
     private void updateAllButtonsState(UI ui, boolean startEnabled, boolean stopEnabled) {
-        allStartButton.setEnabled(startEnabled);
-        allStopButton.setEnabled(stopEnabled);
-        ui.getSession().setAttribute("allStartEnabled", startEnabled);
-        ui.getSession().setAttribute("allStopEnabled", stopEnabled);
+        ui.access(() -> {
+            allStartButton.setEnabled(startEnabled);
+            allStopButton.setEnabled(stopEnabled);
+            ui.getSession().setAttribute("allStartEnabled", startEnabled);
+            ui.getSession().setAttribute("allStopEnabled", stopEnabled);
+        });
     }
 
     private void updateJobButtonsState(UI ui, int jobId, boolean startEnabled, boolean stopEnabled) {
-        Button startBtn = startButtons.get(jobId);
-        Button stopBtn = stopButtons.get(jobId);
+        ui.access(() -> {
+            Button startBtn = startButtons.get(jobId);
+            Button stopBtn = stopButtons.get(jobId);
 
-        if (startBtn != null && stopBtn != null) {
-            startBtn.setEnabled(startEnabled);
-            stopBtn.setEnabled(stopEnabled);
-            ui.getSession().setAttribute("startBtnEnabled_" + jobId, startEnabled);
-            ui.getSession().setAttribute("stopBtnEnabled_" + jobId, stopEnabled);
-            System.out.println("Job id = " + jobId + " startBtn = " + startBtn + " stopBtn = " + stopBtn);
-        }
+            if (startBtn != null && stopBtn != null) {
+                startBtn.setEnabled(startEnabled);
+                stopBtn.setEnabled(stopEnabled);
+                ui.getSession().setAttribute("startBtnEnabled_" + jobId, startEnabled);
+                ui.getSession().setAttribute("stopBtnEnabled_" + jobId, stopEnabled);
+                System.out.println("Job id = " + jobId + " startBtn = " + startEnabled + " stopBtn = " + stopEnabled);
+            }
+        });
     }
 
-    private void triggerChildJobs( int jobId) {
+    private void triggerChildJobs(int jobId) {
 
-            Map<Integer, JobManager> jobManagerMap = jobDefinitionService.getJobManagerMap();
-                    JobManager jobManager = jobManagerMap.get(jobId);
-                    if (jobManager != null && jobManager.getExitCode() != null && jobManager.getExitCode() == 0) {
-                        List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
-                        for (JobManager childJob : childJobs) {
-                            try {
-                                scheduleJobWithoutCorn(childJob);
-                                notifySubscribers(",,"+jobManager.getId());
-                            } catch (SchedulerException e) {
-                                System.out.println("Error scheduling child job: " + childJob.getName() + " - " + e.getMessage());
-                            }
-                        }
-                    }
-
+        Map<Integer, JobManager> jobManagerMap = jobDefinitionService.getJobManagerMap();
+        JobManager jobManager = jobManagerMap.get(jobId);
+        if (isContinueChildJob && jobManager != null && jobManager.getExitCode() != null && jobManager.getExitCode() == 0) {
+            List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
+            for (JobManager childJob : childJobs) {
+                try {
+                    scheduleJobWithoutCorn(childJob);
+                    notifySubscribers(",," + childJob.getId());
+                } catch (SchedulerException e) {
+                    System.out.println("Error scheduling child job: " + childJob.getName() + " - " + e.getMessage());
+                }
+            }
+        }
     }
 }
