@@ -151,7 +151,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         treeGrid.addComponentColumn(jobManager -> {
             // Create a layout to hold the buttons for each row
             HorizontalLayout buttonsLayout = new HorizontalLayout();
-
+            if (!jobManager.getTyp().equals("Node")) {
             // Instantiate new buttons for each row
             Button startBtn = new Button("Start");
             Button stopBtn = new Button("Stop");
@@ -182,7 +182,14 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                     List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
                     boolean hasChildren = !childJobs.isEmpty();
                     if (hasChildren) {
-                        showJobDialog(jobManager);
+                        if (jobManager.getTyp().equals("Jobchain")) {
+
+                            isContinueChildJob = true;
+                            triggerChildJobs(jobManager.getId());
+                            notifySubscribers(",," + jobManager.getId());
+                        } else {
+                            showJobDialog(jobManager);
+                        }
                     } else {
                        executeJob(jobManager);
                     }
@@ -202,6 +209,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
             // Add buttons to the layout
             buttonsLayout.add(startBtn, stopBtn);
+            }
+
             return buttonsLayout;
         }).setHeader("Actions").setAutoWidth(true);
 
@@ -230,7 +239,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             notifySubscribers("start running all...");
             for (JobManager jobManager : jobManagerList) {
                 try {
-                    if(jobManager.getCron() != null) {
+                    String type = jobManager.getTyp();
+                    if(jobManager.getCron() != null && !type.equals("Node") && !type.equals("Jobchain")) {
                         scheduleJob(jobManager);
                     }
                 } catch (Exception e) {
@@ -287,6 +297,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         dialog.add(new Text(" Do you want to execute only this job or the entire job chain?"));
 
         Button onlyThisJobButton = new Button("Only this job", event -> {
+            isContinueChildJob = false;
             executeJob(jobManager);
             dialog.close();
         });
@@ -766,17 +777,32 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     }
 
     private void triggerChildJobs(int jobId) {
-
         Map<Integer, JobManager> jobManagerMap = jobDefinitionService.getJobManagerMap();
         JobManager jobManager = jobManagerMap.get(jobId);
-        if (isContinueChildJob && jobManager != null && jobManager.getExitCode() != null && jobManager.getExitCode() == 0) {
-            List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
-            for (JobManager childJob : childJobs) {
-                try {
-                    scheduleJobWithoutCorn(childJob);
-                    notifySubscribers(",," + childJob.getId());
-                } catch (SchedulerException e) {
-                    System.out.println("Error scheduling child job: " + childJob.getName() + " - " + e.getMessage());
+        if (jobManager != null) {
+            // Execute child jobs for Jobchain type without checking the exit code
+            if ("Jobchain".equals(jobManager.getTyp())) {
+                List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
+                for (JobManager childJob : childJobs) {
+                    try {
+                        System.out.println("Start child (Jobchain) " + childJob.getName());
+                        scheduleJobWithoutCorn(childJob);
+                        notifySubscribers(",," + childJob.getId());
+                    } catch (SchedulerException e) {
+                        System.out.println("Error scheduling child job (Jobchain): " + childJob.getName() + " - " + e.getMessage());
+                    }
+                }
+            }
+            // Execute child jobs for other types only if exit code is 0
+            else if (isContinueChildJob && jobManager.getExitCode() != null && jobManager.getExitCode() == 0) {
+                List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
+                for (JobManager childJob : childJobs) {
+                    try {
+                        scheduleJobWithoutCorn(childJob);
+                        notifySubscribers(",," + childJob.getId());
+                    } catch (SchedulerException e) {
+                        System.out.println("Error scheduling child job: " + childJob.getName() + " - " + e.getMessage());
+                    }
                 }
             }
         }
