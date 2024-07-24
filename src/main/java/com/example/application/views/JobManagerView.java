@@ -39,6 +39,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 
 @PageTitle("Job Manager")
@@ -527,13 +528,13 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         jobDataMap.put("startType", "cron");
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
-                .withIdentity("job-" + jobManager.getId(), "group1")
+                .withIdentity("job-cron-" + jobManager.getId(), "group1")
                 .usingJobData(jobDataMap)
                 .build();
 
         // Using the cron expression from the JobManager
         Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-" + jobManager.getId(), "group1")
+                .withIdentity("trigger-cron-" + jobManager.getId(), "group1")
                 .withSchedule(CronScheduleBuilder.cronSchedule(jobManager.getCron()))
                 .forJob(jobDetail)
                 .build();
@@ -560,13 +561,13 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         jobDataMap.put("startType", "manual");
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
-                .withIdentity("job-" + jobManager.getId(), "group1")
+                .withIdentity("job-manual-" + jobManager.getId(), "group1")
                 .usingJobData(jobDataMap)
                 .build();
 
         // Create a trigger to run immediately
         Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-" + jobManager.getId(), "group1")
+                .withIdentity("trigger-manual-" + jobManager.getId(), "group1")
                 .startNow() // Trigger will start immediately
                 .forJob(jobDetail)
                 .build();
@@ -589,18 +590,24 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         logPannel.logMessage(Constants.INFO, "Starting stopJob for " + jobManager.getName());
         JobKey jobKey = new JobKey("job-" + jobManager.getId(), "group1");
         try {
-            // scheduler.interrupt(jobKey);
-            if (scheduler.deleteJob(jobKey)) {
-                JobExecutor.stopProcess(jobManager.getId());
-                // Job was found and deleted successfully
-                notifySubscribers("Job " + jobManager.getName() + " stopped successfully,,"+jobManager.getId());
+            JobKey cronJobKey = new JobKey("job-cron-" + jobManager.getId(), "group1");
+            JobKey manualJobKey = new JobKey("job-manual-" + jobManager.getId(), "group1");
 
-            } else {
-                // Job was not found
-                notifySubscribers("Job " + jobManager.getName() + " not found running,,"+jobManager.getId());
+            // Try stopping cron job
+            if (scheduler.checkExists(cronJobKey)) {
+                if (scheduler.deleteJob(cronJobKey)) {
+                    JobExecutor.stopProcess(jobManager.getId());
+                    notifySubscribers("Cron job " + jobManager.getName() + " stopped successfully,," + jobManager.getId());
+                }
             }
-         //   JobExecutor.stopProcess(jobManager.getId());
-        //    stopNotifiers();
+
+            // Try stopping manual job
+            if (scheduler.checkExists(manualJobKey)) {
+                if (scheduler.deleteJob(manualJobKey)) {
+                    JobExecutor.stopProcess(jobManager.getId());
+                    notifySubscribers("Manual job " + jobManager.getName() + " stopped successfully,," + jobManager.getId());
+                }
+            }
         } catch (SchedulerException e) {
             // Handle the exception and add an error message
             logPannel.logMessage(Constants.ERROR, "error while stopJob for " + jobManager.getName());
@@ -773,7 +780,10 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         if (displayMessage.contains("start running all")) {
             updateAllButtonsState(ui, false, true);
         } else if (displayMessage.contains("stopped successfully") || displayMessage.contains("not found running") || displayMessage.contains("Error stopping job")) {
-            updateAllButtonsState(ui, true, false);
+            if(!isAnyCronJobRunning()) {
+                updateAllButtonsState(ui, true, false);
+            }
+
             if (jobId != 0) {
                 updateJobButtonsState(ui, jobId, true, false);
             }
@@ -784,7 +794,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 updateJobButtonsState(ui, jobId, false, true);
             } else if (displayMessage.contains("executed successfully") || displayMessage.contains("Error while Job")) {
                 if (isCron) {
-                    updateJobButtonsState(ui, jobId, false, true);
+                    updateJobButtonsState(ui, jobId, true, false);
                 } else {
                     chainCount = chainCount -1;
                     updateJobButtonsState(ui, jobId, true, false);
@@ -866,5 +876,24 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             count += countJobChainChildren(child.getId());
         }
         return count;
+    }
+
+    public boolean isAnyCronJobRunning() {
+        try {
+            Map<Integer, JobManager> jobManagerMap = jobDefinitionService.getJobManagerMap();
+            List<JobManager> cronJobManagers = jobManagerMap.values().stream()
+                    .filter(jobManager -> jobManager.getCron() != null) // Check that cron is not null
+                    .collect(Collectors.toList());
+            for (JobManager jobManager : cronJobManagers) {
+                JobKey cronJobKey = new JobKey("job-cron-" + jobManager.getId(), "group1");
+                if (scheduler.checkExists(cronJobKey)) {
+                  return true;
+                }
+            }
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+            // Handle the exception appropriately
+        }
+        return false;
     }
 }

@@ -62,9 +62,14 @@ public class JobExecutor implements Job {
 
         try {
             jobManager = JobDefinitionUtils.deserializeJobDefinition(jobDefinitionString);
+            if(startType.equals("cron")) {
+                JobManagerView.notifySubscribers(",,"+jobManager.getId());
+              //  JobManagerView.notifySubscribers(",,"+jobManager.getId()+",,"+startType);
+            }
         } catch (JsonProcessingException e) {
             throw new JobExecutionException("Error deserializing job definition", e);
         }
+        System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"+ jobManager.getName());
         executeJob(jobManager);
     }
 
