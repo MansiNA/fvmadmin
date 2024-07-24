@@ -21,10 +21,7 @@ import org.springframework.stereotype.Component;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -131,7 +128,7 @@ public class JobExecutor implements Job {
 
         try {
             switch (jobManager.getTyp()) {
-                case "SQL":
+                case "sql_procedure":
                     executeSQLJob(jobManager);
                     break;
                 case "Command":
@@ -139,27 +136,28 @@ public class JobExecutor implements Job {
                     break;
                 case "Shell":
                     executeShellJob(jobManager);
+                    updateJobHistory();
                     break;
                 default:
                     throw new Exception("Unsupported job type: " + jobManager.getTyp());
             }
-            updateJobHistory();
+
             JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
          //   MessageService.addMessage("Job " + jobManager.getName() + " executed successfully.");
         } catch (Exception e) {
             e.getMessage();
             updateJobHistory();
             System.out.println(e.getMessage());
-            if(e.getMessage().contains("was stopped manually")) {
-                System.out.println(e.getMessage());
-            } else if (!stopFlags.get(jobManager.getId()).get()) {
-                JobManagerView.notifySubscribers("Error while Job " + jobManager.getName() + " executed,,"+jobManager.getId());
-            }
+//            if(e.getMessage().contains("was stopped manually")) {
+//                System.out.println(e.getMessage());
+//            } else if (!stopFlags.get(jobManager.getId()).get()) {
+//                JobManagerView.notifySubscribers("Error while Job " + jobManager.getName() + " executed,,"+jobManager.getId());
+//            }
           //  MessageService.addMessage("Error while Job " + jobManager.getName() + " executed.");
         }
     }
 
-    private void executeSQLJob(JobManager jobManager) throws Exception {
+    private void executeSQLJobold(JobManager jobManager) throws Exception {
         String jdbcUrl = "jdbc:your_database_url";
         String username = "your_db_username";
         String password = "your_db_password";
@@ -170,6 +168,35 @@ public class JobExecutor implements Job {
             while (rs.next()) {
                 System.out.println(rs.getString(1));
             }
+        }
+    }
+    private void executeSQLJob(JobManager jobManager) throws Exception {
+        // Retrieve the JDBC connection details from properties or configuration
+        String jdbcUrl = "jdbc:oracle:thin:@37.120.189.200:1521:xe";  // Update this with your actual JDBC URL
+        String username = "EKP_MONITOR";        // Update this with your actual database username
+        String password = "ekp123";        // Update this with your actual database password
+
+        // The command should be in the format of an Oracle PL/SQL block
+        // For example: "BEGIN do_stuff(?); END;"
+        String procedureCall = jobManager.getCommand();
+        String parameter = jobManager.getParameter();
+
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
+             CallableStatement stmt = conn.prepareCall(procedureCall)) {
+
+            jobHistory = createJobHistory(jobManager);
+            jobHistoryService.createOrUpdateJobHistory(jobHistory);
+            // Set the procedure parameter
+            stmt.setInt(1, Integer.parseInt(parameter)); // Assuming the parameter is an integer
+
+            // Execute the stored procedure
+            stmt.execute();
+
+            System.out.println("Procedure executed successfully.");
+
+        } catch (SQLException e) {
+
+            throw new Exception("Error executing SQL procedure", e);
         }
     }
 
