@@ -1,5 +1,6 @@
 package com.example.application.utils;
 
+import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.JobHistory;
 import com.example.application.data.entity.JobManager;
 import com.example.application.data.service.JobDefinitionService;
@@ -39,12 +40,16 @@ public class JobExecutor implements Job {
     private JobDefinitionService jobDefinitionService;
     private JobHistoryService jobHistoryService;
     private static final ConcurrentHashMap<Integer, Process> runningProcesses = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<Integer, ProcessBuilder> runningProcessBuilders = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, CallableStatement> runningStatements = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Integer, AtomicBoolean> stopFlags = new ConcurrentHashMap<>();
     private JobHistory jobHistory;
     private int exitCode;
     private long processID;
     private String startType;
+    private String dbUrl;
+    private String username;
+    private String password;
+
     private StringBuilder output;
     private JobManager jobManager;
 
@@ -53,8 +58,13 @@ public class JobExecutor implements Job {
         scriptPath = context.getMergedJobDataMap().getString("scriptPath");
         runID = context.getMergedJobDataMap().getString("runID");
         startType = context.getMergedJobDataMap().getString("startType");
+        dbUrl = context.getMergedJobDataMap().getString("dbUrl");
+        username = context.getMergedJobDataMap().getString("username");
+        password = context.getMergedJobDataMap().getString("password");
+
         jobHistoryService = SpringContextHolder.getBean(JobHistoryService.class);
         jobDefinitionService = SpringContextHolder.getBean(JobDefinitionService.class);
+
         String jobDefinitionString = context.getMergedJobDataMap().getString("jobManager");
 
         try {
@@ -148,11 +158,11 @@ public class JobExecutor implements Job {
             e.getMessage();
             updateJobHistory();
             System.out.println(e.getMessage());
-//            if(e.getMessage().contains("was stopped manually")) {
-//                System.out.println(e.getMessage());
-//            } else if (!stopFlags.get(jobManager.getId()).get()) {
-//                JobManagerView.notifySubscribers("Error while Job " + jobManager.getName() + " executed,,"+jobManager.getId());
-//            }
+            if(e.getMessage().contains("was stopped manually")) {
+                System.out.println(e.getMessage());
+            } else if (!stopFlags.get(jobManager.getId()).get()) {
+                JobManagerView.notifySubscribers("Error while Job " + jobManager.getName() + " executed,,"+jobManager.getId());
+            }
           //  MessageService.addMessage("Error while Job " + jobManager.getName() + " executed.");
         }
     }
@@ -172,17 +182,20 @@ public class JobExecutor implements Job {
     }
     private void executeSQLJob(JobManager jobManager) throws Exception {
         // Retrieve the JDBC connection details from properties or configuration
-        String jdbcUrl = "jdbc:oracle:thin:@37.120.189.200:1521:xe";  // Update this with your actual JDBC URL
-        String username = "EKP_MONITOR";        // Update this with your actual database username
-        String password = "ekp123";        // Update this with your actual database password
+//        String jdbcUrl = "jdbc:oracle:thin:@37.120.189.200:1521:xe";  // Update this with your actual JDBC URL
+//        String username = "EKP_MONITOR";        // Update this with your actual database username
+//        String password = "ekp123";        // Update this with your actual database password
 
-        // The command should be in the format of an Oracle PL/SQL block
         // For example: "BEGIN do_stuff(?); END;"
         String procedureCall = jobManager.getCommand();
         String parameter = jobManager.getParameter();
 
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
+        System.out.println(dbUrl+ "----------"+ username+"------------"+ password);
+        try (Connection conn = DriverManager.getConnection(dbUrl, username, password);
              CallableStatement stmt = conn.prepareCall(procedureCall)) {
+            runningStatements.put(jobManager.getId(), stmt);
+
+            stopFlags.put(jobManager.getId(), new AtomicBoolean(false));
 
             jobHistory = createJobHistory(jobManager);
             jobHistoryService.createOrUpdateJobHistory(jobHistory);
@@ -195,7 +208,9 @@ public class JobExecutor implements Job {
             System.out.println("Procedure executed successfully.");
 
         } catch (SQLException e) {
-
+            if (stopFlags.get(jobManager.getId()).get()) {
+                throw new Exception("Job " + jobManager.getName() + " was stopped manually.");
+            }
             throw new Exception("Error executing SQL procedure", e);
         }
     }
@@ -310,7 +325,6 @@ public class JobExecutor implements Job {
     }
     public static void stopProcess(int jobId) {
         Process process = runningProcesses.get(jobId);
-        ProcessBuilder processBuilder = runningProcessBuilders.get(jobId);
         if (process != null) {
             System.out.println("Stopping process for job id: " + jobId);
             try {
@@ -343,6 +357,28 @@ public class JobExecutor implements Job {
             System.out.println("stopFlags....... " + stopFlags );
         } else {
             System.out.println("No stop flag found for job id: " + jobId);
+        }
+    }
+
+    public static void stopSQLProcedure(int jobId) {
+        AtomicBoolean flag = stopFlags.get(jobId);
+        if (flag != null) {
+            flag.set(true);
+            System.out.println("Stopping process for job id: " + jobId);
+        }
+
+        CallableStatement stmt = runningStatements.get(jobId);
+        if (stmt != null) {
+            try {
+                if (!stmt.isClosed()) {
+                    stmt.cancel();
+                    System.out.println("SQL procedure execution stopped for job id: " + jobId);
+                } else {
+                    System.out.println("Statement is already closed for job id: " + jobId);
+                }
+            } catch (SQLException e) {
+                System.err.println("Error stopping SQL procedure for job id: " + jobId + " - " + e.getMessage());
+            }
         }
     }
 }

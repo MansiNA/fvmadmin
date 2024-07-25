@@ -1,6 +1,8 @@
 package com.example.application.views;
 
+import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.JobManager;
+import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.JobDefinitionService;
 import com.example.application.utils.Constants;
 import com.example.application.utils.JobDefinitionUtils;
@@ -9,6 +11,7 @@ import com.example.application.utils.LogPannel;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.crud.Crud;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
@@ -62,6 +65,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Button allStartButton = new Button("All Start");
     private Button allStopButton = new Button("All Stop");
     private final UI ui;
+    private ComboBox<Configuration> comboBox;
     private static final Set<SerializableConsumer<String>> subscribers = new HashSet<>();
     private static final Set<SerializableConsumer<String>> start_subscribers = new HashSet<>();
     private static final ExecutorService notifierThread = Executors.newSingleThreadExecutor();
@@ -78,7 +82,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Boolean isLogsVisible = false;
     private Boolean isVisible = false;
 
-    public JobManagerView(JobDefinitionService jobDefinitionService) {
+    public JobManagerView(JobDefinitionService jobDefinitionService, ConfigurationService configurationService) {
 
         this.jobDefinitionService = jobDefinitionService;
 
@@ -89,7 +93,25 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         addDetachListener(event -> updateJobManagerSubscription());
 
         this.ui = UI.getCurrent();
-        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"), allStartButton, allStopButton);
+        comboBox = new ComboBox<>("Verbindung");
+
+        try {
+            List<Configuration> configList = configurationService.findMessageConfigurations();
+            if (configList != null && !configList.isEmpty()) {
+                comboBox.setItems(configList);
+                comboBox.setItemLabelGenerator(Configuration::getName);
+                comboBox.setValue(configList.get(0));
+            }
+
+        } catch (Exception e) {
+            // Display the error message to the user
+            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+        comboBox.addValueChangeListener(event -> {
+            Notification.show("Selected: " + event.getValue().getName());
+        });
+
+        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"), comboBox, allStartButton, allStopButton);
         hl.setAlignItems(Alignment.BASELINE);
         add(hl);
 
@@ -227,7 +249,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 });
 
                 stopBtn.addClickListener(event -> {
-                    stopJob(jobManager);
+                    stopJob(  jobManager);
                     startBtn.setEnabled(true);
                     stopBtn.setEnabled(false);
                     // Update session attributes when button states change
@@ -311,6 +333,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         logPannel.logMessage(Constants.INFO, "Ending createTreeGrid");
         return treeGrid;
     }
+
 
     private void expandAll(List<JobManager> rootItems) {
         for (JobManager rootItem : rootItems) {
@@ -514,7 +537,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         logPannel.logMessage(Constants.INFO, "Starting scheduleJob with cron for " + jobManager.getName());
         scheduler = StdSchedulerFactory.getDefaultScheduler();
         scheduler.start();
-        notifySubscribers(",,"+jobManager.getId());
+      //  notifySubscribers(",,"+jobManager.getId());
         JobDataMap jobDataMap = new JobDataMap();
         try {
             jobDataMap.put("jobManager", JobDefinitionUtils.serializeJobDefinition(jobManager));
@@ -523,9 +546,19 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             return;
         }
 
+        Configuration conf = comboBox.getValue();
+
+        String dbUrl = conf.getDb_Url();
+        String username = conf.getUserName();
+        String password = Configuration.decodePassword(conf.getPassword());
+
+
         jobDataMap.put("scriptPath", scriptPath);
         jobDataMap.put("runID", runID);
         jobDataMap.put("startType", "cron");
+        jobDataMap.put("dbUrl", dbUrl);
+        jobDataMap.put("username", username);
+        jobDataMap.put("password", password);
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
                 .withIdentity("job-cron-" + jobManager.getId(), "group1")
@@ -555,10 +588,19 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             return;
         }
+        Configuration conf = comboBox.getValue();
+
+        String dbUrl = conf.getDb_Url();
+        String username = conf.getUserName();
+        String password = Configuration.decodePassword(conf.getPassword());
 
         jobDataMap.put("scriptPath", scriptPath);
         jobDataMap.put("runID", runID);
         jobDataMap.put("startType", "manual");
+        jobDataMap.put("dbUrl", dbUrl);
+        jobDataMap.put("username", username);
+        jobDataMap.put("password", password);
+
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
                 .withIdentity("job-manual-" + jobManager.getId(), "group1")
@@ -588,15 +630,19 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     public void stopJob(JobManager jobManager) {
         logPannel.logMessage(Constants.INFO, "Starting stopJob for " + jobManager.getName());
-        JobKey jobKey = new JobKey("job-" + jobManager.getId(), "group1");
+       // JobKey jobKey = new JobKey("job-" + jobManager.getId(), "group1");
         try {
             JobKey cronJobKey = new JobKey("job-cron-" + jobManager.getId(), "group1");
             JobKey manualJobKey = new JobKey("job-manual-" + jobManager.getId(), "group1");
-
+            String typ = jobManager.getTyp();
             // Try stopping cron job
             if (scheduler.checkExists(cronJobKey)) {
                 if (scheduler.deleteJob(cronJobKey)) {
-                    JobExecutor.stopProcess(jobManager.getId());
+                    if(typ.equals("Shell")) {
+                        JobExecutor.stopProcess(jobManager.getId());
+                    } else if(typ.equals("sql_procedure")) {
+                        JobExecutor.stopSQLProcedure(jobManager.getId());
+                    }
                     notifySubscribers("Cron job " + jobManager.getName() + " stopped successfully,," + jobManager.getId());
                 }
             }
@@ -604,7 +650,11 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             // Try stopping manual job
             if (scheduler.checkExists(manualJobKey)) {
                 if (scheduler.deleteJob(manualJobKey)) {
-                    JobExecutor.stopProcess(jobManager.getId());
+                    if(typ.equals("Shell")) {
+                        JobExecutor.stopProcess(jobManager.getId());
+                    } else if(typ.equals("sql_procedure")) {
+                        JobExecutor.stopSQLProcedure(jobManager.getId());
+                    }
                     notifySubscribers("Manual job " + jobManager.getName() + " stopped successfully,," + jobManager.getId());
                 }
             }
@@ -616,7 +666,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         logPannel.logMessage(Constants.INFO, "Ending stopJob for " + jobManager.getName());
     }
 
-  private void executeJobold(JobManager jobManager) {
+    private void executeJobold(JobManager jobManager) {
         System.out.println("Executing job: " + jobManager.getName());
 
         try {
