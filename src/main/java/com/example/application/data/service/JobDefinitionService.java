@@ -6,10 +6,7 @@ import com.example.application.views.MainLayout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -91,5 +88,17 @@ public class JobDefinitionService {
     }
     public Map<Integer, JobManager> getJobManagerMap() {
         return jobManagerMap;
+    }
+
+    public List<String> getUniqueTypList() {
+//        List<String> uniqueTyps = jobManagerList.stream()
+//                .map(JobManager::getTyp)
+//                .distinct()               // Ensure the values are unique
+//                .collect(Collectors.toList());  // Collect into a List
+
+        List<String> uniqueTyps = new ArrayList<>();
+        uniqueTyps.add("sql_procedure");
+        uniqueTyps.add("Shell");
+        return uniqueTyps;
     }
 }

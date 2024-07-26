@@ -38,6 +38,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.time.YearMonth;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -56,6 +57,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     @Value("${run.id}")
     private String runID;
     private JobDefinitionService jobDefinitionService;
+    private ConfigurationService configurationService;
     private Crud<JobManager> crud;
     private Grid<JobManager> jobDefinitionGrid;
     private Dialog dialog;
@@ -65,7 +67,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Button allStartButton = new Button("All Start");
     private Button allStopButton = new Button("All Stop");
     private final UI ui;
-    private ComboBox<Configuration> comboBox;
     private static final Set<SerializableConsumer<String>> subscribers = new HashSet<>();
     private static final Set<SerializableConsumer<String>> start_subscribers = new HashSet<>();
     private static final ExecutorService notifierThread = Executors.newSingleThreadExecutor();
@@ -85,6 +86,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     public JobManagerView(JobDefinitionService jobDefinitionService, ConfigurationService configurationService) {
 
         this.jobDefinitionService = jobDefinitionService;
+        this.configurationService = configurationService;
 
         logPannel = new LogPannel();
         logPannel.logMessage(Constants.INFO, "Starting JobManagerView");
@@ -93,25 +95,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         addDetachListener(event -> updateJobManagerSubscription());
 
         this.ui = UI.getCurrent();
-        comboBox = new ComboBox<>("Verbindung");
 
-        try {
-            List<Configuration> configList = configurationService.findMessageConfigurations();
-            if (configList != null && !configList.isEmpty()) {
-                comboBox.setItems(configList);
-                comboBox.setItemLabelGenerator(Configuration::getName);
-                comboBox.setValue(configList.get(0));
-            }
-
-        } catch (Exception e) {
-            // Display the error message to the user
-            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-        }
-        comboBox.addValueChangeListener(event -> {
-            Notification.show("Selected: " + event.getValue().getName());
-        });
-
-        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"), comboBox, allStartButton, allStopButton);
+        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"),  allStartButton, allStopButton);
         hl.setAlignItems(Alignment.BASELINE);
         add(hl);
 
@@ -186,15 +171,17 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         treeGrid.addColumn(JobManager::getCron).setHeader("Cron").setAutoWidth(true);
         treeGrid.addColumn(JobManager::getTyp).setHeader("Typ").setAutoWidth(true);
         treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setAutoWidth(true);
+        treeGrid.addColumn(jobManager -> {
+            // Retrieve the connection ID from the Configuration object
+            return jobManager.getConnection() != null ? jobManager.getConnection().getName() : "N/A";
+        }).setHeader("Verbindung").setAutoWidth(true);
 
-        // Set additional properties for the tree grid
       //  treeGrid.setWidth("350px");
         treeGrid.addExpandListener(event -> System.out.println(String.format("Expanded %s item(s)", event.getItems().size())));
         treeGrid.addCollapseListener(event -> System.out.println(String.format("Collapsed %s item(s)", event.getItems().size())));
 
         treeGrid.setThemeName("dense");
         treeGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_NO_ROW_BORDERS, GridVariant.LUMO_COMPACT);
-
 
         treeGrid.addComponentColumn(jobManager -> {
             // Create a layout to hold the buttons for each row
@@ -458,9 +445,9 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         cron.setValue(isNew ? "" : (jobManager.getCron() != null ? jobManager.getCron() : ""));
         cron.setWidthFull();
 
-        TextField typ = new TextField("TYP");
-        typ.setValue(isNew ? "" : (jobManager.getTyp() != null ? jobManager.getTyp() : ""));
-        typ.setWidthFull();
+//        TextField typ = new TextField("TYP");
+//        typ.setValue(isNew ? "" : (jobManager.getTyp() != null ? jobManager.getTyp() : ""));
+//        typ.setWidthFull();
 
         TextField parameter = new TextField("PARAMETER");
         parameter.setValue(isNew ? "" : (jobManager.getParameter() != null ? jobManager.getParameter() : ""));
@@ -470,13 +457,57 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         pid.setValue(jobManager.getPid() != 0 ? jobManager.getPid() : 0);
         pid.setWidthFull();
 
+        List<String> uniqueTyps = jobDefinitionService.getUniqueTypList();
+
+        ComboBox<String> typComboBox = new ComboBox<>("Typ");
+        if (uniqueTyps != null && !uniqueTyps.isEmpty()) {
+            typComboBox.setItems(uniqueTyps);
+            typComboBox.setValue(uniqueTyps.get(0));
+            jobManager.setTyp(uniqueTyps.get(0));
+        }
+
+        ComboBox<Configuration> verbindungComboBox = new ComboBox<>("Verbindung");
+        verbindungComboBox.setEnabled(false);
+        if(jobManager.getTyp().equals("sql_procedure")) {
+            verbindungComboBox.setEnabled(true);
+        }
+        if(jobManager.getTyp().equals("Shell")) {
+            verbindungComboBox.isReadOnly();
+        }
+        try {
+            List<Configuration> configList = configurationService.findMessageConfigurations();
+            if (configList != null && !configList.isEmpty()) {
+                verbindungComboBox.setItems(configList);
+                verbindungComboBox.setItemLabelGenerator(Configuration::getName);
+                verbindungComboBox.setValue(jobManager.getConnection());
+            }
+
+        } catch (Exception e) {
+            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+
+
+
         // Add value change listeners to update the jobDefinition object
         name.addValueChangeListener(event -> jobManager.setName(event.getValue()));
         namespace.addValueChangeListener(event -> jobManager.setNamespace(event.getValue()));
         command.addValueChangeListener(event -> jobManager.setCommand(event.getValue()));
         cron.addValueChangeListener(event -> jobManager.setCron(event.getValue()));
-        typ.addValueChangeListener(event -> jobManager.setTyp(event.getValue()));
+        typComboBox.addValueChangeListener(event -> {
+            String selectedTyp = event.getValue();
+            typComboBox.setValue(selectedTyp);
+            jobManager.setTyp(selectedTyp);
+            if ("sql_procedure".equals(selectedTyp)) {
+                verbindungComboBox.setEnabled(true);
+            } else {
+                verbindungComboBox.setEnabled(false);
+            }
+        });
         parameter.addValueChangeListener(event -> jobManager.setParameter(event.getValue()));
+        verbindungComboBox.addValueChangeListener(event -> {
+            verbindungComboBox.setValue(event.getValue());
+            jobManager.setConnection(event.getValue());
+        });
         pid.addValueChangeListener(event -> {
             try {
                 if (event.getValue() != 0) {
@@ -490,7 +521,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         });
 
         // Add all fields to the content layout
-        content.add(name, namespace, command, cron, typ, parameter , pid);
+        content.add(name, namespace, command, cron, typComboBox, parameter , pid, verbindungComboBox);
         logPannel.logMessage(Constants.INFO, "Ending editJobDefinition");
         return content;
     }
@@ -546,21 +577,11 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             return;
         }
 
-        Configuration conf = comboBox.getValue();
-
-        String dbUrl = conf.getDb_Url();
-        String username = conf.getUserName();
-        String password = Configuration.decodePassword(conf.getPassword());
-
-
         jobDataMap.put("scriptPath", scriptPath);
         jobDataMap.put("runID", runID);
         jobDataMap.put("startType", "cron");
-        jobDataMap.put("dbUrl", dbUrl);
-        jobDataMap.put("username", username);
-        jobDataMap.put("password", password);
 
-        JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
+       JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
                 .withIdentity("job-cron-" + jobManager.getId(), "group1")
                 .usingJobData(jobDataMap)
                 .build();
@@ -588,19 +609,10 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             return;
         }
-        Configuration conf = comboBox.getValue();
-
-        String dbUrl = conf.getDb_Url();
-        String username = conf.getUserName();
-        String password = Configuration.decodePassword(conf.getPassword());
 
         jobDataMap.put("scriptPath", scriptPath);
         jobDataMap.put("runID", runID);
         jobDataMap.put("startType", "manual");
-        jobDataMap.put("dbUrl", dbUrl);
-        jobDataMap.put("username", username);
-        jobDataMap.put("password", password);
-
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
                 .withIdentity("job-manual-" + jobManager.getId(), "group1")

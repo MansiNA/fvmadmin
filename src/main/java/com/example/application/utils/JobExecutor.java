@@ -46,9 +46,7 @@ public class JobExecutor implements Job {
     private int exitCode;
     private long processID;
     private String startType;
-    private String dbUrl;
-    private String username;
-    private String password;
+
 
     private StringBuilder output;
     private JobManager jobManager;
@@ -58,9 +56,6 @@ public class JobExecutor implements Job {
         scriptPath = context.getMergedJobDataMap().getString("scriptPath");
         runID = context.getMergedJobDataMap().getString("runID");
         startType = context.getMergedJobDataMap().getString("startType");
-        dbUrl = context.getMergedJobDataMap().getString("dbUrl");
-        username = context.getMergedJobDataMap().getString("username");
-        password = context.getMergedJobDataMap().getString("password");
 
         jobHistoryService = SpringContextHolder.getBean(JobHistoryService.class);
         jobDefinitionService = SpringContextHolder.getBean(JobDefinitionService.class);
@@ -76,7 +71,6 @@ public class JobExecutor implements Job {
         } catch (JsonProcessingException e) {
             throw new JobExecutionException("Error deserializing job definition", e);
         }
-        System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"+ jobManager.getName());
         executeJob(jobManager);
     }
 
@@ -189,7 +183,10 @@ public class JobExecutor implements Job {
         // For example: "BEGIN do_stuff(?); END;"
         String procedureCall = jobManager.getCommand();
         String parameter = jobManager.getParameter();
-
+        Configuration configuration = jobManager.getConnection();
+        String dbUrl = configuration.getDb_Url();
+        String username = configuration.getUserName();
+        String password = Configuration.decodePassword(configuration.getPassword());
         System.out.println(dbUrl+ "----------"+ username+"------------"+ password);
         try (Connection conn = DriverManager.getConnection(dbUrl, username, password);
              CallableStatement stmt = conn.prepareCall(procedureCall)) {
