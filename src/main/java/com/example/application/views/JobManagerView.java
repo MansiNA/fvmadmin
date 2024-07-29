@@ -53,9 +53,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     @Value("${script.path}")
     private String scriptPath;
-
-    @Value("${run.id}")
-    private String runID;
     private JobDefinitionService jobDefinitionService;
     private ConfigurationService configurationService;
     private Crud<JobManager> crud;
@@ -578,7 +575,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         }
 
         jobDataMap.put("scriptPath", scriptPath);
-        jobDataMap.put("runID", runID);
         jobDataMap.put("startType", "cron");
 
        JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
@@ -611,7 +607,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         }
 
         jobDataMap.put("scriptPath", scriptPath);
-        jobDataMap.put("runID", runID);
         jobDataMap.put("startType", "manual");
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
@@ -733,7 +728,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Process process;
     private void executeShellJob(JobManager jobManager) throws Exception {
         //   String scriptPath = "D:\\file\\executer.cmd"; // Absolute path to the script
-        //  String runID = "777"; // RunID for test purposes
         String jobName = jobManager.getName();
         String sPath = scriptPath + jobManager.getCommand();
 

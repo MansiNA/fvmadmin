@@ -35,8 +35,6 @@ public class JobExecutor implements Job {
     @Value("${script.path}")
     private String scriptPath;
 
-    @Value("${run.id}")
-    private String runID;
     private JobDefinitionService jobDefinitionService;
     private JobHistoryService jobHistoryService;
     private static final ConcurrentHashMap<Integer, Process> runningProcesses = new ConcurrentHashMap<>();
@@ -54,7 +52,6 @@ public class JobExecutor implements Job {
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         scriptPath = context.getMergedJobDataMap().getString("scriptPath");
-        runID = context.getMergedJobDataMap().getString("runID");
         startType = context.getMergedJobDataMap().getString("startType");
 
         jobHistoryService = SpringContextHolder.getBean(JobHistoryService.class);
