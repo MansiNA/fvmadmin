@@ -426,6 +426,12 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         VerticalLayout content = new VerticalLayout();
 
         // Create and initialize fields
+
+        IntegerField id = new IntegerField("ID");
+        id.setValue(jobManager.getId() != 0 ? jobManager.getId() : 0);
+        id.setWidthFull();
+        id.setReadOnly(true);
+
         TextField name = new TextField("NAME");
         name.setValue(isNew ? "" : (jobManager.getName() != null ? jobManager.getName() : ""));
         name.setWidthFull();
@@ -459,8 +465,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         ComboBox<String> typComboBox = new ComboBox<>("Typ");
         if (uniqueTyps != null && !uniqueTyps.isEmpty()) {
             typComboBox.setItems(uniqueTyps);
-            typComboBox.setValue(uniqueTyps.get(0));
-            jobManager.setTyp(uniqueTyps.get(0));
+            typComboBox.setValue(isNew ? "" : (jobManager.getTyp() != null ? jobManager.getTyp() : ""));
         }
 
         ComboBox<Configuration> verbindungComboBox = new ComboBox<>("Verbindung");
@@ -518,7 +523,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         });
 
         // Add all fields to the content layout
-        content.add(name, namespace, command, cron, typComboBox, parameter , pid, verbindungComboBox);
+        content.add(id, name, namespace, command, cron, typComboBox, parameter , pid, verbindungComboBox);
         logPannel.logMessage(Constants.INFO, "Ending editJobDefinition");
         return content;
     }
