@@ -99,6 +99,8 @@ public class JobDefinitionService {
         List<String> uniqueTyps = new ArrayList<>();
         uniqueTyps.add("sql_procedure");
         uniqueTyps.add("Shell");
+        uniqueTyps.add("Jobchain");
+        uniqueTyps.add("Node");
         return uniqueTyps;
     }
 }
