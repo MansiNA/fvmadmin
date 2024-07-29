@@ -32,9 +32,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Component
 public class JobExecutor implements Job {
 
-    @Value("${script.path}")
-    private String scriptPath;
-
     private JobDefinitionService jobDefinitionService;
     private JobHistoryService jobHistoryService;
     private static final ConcurrentHashMap<Integer, Process> runningProcesses = new ConcurrentHashMap<>();
@@ -51,7 +48,6 @@ public class JobExecutor implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        scriptPath = context.getMergedJobDataMap().getString("scriptPath");
         startType = context.getMergedJobDataMap().getString("startType");
 
         jobHistoryService = SpringContextHolder.getBean(JobHistoryService.class);
@@ -225,7 +221,7 @@ public class JobExecutor implements Job {
 
     private void executeShellJob(JobManager jobManager) throws Exception {
         String jobName = jobManager.getName();
-        String sPath = scriptPath + jobManager.getCommand();
+        String sPath = jobManager.getScriptpath() + jobManager.getCommand();
         System.out.println("start executeShellJob");
         ProcessBuilder processBuilder;
         if (System.getProperty("os.name").toLowerCase().contains("win")) {

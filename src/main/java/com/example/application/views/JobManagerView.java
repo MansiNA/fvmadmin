@@ -51,8 +51,6 @@ import java.util.stream.Collectors;
 @RolesAllowed({"ADMIN"})
 public class JobManagerView extends VerticalLayout implements BeforeEnterObserver {
 
-    @Value("${script.path}")
-    private String scriptPath;
     private JobDefinitionService jobDefinitionService;
     private ConfigurationService configurationService;
     private Crud<JobManager> crud;
@@ -168,6 +166,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         treeGrid.addColumn(JobManager::getCron).setHeader("Cron").setAutoWidth(true);
         treeGrid.addColumn(JobManager::getTyp).setHeader("Typ").setAutoWidth(true);
         treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setAutoWidth(true);
+        treeGrid.addColumn(JobManager::getScriptpath).setHeader("ScriptPath").setAutoWidth(true);
         treeGrid.addColumn(jobManager -> {
             // Retrieve the connection ID from the Configuration object
             return jobManager.getConnection() != null ? jobManager.getConnection().getName() : "N/A";
@@ -428,7 +427,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         // Create and initialize fields
 
         IntegerField id = new IntegerField("ID");
-        id.setValue(jobManager.getId() != 0 ? jobManager.getId() : 0);
+        id.setValue(jobManager.getId() != null ? jobManager.getId() : null);
         id.setWidthFull();
         id.setReadOnly(true);
 
@@ -460,6 +459,10 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         pid.setValue(jobManager.getPid() != 0 ? jobManager.getPid() : 0);
         pid.setWidthFull();
 
+        TextField scriptpath = new TextField("SCRIPTPATH");
+        scriptpath.setValue(isNew ? "" : (jobManager.getScriptpath() != null ? jobManager.getScriptpath() : ""));
+        scriptpath.setWidthFull();
+
         List<String> uniqueTyps = jobDefinitionService.getUniqueTypList();
 
         ComboBox<String> typComboBox = new ComboBox<>("Typ");
@@ -470,11 +473,13 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         ComboBox<Configuration> verbindungComboBox = new ComboBox<>("Verbindung");
         verbindungComboBox.setEnabled(false);
-        if(jobManager.getTyp().equals("sql_procedure")) {
-            verbindungComboBox.setEnabled(true);
-        }
-        if(jobManager.getTyp().equals("Shell")) {
-            verbindungComboBox.isReadOnly();
+        if(!isNew) {
+            if (jobManager.getTyp().equals("sql_procedure")) {
+                verbindungComboBox.setEnabled(true);
+            }
+            if (jobManager.getTyp().equals("Shell")) {
+                verbindungComboBox.isReadOnly();
+            }
         }
         try {
             List<Configuration> configList = configurationService.findMessageConfigurations();
@@ -495,6 +500,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         namespace.addValueChangeListener(event -> jobManager.setNamespace(event.getValue()));
         command.addValueChangeListener(event -> jobManager.setCommand(event.getValue()));
         cron.addValueChangeListener(event -> jobManager.setCron(event.getValue()));
+        scriptpath.addValueChangeListener(event -> jobManager.setScriptpath(event.getValue()));
         typComboBox.addValueChangeListener(event -> {
             String selectedTyp = event.getValue();
             typComboBox.setValue(selectedTyp);
@@ -523,7 +529,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         });
 
         // Add all fields to the content layout
-        content.add(id, name, namespace, command, cron, typComboBox, parameter , pid, verbindungComboBox);
+        content.add(id, name, namespace, command, cron, parameter , pid, scriptpath, typComboBox, verbindungComboBox);
         logPannel.logMessage(Constants.INFO, "Ending editJobDefinition");
         return content;
     }
@@ -579,7 +585,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             return;
         }
 
-        jobDataMap.put("scriptPath", scriptPath);
         jobDataMap.put("startType", "cron");
 
        JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
@@ -611,7 +616,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             return;
         }
 
-        jobDataMap.put("scriptPath", scriptPath);
         jobDataMap.put("startType", "manual");
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
@@ -734,7 +738,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private void executeShellJob(JobManager jobManager) throws Exception {
         //   String scriptPath = "D:\\file\\executer.cmd"; // Absolute path to the script
         String jobName = jobManager.getName();
-        String sPath = scriptPath + jobManager.getCommand();
+        String sPath = jobManager.getScriptpath() + jobManager.getCommand();
 
 
         ProcessBuilder processBuilder;

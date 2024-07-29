@@ -25,6 +25,7 @@ public class JobManager implements Serializable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "connection_id")  // Assuming the foreign key column is named connection_id
     private Configuration connection;
+    private String scriptpath;
 
     @Transient  // Indicates that this field is not persistent
     private Integer exitCode;
@@ -38,6 +39,7 @@ public class JobManager implements Serializable {
                 ", command='" + command + '\'' +
                 ", cron='" + cron + '\'' +
                 ", typ='" + typ + '\'' +
+                ", scriptpath='" + scriptpath + '\'' +
                 '}';
     }
 }
