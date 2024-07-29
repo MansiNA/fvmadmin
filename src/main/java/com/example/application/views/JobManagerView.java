@@ -213,6 +213,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                         List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
                         boolean hasChildren = !childJobs.isEmpty();
                         if (hasChildren) {
+                            expandChild(jobManager);
                             if (jobManager.getTyp().equals("Jobchain")) {
                                 jobChainId = jobManager.getId();
                                 isJobChainRunning = true;
@@ -324,6 +325,12 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             List<JobManager> childItems = jobDefinitionService.getChildJobManager(rootItem);
             expandAll(childItems);
         }
+    }
+
+    private void expandChild(JobManager rootItem) {
+        treeGrid.expand(rootItem);
+        List<JobManager> childItems = jobDefinitionService.getChildJobManager(rootItem);
+        expandAll(childItems);
     }
 
     private void showJobDialog(JobManager jobManager) {
@@ -569,7 +576,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         listOfJobManager = jobDefinitionService.findAll();
         List<JobManager> rootItems = jobDefinitionService.getRootJobManager();
         treeGrid.setItems(rootItems, jobDefinitionService ::getChildJobManager);
-        expandAll(rootItems);
+      //  expandAll(rootItems);
     }
 
     private void scheduleJob(JobManager jobManager) throws SchedulerException {
