@@ -3,6 +3,7 @@ package com.example.application.views;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.Mailbox;
 import com.example.application.data.service.ConfigurationService;
+import com.example.application.data.service.ProtokollService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -45,16 +46,20 @@ public class MailboxConfigView  extends VerticalLayout {
     @Autowired
     JdbcTemplate jdbcTemplate;
     private ConfigurationService service;
+    private ProtokollService protokollService;
     private ComboBox<Configuration> comboBox;
     Grid<Mailbox> grid = new Grid<>(Mailbox.class, false);
     Integer ret = 0;
    // Button button = new Button("load");
     Button refresh = new Button("refresh");
     List<Mailbox> mailboxen;
+    private String switchLable;
 
-    public MailboxConfigView(ConfigurationService service)  {
+    public MailboxConfigView(ConfigurationService service, ProtokollService protokollService)  {
 
         this.service = service;
+        this.protokollService = protokollService;
+
         refresh.setEnabled(false);
 
         comboBox = new ComboBox<>("Verbindung");
@@ -76,7 +81,7 @@ public class MailboxConfigView  extends VerticalLayout {
      //   hl.add(comboBox,button,refresh);
         hl.add(comboBox,refresh);
         hl.setAlignItems(FlexComponent.Alignment.BASELINE);
-        setSizeFull();
+         setSizeFull();
         add(hl);
 
 
@@ -115,20 +120,28 @@ public class MailboxConfigView  extends VerticalLayout {
                 .setHeader("Status");
 
         grid.addColumn(
-                new NativeButtonRenderer<>("Switch",
+                  new NativeButtonRenderer<>(
+//                          "Switch",
+                item -> {
+                    // Determine the switch label based on the QUANTIFIER value
+                    return item.getQUANTIFIER() == 0 ? "Einschalten" : "Ausschalten";
+                },
                         clickedItem -> {
 
                             if (clickedItem.getQUANTIFIER()==0) {
 
                                 //System.out.println(clickedItem.getLastName());
                                 Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird eingeschaltet...");
+
                              //   clickedItem.setQUANTIFIER(1);
                                 updateMessageBox(clickedItem,"1");
+                                protokollService.logAction(clickedItem.getUSER_ID() + " wurde eingeschaltet.");
                             }
                             else {
                                 Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird ausgeschaltet...");
                               //  clickedItem.setQUANTIFIER(0);
                                 updateMessageBox(clickedItem,"0");
+                                protokollService.logAction(clickedItem.getUSER_ID() + " wurde ausgeschaltet.");
                             }
                            // clickedItem.setIsActive(false);
                            // clickedItem.setLastName("Huhu");
@@ -199,6 +212,12 @@ public class MailboxConfigView  extends VerticalLayout {
 
                 } catch (InterruptedException ex) {
                     ex.printStackTrace();
+                } catch (Exception e) {
+                    // Need to use access() when running from background thread
+                    ui.access(() -> {
+                        Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                    });
+                    return; // Exit if an exception occurs
                 }
 
                 // Need to use access() when running from background thread
@@ -233,9 +252,11 @@ public class MailboxConfigView  extends VerticalLayout {
         Icon icon;
         if (quantifier == 1) {
             icon = VaadinIcon.CHECK.create();
+            switchLable = "Ausschalten";
             icon.getElement().getThemeList().add("badge success");
         } else {
             icon = VaadinIcon.CLOSE_SMALL.create();
+            switchLable = "Einschalten";
             icon.getElement().getThemeList().add("badge error");
         }
         icon.getStyle().set("padding", "var(--lumo-space-xs");
@@ -316,7 +337,8 @@ public class MailboxConfigView  extends VerticalLayout {
 
         } catch (Exception e) {
          //   System.out.println("Exception: " + e.getMessage());
-            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            throw new RuntimeException("Error querying the database: " + e.getMessage(), e);
+           // Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
 
         return mailboxen;

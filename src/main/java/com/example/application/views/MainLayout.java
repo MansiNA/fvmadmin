@@ -45,6 +45,7 @@ public class MainLayout extends AppLayout {
 
     boolean isUser =checkUserRole();
     public static List<String> userRoles;
+    public static String userName;
     public MainLayout(AuthenticatedUser authenticatedUser, UserService userService){
 
 
@@ -57,7 +58,7 @@ public class MainLayout extends AppLayout {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
         isAdmin = checkAdminRole();
-
+        userName = authentication.getName();
         createHeader();
         createDrawer();
     }
