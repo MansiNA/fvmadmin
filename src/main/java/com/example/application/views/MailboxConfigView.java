@@ -225,16 +225,11 @@ public class MailboxConfigView  extends VerticalLayout {
                     // Stop polling and hide spinner
                     ui.setPollInterval(-1);
 
-                    if (ret != 0) {
-                        System.out.println("Keine Mailbox Infos gefunden!");
-                        grid.setItems();
-
+                    if (mailboxen == null || mailboxen.isEmpty()) {
+                        Notification.show("Keine Mailbox Infos gefunden!", 5000, Notification.Position.MIDDLE);
                         return;
-                    }
-                    else{
-                        if(mailboxen!= null) {
-                            grid.setItems(mailboxen);
-                        }
+                    } else {
+                        grid.setItems(mailboxen);
                     }
 
                 });
