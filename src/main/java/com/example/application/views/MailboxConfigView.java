@@ -36,7 +36,9 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
@@ -53,7 +55,9 @@ public class MailboxConfigView  extends VerticalLayout {
     Integer ret = 0;
    // Button button = new Button("load");
     Button refresh = new Button("refresh");
-    List<Mailbox> mailboxen;
+    Button onOffButton;
+    private Set<Mailbox> toggledMailboxes;
+    private List<Mailbox> mailboxen;
     private String switchLable;
 
     public MailboxConfigView(ConfigurationService service, ProtokollService protokollService)  {
@@ -181,7 +185,8 @@ public class MailboxConfigView  extends VerticalLayout {
       //  updateList();
 
 
-        Button onOffButton = new Button("alle ausschalten");
+        onOffButton = new Button("alle ausschalten");
+        toggledMailboxes = new HashSet<>();
 
       //  grid.setItems(mailboxen);
         Span title = new Span("Übersicht der Postfächer");
@@ -248,6 +253,44 @@ public class MailboxConfigView  extends VerticalLayout {
     }
 
     private void allMailBoxTurnOnOff() {
+        if (onOffButton.getText().startsWith("Alle ausschalten")) {
+            disableAllMailboxes();
+        } else {
+            reEnableMailboxes();
+        }
+    }
+
+    private void disableAllMailboxes() {
+        onOffButton.setEnabled(false);
+        toggledMailboxes.clear();
+        for (Mailbox mailbox : mailboxen) {
+            if (mailbox.getQUANTIFIER() == 1) { // only disable active mailboxes
+                mailbox.setQUANTIFIER(0);
+                updateMessageBox(mailbox, "0");
+                protokollService.logAction(mailbox.getUSER_ID() + " wurde ausgeschaltet.");
+                toggledMailboxes.add(mailbox);
+            }
+        }
+        onOffButton.setText(toggledMailboxes.size() + " wieder einschalten");
+        onOffButton.setEnabled(true);
+        updateList();
+    }
+
+    private void reEnableMailboxes() {
+        onOffButton.setEnabled(false);
+        for (Mailbox mailbox : toggledMailboxes) {
+            if (mailbox.getQUANTIFIER() == 0) { // re-enable only those disabled by "alle ausschalten"
+                mailbox.setQUANTIFIER(1);
+                updateMessageBox(mailbox, "1");
+                protokollService.logAction(mailbox.getUSER_ID() + " wurde eingeschaltet.");
+            }
+        }
+        toggledMailboxes.clear();
+        onOffButton.setText("Alle ausschalten");
+        onOffButton.setEnabled(true);
+        updateList();
+    }
+    private void allMailBoxTurnOnOffOld() {
         boolean shouldTurnOn = mailboxen.stream().anyMatch(mailbox -> mailbox.getQUANTIFIER() == 0);
 
         for (Mailbox mailbox : mailboxen) {
