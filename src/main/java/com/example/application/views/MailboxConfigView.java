@@ -536,8 +536,9 @@ public class MailboxConfigView  extends VerticalLayout {
             safeIDField.setValue(mailbox.getUSER_ID());
             courtIDField.setValue(mailbox.getCOURT_ID());
             TypField.setValue(mailbox.getTYP());
-            MaxMessageCountField.setValue(mailbox.getMAX_MESSAGE_COUNT());
-
+            if(mailbox.getMAX_MESSAGE_COUNT() != null) {
+                MaxMessageCountField.setValue(mailbox.getMAX_MESSAGE_COUNT());
+            }
         }
     }
 }
