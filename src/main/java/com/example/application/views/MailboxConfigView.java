@@ -18,6 +18,7 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -179,14 +180,19 @@ public class MailboxConfigView  extends VerticalLayout {
 
       //  updateList();
 
+
+        Button onOffButton = new Button("alle ausschalten");
+
       //  grid.setItems(mailboxen);
         Span title = new Span("Übersicht der Postfächer");
         title.getStyle().set("font-weight", "bold");
-        HorizontalLayout headerLayout = new HorizontalLayout(title, menuButton);
+        HorizontalLayout headerLayout = new HorizontalLayout(title, menuButton, onOffButton);
         headerLayout.setAlignItems(FlexComponent.Alignment.BASELINE);
         headerLayout.setFlexGrow(1, title);
 
         add(headerLayout,grid);
+
+        onOffButton.addClickListener(e -> allMailBoxTurnOnOff());
 
         refresh.addClickListener(e -> updateList());
 
@@ -239,6 +245,32 @@ public class MailboxConfigView  extends VerticalLayout {
         });
 
 
+    }
+
+    private void allMailBoxTurnOnOff() {
+        boolean shouldTurnOn = mailboxen.stream().anyMatch(mailbox -> mailbox.getQUANTIFIER() == 0);
+
+        for (Mailbox mailbox : mailboxen) {
+            if (shouldTurnOn) {
+                if (mailbox.getQUANTIFIER() == 0) {
+                    mailbox.setQUANTIFIER(1);
+                    updateMessageBox(mailbox, "1");
+                    protokollService.logAction(mailbox.getUSER_ID() + " wurde eingeschaltet.");
+                    Notification.show("Postfach " + mailbox.getUSER_ID() + " wird eingeschaltet...", 3000, Notification.Position.MIDDLE)
+                            .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                }
+            } else {
+                if (mailbox.getQUANTIFIER() == 1) {
+                    mailbox.setQUANTIFIER(0);
+                    updateMessageBox(mailbox, "0");
+                    protokollService.logAction(mailbox.getUSER_ID() + " wurde ausgeschaltet.");
+                    Notification.show("Postfach " + mailbox.getUSER_ID() + " wird ausgeschaltet...", 3000, Notification.Position.MIDDLE)
+                            .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                }
+            }
+        }
+
+        updateList();
     }
 
     private Icon createStatusIcon(Integer quantifier) {
