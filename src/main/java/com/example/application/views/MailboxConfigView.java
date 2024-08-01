@@ -2,6 +2,7 @@ package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.Mailbox;
+import com.example.application.data.entity.MailboxShutdown;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.ProtokollService;
 import com.vaadin.flow.component.Component;
@@ -11,6 +12,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.contextmenu.MenuItem;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -22,6 +24,7 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
@@ -36,10 +39,12 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 @PageTitle("Mailbox Verwaltung")
@@ -55,8 +60,8 @@ public class MailboxConfigView  extends VerticalLayout {
     Integer ret = 0;
    // Button button = new Button("load");
     Button refresh = new Button("refresh");
-    Button onOffButton;
-    private Set<Mailbox> toggledMailboxes;
+    Button onOffButton = new Button("");
+    private List<MailboxShutdown> affectedMailboxes;
     private List<Mailbox> mailboxen;
     private String switchLable;
 
@@ -66,6 +71,7 @@ public class MailboxConfigView  extends VerticalLayout {
         this.protokollService = protokollService;
 
         refresh.setEnabled(false);
+        onOffButton.setEnabled(false);
 
         comboBox = new ComboBox<>("Verbindung");
         List<Configuration> configList = service.findMessageConfigurations();
@@ -79,6 +85,7 @@ public class MailboxConfigView  extends VerticalLayout {
         comboBox.addValueChangeListener(event -> {
             if (event.getValue() != null) {
                 refresh.setEnabled(true);  // Enable the refresh button when an item is selected
+                onOffButton.setEnabled(true);
             }
         });
 
@@ -140,18 +147,21 @@ public class MailboxConfigView  extends VerticalLayout {
 
                              //   clickedItem.setQUANTIFIER(1);
                                 updateMessageBox(clickedItem,"1");
-                                protokollService.logAction(clickedItem.getUSER_ID() + " wurde eingeschaltet.");
+                                protokollService.logAction(clickedItem.getUSER_ID() + " wurde eingeschaltet.", "");
+                                updateList();
                             }
                             else {
-                                Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird ausgeschaltet...");
-                              //  clickedItem.setQUANTIFIER(0);
-                                updateMessageBox(clickedItem,"0");
-                                protokollService.logAction(clickedItem.getUSER_ID() + " wurde ausgeschaltet.");
+                                showShutdownReasonDialog(reason -> {
+                                    Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird ausgeschaltet...");
+                                    updateMessageBox(clickedItem, "0");
+                                    protokollService.logAction(clickedItem.getUSER_ID() + " wurde ausgeschaltet.", reason);
+                                    updateList();
+                                });
                             }
                            // clickedItem.setIsActive(false);
                            // clickedItem.setLastName("Huhu");
 
-                            updateList();
+
                         })
         );
 
@@ -184,9 +194,13 @@ public class MailboxConfigView  extends VerticalLayout {
 
       //  updateList();
 
-
-        onOffButton = new Button("alle ausschalten");
-        toggledMailboxes = new HashSet<>();
+        affectedMailboxes = new ArrayList<>();
+        affectedMailboxes = protokollService.findAllMailboxShutdowns();
+        if (affectedMailboxes.isEmpty()) {
+            onOffButton.setText("Alle ausschalten");
+        } else {
+            onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
+        }
 
       //  grid.setItems(mailboxen);
         Span title = new Span("Übersicht der Postfächer");
@@ -228,7 +242,7 @@ public class MailboxConfigView  extends VerticalLayout {
                     ui.access(() -> {
                         Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                     });
-                    return; // Exit if an exception occurs
+                  //  return; // Exit if an exception occurs
                 }
 
                 // Need to use access() when running from background thread
@@ -237,7 +251,11 @@ public class MailboxConfigView  extends VerticalLayout {
                     ui.setPollInterval(-1);
 
                     if (mailboxen == null || mailboxen.isEmpty()) {
-                        Notification.show("Keine Mailbox Infos gefunden!", 5000, Notification.Position.MIDDLE);
+                        onOffButton.setEnabled(false);
+                        refresh.setEnabled(false);
+                        if(mailboxen != null && mailboxen.isEmpty()) {
+                            Notification.show("Keine Mailbox Infos gefunden!", 5000, Notification.Position.MIDDLE);
+                        }
                         return;
                     } else {
                         grid.setItems(mailboxen);
@@ -254,38 +272,71 @@ public class MailboxConfigView  extends VerticalLayout {
 
     private void allMailBoxTurnOnOff() {
         if (onOffButton.getText().startsWith("Alle ausschalten")) {
-            disableAllMailboxes();
+            showShutdownReasonDialog(this::disableAllMailboxes);
         } else {
             reEnableMailboxes();
         }
     }
 
-    private void disableAllMailboxes() {
+    private void showShutdownReasonDialog(Consumer<String> onConfirm) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Bitte Shutdown Grund angeben");
+
+        TextArea reasonTextArea = new TextArea("Grund");
+        reasonTextArea.setWidthFull();
+
+        Button confirmButton = new Button("Bestätigen", event -> {
+            String reason = reasonTextArea.getValue();
+            if (reason != null && !reason.isEmpty()) {
+                onConfirm.accept(reason);
+                dialog.close();
+            } else {
+                Notification.show("Bitte geben Sie einen Grund an", 3000, Notification.Position.MIDDLE);
+            }
+        });
+
+        Button cancelButton = new Button("Abbrechen", event -> dialog.close());
+
+        HorizontalLayout buttons = new HorizontalLayout(confirmButton, cancelButton);
+        VerticalLayout dialogLayout = new VerticalLayout(reasonTextArea, buttons);
+
+        dialog.add(dialogLayout);
+        dialog.open();
+    }
+
+    private void disableAllMailboxes(String reason) {
         onOffButton.setEnabled(false);
-        toggledMailboxes.clear();
+
         for (Mailbox mailbox : mailboxen) {
             if (mailbox.getQUANTIFIER() == 1) { // only disable active mailboxes
                 mailbox.setQUANTIFIER(0);
                 updateMessageBox(mailbox, "0");
-                protokollService.logAction(mailbox.getUSER_ID() + " wurde ausgeschaltet.");
-                toggledMailboxes.add(mailbox);
+                protokollService.logAction(mailbox.getUSER_ID() + " wurde ausgeschaltet.", reason);
+                protokollService.saveMailboxShutdownState(mailbox.getUSER_ID(), reason);
             }
         }
-        onOffButton.setText(toggledMailboxes.size() + " wieder einschalten");
+        affectedMailboxes = protokollService.findAllMailboxShutdowns();
+        onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
         onOffButton.setEnabled(true);
         updateList();
     }
 
     private void reEnableMailboxes() {
         onOffButton.setEnabled(false);
-        for (Mailbox mailbox : toggledMailboxes) {
-            if (mailbox.getQUANTIFIER() == 0) { // re-enable only those disabled by "alle ausschalten"
+        for (MailboxShutdown mailboxShutdown : affectedMailboxes) {
+        //for (Mailbox mailbox : mailboxen) {
+            Mailbox mailbox = mailboxen.stream()
+                    .filter(mailboxReEnable -> mailboxReEnable.getUSER_ID().equals(mailboxShutdown.getMailboxId()))
+                    .findFirst()
+                    .orElse(null);
+            if (mailbox != null && mailbox.getQUANTIFIER() == 0) { // re-enable only those disabled by "alle ausschalten"
                 mailbox.setQUANTIFIER(1);
                 updateMessageBox(mailbox, "1");
-                protokollService.logAction(mailbox.getUSER_ID() + " wurde eingeschaltet.");
+                protokollService.logAction(mailbox.getUSER_ID() + " wurde eingeschaltet.", "");
             }
         }
-        toggledMailboxes.clear();
+        protokollService.deleteShutdownTable();
+        affectedMailboxes.clear();
         onOffButton.setText("Alle ausschalten");
         onOffButton.setEnabled(true);
         updateList();
@@ -298,7 +349,7 @@ public class MailboxConfigView  extends VerticalLayout {
                 if (mailbox.getQUANTIFIER() == 0) {
                     mailbox.setQUANTIFIER(1);
                     updateMessageBox(mailbox, "1");
-                    protokollService.logAction(mailbox.getUSER_ID() + " wurde eingeschaltet.");
+                    protokollService.logAction(mailbox.getUSER_ID() + " wurde eingeschaltet.","");
                     Notification.show("Postfach " + mailbox.getUSER_ID() + " wird eingeschaltet...", 3000, Notification.Position.MIDDLE)
                             .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                 }
@@ -306,7 +357,7 @@ public class MailboxConfigView  extends VerticalLayout {
                 if (mailbox.getQUANTIFIER() == 1) {
                     mailbox.setQUANTIFIER(0);
                     updateMessageBox(mailbox, "0");
-                    protokollService.logAction(mailbox.getUSER_ID() + " wurde ausgeschaltet.");
+                    protokollService.logAction(mailbox.getUSER_ID() + " wurde ausgeschaltet.","");
                     Notification.show("Postfach " + mailbox.getUSER_ID() + " wird ausgeschaltet...", 3000, Notification.Position.MIDDLE)
                             .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                 }

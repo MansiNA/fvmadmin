@@ -27,4 +27,7 @@ public class Protokoll {
     @Column(name = "INFO")
     private String info;
 
+    @Column(name = "SHUTDOWN_REASON")
+    private String shutdownReason;
+
 }
