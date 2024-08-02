@@ -33,16 +33,17 @@ import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.function.SerializableBiConsumer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -195,12 +196,6 @@ public class MailboxConfigView  extends VerticalLayout {
       //  updateList();
 
         affectedMailboxes = new ArrayList<>();
-        affectedMailboxes = protokollService.findAllMailboxShutdowns();
-        if (affectedMailboxes.isEmpty()) {
-            onOffButton.setText("Alle ausschalten");
-        } else {
-            onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
-        }
 
       //  grid.setItems(mailboxen);
         Span title = new Span("Übersicht der Postfächer");
@@ -258,6 +253,14 @@ public class MailboxConfigView  extends VerticalLayout {
                         }
                         return;
                     } else {
+                        affectedMailboxes = fetchTableData();
+                        if (affectedMailboxes.isEmpty()) {
+                            System.out.println("empty....................."+affectedMailboxes.size());
+                            onOffButton.setText("Alle ausschalten");
+                        } else {
+                            System.out.println("affect....................."+affectedMailboxes.size());
+                            onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
+                        }
                         grid.setItems(mailboxen);
                     }
 
@@ -307,15 +310,17 @@ public class MailboxConfigView  extends VerticalLayout {
     private void disableAllMailboxes(String reason) {
         onOffButton.setEnabled(false);
 
+        createVerbindungShutdownTable();
         for (Mailbox mailbox : mailboxen) {
-            if (mailbox.getQUANTIFIER() == 1) { // only disable active mailboxes
+            if (mailbox.getQUANTIFIER() == 1) {
                 mailbox.setQUANTIFIER(0);
                 updateMessageBox(mailbox, "0");
                 protokollService.logAction(mailbox.getUSER_ID() + " wurde ausgeschaltet.", reason);
-                protokollService.saveMailboxShutdownState(mailbox.getUSER_ID(), reason);
+            //    protokollService.saveMailboxShutdownState(mailbox.getUSER_ID(), reason);
+                insertMailboxShutdown(mailbox.getUSER_ID(), reason);
             }
         }
-        affectedMailboxes = protokollService.findAllMailboxShutdowns();
+        affectedMailboxes = fetchTableData();
         onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
         onOffButton.setEnabled(true);
         updateList();
@@ -335,7 +340,8 @@ public class MailboxConfigView  extends VerticalLayout {
                 protokollService.logAction(mailbox.getUSER_ID() + " wurde eingeschaltet.", "");
             }
         }
-        protokollService.deleteShutdownTable();
+      //  protokollService.deleteShutdownTable();
+        deleteVerbindungShutdownTable();
         affectedMailboxes.clear();
         onOffButton.setText("Alle ausschalten");
         onOffButton.setEnabled(true);
@@ -422,8 +428,146 @@ public class MailboxConfigView  extends VerticalLayout {
 
     }
 
+    private void createVerbindungShutdownTable() {
 
+        String tableName = getTableName();
+        try {
+            connectWithDefaultDatabase();
+            System.out.println("Creating table: " + tableName);
 
+            String sql = "CREATE TABLE \"" + tableName + "\" (mailbox_id VARCHAR2(255) NOT NULL, shutdown_reason VARCHAR2(255) NOT NULL)";
+
+            System.out.println("Executing SQL: " + sql);
+
+            jdbcTemplate.execute(sql);
+
+            System.out.println("Table created successfully.");
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            connectionClose(jdbcTemplate);
+        }
+    }
+
+    private void connectWithDefaultDatabase() {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
+        ds.setUsername("EKP_MONITOR");
+        ds.setPassword("ekp123");
+        this.jdbcTemplate = new JdbcTemplate(ds);
+    }
+
+    public void connectionClose(JdbcTemplate jdbcTemplate) {
+        Connection connection = null;
+        DataSource dataSource = null;
+        try {
+            connection = jdbcTemplate.getDataSource().getConnection();
+            dataSource = jdbcTemplate.getDataSource();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+
+                    if (dataSource instanceof HikariDataSource) {
+                        ((HikariDataSource) dataSource).close();
+                    }
+
+                } catch (SQLException e) {
+
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private void insertMailboxShutdown(String mailboxId, String reason) {
+
+        String tableName = getTableName();
+        try {
+            connectWithDefaultDatabase();
+
+            String sql = "INSERT INTO \"" + tableName + "\" (mailbox_id, shutdown_reason) VALUES (?, ?)";
+            jdbcTemplate.update(sql, mailboxId, reason);
+
+            System.out.println("Data inserted successfully.");
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            connectionClose(jdbcTemplate);
+        }
+    }
+
+    private List<MailboxShutdown> fetchTableData() {
+
+        String tableName = getTableName();
+        List<MailboxShutdown> results = new ArrayList<>();
+
+        try {
+            connectWithDefaultDatabase();
+
+            // Check if the table exists
+            String checkTableSql = "SELECT COUNT(*) FROM all_tables WHERE table_name = ?";
+            int tableCount = jdbcTemplate.queryForObject(checkTableSql, Integer.class, tableName);
+
+            if (tableCount > 0) {
+
+                String sql = "SELECT * FROM \"" + tableName + "\"";
+
+                System.out.println("Executing SQL: " + sql);
+
+                results = jdbcTemplate.query(sql, (rs, rowNum) -> {
+                    MailboxShutdown mailboxShutdown = new MailboxShutdown();
+                    mailboxShutdown.setMailboxId(rs.getString("mailbox_id"));
+                    mailboxShutdown.setShutdownReason(rs.getString("shutdown_reason"));
+                    return mailboxShutdown;
+                });
+
+                System.out.println("Data fetched successfully.");
+            } else {
+                System.out.println("Table does not exist: " + tableName);
+            }
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            connectionClose(jdbcTemplate);
+        }
+
+        return results;
+    }
+
+    private void deleteVerbindungShutdownTable() {
+
+        String tableName = getTableName();
+
+        try {
+            connectWithDefaultDatabase();
+
+            System.out.println("Deleting table: " + tableName);
+
+            String sql = "DROP TABLE \"" + tableName + "\"";
+
+            System.out.println("Executing SQL: " + sql);
+
+            jdbcTemplate.execute(sql);
+
+            System.out.println("Table deleted successfully.");
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+            e.printStackTrace(); // Log the full stack trace for better debugging
+        } finally {
+            connectionClose(jdbcTemplate);
+        }
+    }
+
+    private String getTableName() {
+        Configuration conf = comboBox.getValue();
+        return "FVMADMIN_MB_" + conf.getName().replace("-", "_").replace(" ", "").trim() + "_SHUTDOWN";
+    }
 
     private List<Mailbox> getMailboxes() {
 
