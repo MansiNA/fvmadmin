@@ -265,6 +265,7 @@ public class MailboxConfigView  extends VerticalLayout {
                             System.out.println("empty....................."+affectedMailboxes.size());
                             onOffButton.setText("Alle ausschalten");
                         } else {
+                            refresh.setEnabled(false);
                             System.out.println("affect....................."+affectedMailboxes.size());
                             onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
                         }
@@ -332,6 +333,7 @@ public class MailboxConfigView  extends VerticalLayout {
         affectedMailboxes = fetchTableData();
         if(result.equals("Ok")) {
             onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
+            refresh.setEnabled(false);
         } else if(!result.equals("")){
             Notification.show("Error while Alle ausschalten").addThemeVariants(NotificationVariant.LUMO_ERROR);;
         }
@@ -360,6 +362,7 @@ public class MailboxConfigView  extends VerticalLayout {
         deleteVerbindungShutdownTable();
         affectedMailboxes.clear();
         onOffButton.setText("Alle ausschalten");
+        refresh.setEnabled(true);
         onOffButton.setEnabled(true);
         updateList();
     }
