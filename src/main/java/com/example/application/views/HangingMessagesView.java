@@ -48,7 +48,7 @@ import java.util.concurrent.Executors;
 
 @PageTitle("Verwaltung hängende Nachrichten")
 @Route(value = "hangingmassages", layout= MainLayout.class)
-@RolesAllowed("ADMIN")
+@RolesAllowed({"ADMIN","FVM"})
 public class HangingMessagesView extends VerticalLayout {
 
     @Autowired

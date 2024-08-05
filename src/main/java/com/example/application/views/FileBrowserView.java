@@ -40,7 +40,7 @@ import java.util.Map;
 
 @PageTitle("FileBrowser")
 @Route(value = "filebrowser", layout= MainLayout.class)
-@RolesAllowed("ADMIN")
+@RolesAllowed({"ADMIN","FVM"})
 public class FileBrowserView extends VerticalLayout {
 
     private final ServerConfigurationService serverConfigurationService;

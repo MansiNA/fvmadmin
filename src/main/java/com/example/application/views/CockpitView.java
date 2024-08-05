@@ -75,7 +75,7 @@ import com.wontlost.ckeditor.VaadinCKEditorBuilder;
 
 @PageTitle("eKP-Cokpit | by DBUSS GmbH")
 @Route(value = "cockpit", layout= MainLayout.class)
-@RolesAllowed("ADMIN")
+@RolesAllowed({"ADMIN","FVM", "COKPIT"})
 @CssImport(
         themeFor = "vaadin-grid",
         value = "./styles/styles.css"

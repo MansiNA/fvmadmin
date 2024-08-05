@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 
 @PageTitle("MessageExport")
 @Route(value = "messageexport", layout= MainLayout.class)
-@RolesAllowed("ADMIN")
+@RolesAllowed({"ADMIN","FVM"})
 public class MessageExportView extends VerticalLayout {
     @Value("${messages_exportPath}")
     private String exportPath;

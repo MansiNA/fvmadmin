@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 
 @PageTitle("Job Manager")
 @Route(value = "jobManager", layout = MainLayout.class)
-@RolesAllowed({"ADMIN"})
+@RolesAllowed({"ADMIN","FVM"})
 public class JobManagerView extends VerticalLayout implements BeforeEnterObserver {
 
     private JobDefinitionService jobDefinitionService;

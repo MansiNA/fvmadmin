@@ -46,6 +46,7 @@ public class MainLayout extends AppLayout {
     boolean isUser =checkUserRole();
     public static List<String> userRoles;
     public static String userName;
+
     public MainLayout(AuthenticatedUser authenticatedUser, UserService userService){
 
 
@@ -264,25 +265,27 @@ public class MainLayout extends AppLayout {
 
 
     private void createDrawer() {
+        boolean isFVM = userRoles.contains("FVM");
+        boolean isCOKPIT = userRoles.contains("COKPIT");
+        boolean isTVM = userRoles.contains("TVM");
 
-
-        RouterLink listView = new RouterLink ("Info", ListView.class);
-        RouterLink mailboxConfig = new RouterLink ("Postfach Verwaltung", MailboxConfigView.class);
-        RouterLink MessageExport = new RouterLink ("Message Exporter", MessageExportView.class);
-        RouterLink elaFavoriten = new RouterLink ("ELA-Upload (geplant)", ElaFavoritenView.class);
-        RouterLink tableExport = new RouterLink ("Table Export", TableExportView.class);
-        RouterLink quarantaeneView = new RouterLink ("Quarantäne Info", QuarantaeneView.class);
-        RouterLink metadatenView = new RouterLink ("METADATEN", MetadatenView.class);
-        RouterLink hangingMessagesView = new RouterLink ("Hängende Nachrichten", HangingMessagesView.class);
-        RouterLink tableView = new RouterLink ("Table Viewer", TableView.class);
-        RouterLink cockpitView = new RouterLink ("eKP-Cockpit", CockpitView.class);
-        RouterLink DashboardView = new RouterLink ("Dashboard (geplant)", DashboardView.class);
-        RouterLink fileBrowserView = new RouterLink ("LogFileBrowser", FileBrowserView.class);
-        RouterLink configureView = new RouterLink ("Configuration", ConfigurationView.class);
-        RouterLink userConfigView = new RouterLink ("User Configuration", UserConfigurationView.class);
-        RouterLink serverConfigView = new RouterLink ("Server Configuration", ServerConfigurationView.class);
-        RouterLink jobManager = new RouterLink ("Job Manager", JobManagerView.class);
-        listView.setHighlightCondition(HighlightConditions.sameLocation() );
+        RouterLink listView = new RouterLink("Info", ListView.class);
+        RouterLink mailboxConfig = new RouterLink("Postfach Verwaltung", MailboxConfigView.class);
+        RouterLink MessageExport = new RouterLink("Message Exporter", MessageExportView.class);
+        RouterLink elaFavoriten = new RouterLink("ELA-Upload (geplant)", ElaFavoritenView.class);
+        RouterLink tableExport = new RouterLink("Table Export", TableExportView.class);
+        RouterLink quarantaeneView = new RouterLink("Quarantäne Info", QuarantaeneView.class);
+        RouterLink metadatenView = new RouterLink("METADATEN", MetadatenView.class);
+        RouterLink hangingMessagesView = new RouterLink("Hängende Nachrichten", HangingMessagesView.class);
+        RouterLink tableView = new RouterLink("Table Viewer", TableView.class);
+        RouterLink cockpitView = new RouterLink("eKP-Cockpit", CockpitView.class);
+        RouterLink DashboardView = new RouterLink("Dashboard (geplant)", DashboardView.class);
+        RouterLink fileBrowserView = new RouterLink("LogFileBrowser", FileBrowserView.class);
+        RouterLink configureView = new RouterLink("Configuration", ConfigurationView.class);
+        RouterLink userConfigView = new RouterLink("User Configuration", UserConfigurationView.class);
+        RouterLink serverConfigView = new RouterLink("Server Configuration", ServerConfigurationView.class);
+        RouterLink jobManagerView = new RouterLink("Job Manager", JobManagerView.class);
+        listView.setHighlightCondition(HighlightConditions.sameLocation());
 
 
         RouterLink link = new RouterLink("Login", LoginView.class);
@@ -304,34 +307,47 @@ public class MainLayout extends AppLayout {
                     hangingMessagesView,
                     elaFavoriten,
                     DashboardView,
-                 //   configureView,
-                    jobManager,
+                    //   configureView,
+                    jobManagerView,
                     userConfigView,
                     serverConfigView
             ));
 
-        }
-        else if (isPFUser){
+        } else if (isPFUser) {
             addToDrawer(new VerticalLayout(
                     mailboxConfig
             ));
-        }
-        else if (isUser){
+        } else if (isUser) {
             addToDrawer(new VerticalLayout(
                     tableView,
                     metadatenView
-                //    mailboxConfig
-                //    cockpitView,
-               //     quarantaeneView
+                    //    mailboxConfig
+                    //    cockpitView,
+                    //     quarantaeneView
             ));
-        }
-        else
-        {
+        } else if (isFVM) {
+            addToDrawer(new VerticalLayout(
+            tableView,
+            metadatenView,
+            cockpitView,
+            fileBrowserView,
+                    jobManagerView,
+                    hangingMessagesView,
+            fileBrowserView,
+            quarantaeneView
+
+            ));
+        } else if (isCOKPIT) {
+            addToDrawer(new VerticalLayout(
+                    cockpitView
+            ));
+        } else if (isTVM) {
+            addToDrawer(new VerticalLayout(
+                    tableView
+            ));
+        } else {
             addToDrawer(new VerticalLayout(link));
         }
-
-
-
 
 
     }

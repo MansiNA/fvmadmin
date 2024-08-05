@@ -332,7 +332,7 @@ public class MailboxConfigView  extends VerticalLayout {
         affectedMailboxes = fetchTableData();
         if(result.equals("Ok")) {
             onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
-        } else {
+        } else if(!result.equals("")){
             Notification.show("Error while Alle ausschalten").addThemeVariants(NotificationVariant.LUMO_ERROR);;
         }
         onOffButton.setEnabled(true);

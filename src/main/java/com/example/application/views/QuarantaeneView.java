@@ -50,7 +50,7 @@ import static org.apache.xmlbeans.impl.store.Public2.getStream;
 
 @PageTitle("Quarantäne Verwaltung")
 @Route(value = "quarantaene", layout= MainLayout.class)
-@RolesAllowed({"ADMIN"})
+@RolesAllowed({"ADMIN","FVM"})
 public class QuarantaeneView extends VerticalLayout {
 
     @Autowired

@@ -62,7 +62,7 @@ import java.util.stream.Stream;
 
 @PageTitle("Tabelle Metadaten")
 @Route(value = "metadaten", layout= MainLayout.class)
-@RolesAllowed({"ADMIN","USER"})
+@RolesAllowed({"ADMIN","USER","FVM"})
 //@Route(value = "")
 public class MetadatenView extends VerticalLayout {
 

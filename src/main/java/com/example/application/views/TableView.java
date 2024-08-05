@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 
 @PageTitle("Table Viewer")
 @Route(value = "table-view", layout= MainLayout.class)
-@RolesAllowed({"ADMIN","USER"})
+@RolesAllowed({"ADMIN","USER","FVM","TVM"})
 public class TableView extends VerticalLayout {
 
     private String exportPath;
