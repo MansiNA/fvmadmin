@@ -93,7 +93,7 @@ public class MailboxConfigView  extends VerticalLayout {
         HorizontalLayout hl = new HorizontalLayout();
      //   hl.add(comboBox,button,refresh);
         hl.add(comboBox,refresh);
-        hl.setAlignItems(FlexComponent.Alignment.BASELINE);
+        hl.setAlignItems(Alignment.BASELINE);
          setSizeFull();
         add(hl);
 
@@ -143,20 +143,27 @@ public class MailboxConfigView  extends VerticalLayout {
 
                             if (clickedItem.getQUANTIFIER()==0) {
 
-                                //System.out.println(clickedItem.getLastName());
-                                Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird eingeschaltet...");
-
                              //   clickedItem.setQUANTIFIER(1);
-                                updateMessageBox(clickedItem,"1");
-                                protokollService.logAction(clickedItem.getUSER_ID() + " wurde eingeschaltet.", "");
-                                updateList();
+                                String result = updateMessageBox(clickedItem,"1");
+                                if(result.equals("Ok")) {
+                                    Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird eingeschaltet...");
+                                    protokollService.logAction(clickedItem.getUSER_ID() + " wurde eingeschaltet.", "");
+                                    updateList();
+                                } else {
+                                    Notification.show(result).addThemeVariants(NotificationVariant.LUMO_ERROR);;
+                                }
+
                             }
                             else {
                                 showShutdownReasonDialog(reason -> {
-                                    Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird ausgeschaltet...");
-                                    updateMessageBox(clickedItem, "0");
-                                    protokollService.logAction(clickedItem.getUSER_ID() + " wurde ausgeschaltet.", reason);
-                                    updateList();
+                                    String result = updateMessageBox(clickedItem, "0");
+                                    if(result.equals("Ok")) {
+                                        Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird ausgeschaltet...");
+                                        protokollService.logAction(clickedItem.getUSER_ID() + " wurde ausgeschaltet.", reason);
+                                        updateList();
+                                    }  else {
+                                        Notification.show(result).addThemeVariants(NotificationVariant.LUMO_ERROR);;
+                                    }
                                 });
                             }
                            // clickedItem.setIsActive(false);
@@ -201,7 +208,7 @@ public class MailboxConfigView  extends VerticalLayout {
         Span title = new Span("Übersicht der Postfächer");
         title.getStyle().set("font-weight", "bold");
         HorizontalLayout headerLayout = new HorizontalLayout(title, menuButton, onOffButton);
-        headerLayout.setAlignItems(FlexComponent.Alignment.BASELINE);
+        headerLayout.setAlignItems(Alignment.BASELINE);
         headerLayout.setFlexGrow(1, title);
 
         add(headerLayout,grid);
@@ -309,24 +316,31 @@ public class MailboxConfigView  extends VerticalLayout {
 
     private void disableAllMailboxes(String reason) {
         onOffButton.setEnabled(false);
-
+        String result = "";
         createVerbindungShutdownTable();
         for (Mailbox mailbox : mailboxen) {
             if (mailbox.getQUANTIFIER() == 1) {
                 mailbox.setQUANTIFIER(0);
-                updateMessageBox(mailbox, "0");
-                protokollService.logAction(mailbox.getUSER_ID() + " wurde ausgeschaltet.", reason);
-            //    protokollService.saveMailboxShutdownState(mailbox.getUSER_ID(), reason);
-                insertMailboxShutdown(mailbox.getUSER_ID(), reason);
+                result = updateMessageBox(mailbox, "0");
+                if(result.equals("Ok")) {
+                    protokollService.logAction(mailbox.getUSER_ID() + " wurde ausgeschaltet.", reason);
+                    //    protokollService.saveMailboxShutdownState(mailbox.getUSER_ID(), reason);
+                    insertMailboxShutdown(mailbox.getUSER_ID(), reason);
+                }
             }
         }
         affectedMailboxes = fetchTableData();
-        onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
+        if(result.equals("Ok")) {
+            onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
+        } else {
+            Notification.show("Error while Alle ausschalten").addThemeVariants(NotificationVariant.LUMO_ERROR);;
+        }
         onOffButton.setEnabled(true);
         updateList();
     }
 
     private void reEnableMailboxes() {
+        String result = "";
         onOffButton.setEnabled(false);
         for (MailboxShutdown mailboxShutdown : affectedMailboxes) {
         //for (Mailbox mailbox : mailboxen) {
@@ -336,8 +350,10 @@ public class MailboxConfigView  extends VerticalLayout {
                     .orElse(null);
             if (mailbox != null && mailbox.getQUANTIFIER() == 0) { // re-enable only those disabled by "alle ausschalten"
                 mailbox.setQUANTIFIER(1);
-                updateMessageBox(mailbox, "1");
-                protokollService.logAction(mailbox.getUSER_ID() + " wurde eingeschaltet.", "");
+                result = updateMessageBox(mailbox, "1");
+                if(result.equals("Ok")) {
+                    protokollService.logAction(mailbox.getUSER_ID() + " wurde eingeschaltet.", "");
+                }
             }
         }
       //  protokollService.deleteShutdownTable();
@@ -345,31 +361,6 @@ public class MailboxConfigView  extends VerticalLayout {
         affectedMailboxes.clear();
         onOffButton.setText("Alle ausschalten");
         onOffButton.setEnabled(true);
-        updateList();
-    }
-    private void allMailBoxTurnOnOffOld() {
-        boolean shouldTurnOn = mailboxen.stream().anyMatch(mailbox -> mailbox.getQUANTIFIER() == 0);
-
-        for (Mailbox mailbox : mailboxen) {
-            if (shouldTurnOn) {
-                if (mailbox.getQUANTIFIER() == 0) {
-                    mailbox.setQUANTIFIER(1);
-                    updateMessageBox(mailbox, "1");
-                    protokollService.logAction(mailbox.getUSER_ID() + " wurde eingeschaltet.","");
-                    Notification.show("Postfach " + mailbox.getUSER_ID() + " wird eingeschaltet...", 3000, Notification.Position.MIDDLE)
-                            .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                }
-            } else {
-                if (mailbox.getQUANTIFIER() == 1) {
-                    mailbox.setQUANTIFIER(0);
-                    updateMessageBox(mailbox, "0");
-                    protokollService.logAction(mailbox.getUSER_ID() + " wurde ausgeschaltet.","");
-                    Notification.show("Postfach " + mailbox.getUSER_ID() + " wird ausgeschaltet...", 3000, Notification.Position.MIDDLE)
-                            .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                }
-            }
-        }
-
         updateList();
     }
 
@@ -406,7 +397,7 @@ public class MailboxConfigView  extends VerticalLayout {
         }
     }
 
-    private void updateMessageBox(Mailbox mb, String i) {
+    private String updateMessageBox(Mailbox mb, String i) {
         DriverManagerDataSource ds = new DriverManagerDataSource();
         Configuration conf;
         conf = comboBox.getValue();
@@ -422,8 +413,10 @@ public class MailboxConfigView  extends VerticalLayout {
 
             jdbcTemplate.execute("update EKP.MAILBOX_CONFIG_Folder set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
 
+            return "Ok";
         } catch (Exception e) {
         System.out.println("Exception: " + e.getMessage());
+            return e.getMessage();
         }
 
     }
@@ -433,15 +426,19 @@ public class MailboxConfigView  extends VerticalLayout {
         String tableName = getTableName();
         try {
             connectWithDefaultDatabase();
-            System.out.println("Creating table: " + tableName);
+            if (!tableExists(tableName)) {
+                System.out.println("Creating table: " + tableName);
 
-            String sql = "CREATE TABLE \"" + tableName + "\" (mailbox_id VARCHAR2(255) NOT NULL, shutdown_reason VARCHAR2(255) NOT NULL)";
+                String sql = "CREATE TABLE \"" + tableName + "\" (mailbox_id VARCHAR2(255) NOT NULL, shutdown_reason VARCHAR2(255) NOT NULL)";
 
-            System.out.println("Executing SQL: " + sql);
+                System.out.println("Executing SQL: " + sql);
 
-            jdbcTemplate.execute(sql);
+                jdbcTemplate.execute(sql);
 
-            System.out.println("Table created successfully.");
+                System.out.println("Table created successfully.");
+            } else {
+                System.out.println("Table already exists: " + tableName);
+            }
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
             e.printStackTrace();
@@ -450,6 +447,18 @@ public class MailboxConfigView  extends VerticalLayout {
         }
     }
 
+    private boolean tableExists(String tableName) {
+        try {
+            String checkTableSql = "SELECT COUNT(*) FROM all_tables WHERE table_name = ?";
+            int tableCount = jdbcTemplate.queryForObject(checkTableSql, Integer.class, tableName);
+
+            return tableCount > 0;
+        } catch (Exception e) {
+            System.out.println("Exception while checking table existence: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
     private void connectWithDefaultDatabase() {
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
@@ -509,11 +518,7 @@ public class MailboxConfigView  extends VerticalLayout {
         try {
             connectWithDefaultDatabase();
 
-            // Check if the table exists
-            String checkTableSql = "SELECT COUNT(*) FROM all_tables WHERE table_name = ?";
-            int tableCount = jdbcTemplate.queryForObject(checkTableSql, Integer.class, tableName);
-
-            if (tableCount > 0) {
+            if (tableExists(tableName)) {
 
                 String sql = "SELECT * FROM \"" + tableName + "\"";
 
