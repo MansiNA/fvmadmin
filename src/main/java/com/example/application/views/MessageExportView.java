@@ -47,8 +47,7 @@ import java.util.concurrent.TimeUnit;
 @Route(value = "messageexport", layout= MainLayout.class)
 @RolesAllowed({"ADMIN","FVM"})
 public class MessageExportView extends VerticalLayout {
-    @Value("${messages_exportPath}")
-    private String exportPath;
+
     @Autowired
     JdbcTemplate jdbcTemplate;
     private TextField textField = new TextField();
@@ -61,7 +60,7 @@ public class MessageExportView extends VerticalLayout {
     private RawHtml rawHtmlml = new RawHtml();
     //VerticalLayout infoBox = new VerticalLayout();
     Details details = new Details("Dateiübersicht", rawHtmlml);
-    File uploadFolder;
+   // File uploadFolder;
     private final VerticalLayout live_content;
     private final VerticalLayout archive_content;
 
@@ -76,18 +75,17 @@ public class MessageExportView extends VerticalLayout {
     private final Tab archive;
     private ConfigurationService service;
     Integer ret=0;
-    public MessageExportView(@Value("${messages_exportPath}") String p_exportPath, ConfigurationService service) {
+    public MessageExportView(ConfigurationService service) {
 
         this.service=service;
-        this.exportPath=p_exportPath;
 
-        System.out.println("Message Export Path: " + exportPath);
-
-        uploadFolder = new File(exportPath);
-       // uploadFolder = getUploadFolder();
-        if (!uploadFolder.exists() || !uploadFolder.isDirectory()) {
-            Notification.show("Error: Export directory does not exist.", 5000, Notification.Position.MIDDLE);
-        }
+//        System.out.println("Message Export Path: " + exportPath);
+//
+//        uploadFolder = new File(exportPath);
+//       // uploadFolder = getUploadFolder();
+//        if (!uploadFolder.exists() || !uploadFolder.isDirectory()) {
+//            Notification.show("Error: Export directory does not exist.", 5000, Notification.Position.MIDDLE);
+//        }
 
         live = new Tab("Prod");
         archive = new Tab("Archive");
@@ -180,7 +178,7 @@ public class MessageExportView extends VerticalLayout {
                     //String InfoFile="c:/tmp/messages/"+ NachrichtID.toString() +"/eKP_ZIP_Protokoll.html";
 
 
-                    String InfoFile=exportPath + NachrichtID.toString() +"/eKP_ZIP_Protokoll.html";
+                    String InfoFile= NachrichtID.toString() +"/eKP_ZIP_Protokoll.html";
 
                     System.out.println("Suche ekp_ZIP_Protokoll.html unter " + InfoFile );
 
@@ -203,19 +201,11 @@ public class MessageExportView extends VerticalLayout {
                     info.setVisible(false);
 
                  //   ZipMessage("c:/tmp/messages/", NachrichtID);
-                    ZipMessage(exportPath , NachrichtID);
-
+                    ZipMessage(NachrichtID);
+                    downloadZipFile(NachrichtID);
                 //    linksArea.refreshFileLinks();
                 });
             });
-
-            List<Anchor> anchor_list = new ArrayList<Anchor>();
-
-            for (File file : uploadFolder.listFiles()) {
-                // addLinkToFile(file);
-
-                anchor_list.add(getAnchor(file));
-            }
 
         });
 
@@ -263,6 +253,33 @@ public class MessageExportView extends VerticalLayout {
 
     }
 
+    private void downloadZipFile(String nachrichtid) {
+        Path zipFilePath = Paths.get(nachrichtid + ".zip");
+
+        if (!Files.exists(zipFilePath)) {
+            System.out.println("Zip file not found: " + zipFilePath);
+            return;
+        } else {
+            System.out.println("Zip file is found: " + zipFilePath);
+        }
+        String zipFileName = nachrichtid + ".zip";
+        StreamResource resource = new StreamResource(zipFileName, () -> {
+            try {
+                return new ByteArrayInputStream(Files.readAllBytes(zipFilePath));
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+        });
+
+        Anchor anchor = new Anchor(resource, "Download " + zipFileName);
+        anchor.getElement().setAttribute("download", true);
+        anchor.setVisible(true);
+        UI.getCurrent().add(anchor);
+
+        UI.getCurrent().getPage().executeJs("arguments[0].click();", anchor.getElement());
+    }
+
     private Anchor getAnchor(File file){
         StreamResource streamResource = new StreamResource(file.getName(), () -> getStream(file));
         BasicFileAttributes attr;
@@ -303,7 +320,7 @@ public class MessageExportView extends VerticalLayout {
 
     private void read_parameter() {
 
-        System.out.println("Export Path: " + exportPath);
+     //   System.out.println("Export Path: " + exportPath);
     }
 
     private void setContent(Tab tab) {
@@ -327,16 +344,16 @@ public class MessageExportView extends VerticalLayout {
     }
 
 
-    private File getUploadFolder() {
-        //File folder = new File("c:\\tmp\\messages");
-
-        File folder = new File(exportPath);
-
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-        return folder;
-    }
+//    private File getUploadFolder() {
+//        //File folder = new File("c:\\tmp\\messages");
+//
+//        File folder = new File(exportPath);
+//
+//        if (!folder.exists()) {
+//            folder.mkdirs();
+//        }
+//        return folder;
+//    }
 
     private Integer exportMessage(String nachrichtid) throws IOException {
 
@@ -404,7 +421,7 @@ public class MessageExportView extends VerticalLayout {
         String targetfolder="";
         //values.forEach(x->System.out.println(x.getName()));
 
-        targetfolder=exportPath;
+        targetfolder="";
 
 
         for(ValueBlob val : values)
@@ -427,9 +444,9 @@ public class MessageExportView extends VerticalLayout {
 
     }
 
-    private void ZipMessage(String targetfolder, String nachrichtid){
+    private void ZipMessage(String nachrichtid){
            DateiZippen dateiZippen = new DateiZippen();
-           dateiZippen.createZipOfFolder(targetfolder + nachrichtid);
+           dateiZippen.createZipOfFolder(nachrichtid);
     }
 
     private String infoText() {
