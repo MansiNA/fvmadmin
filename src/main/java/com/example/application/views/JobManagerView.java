@@ -103,7 +103,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         treehl.setSizeFull();
 
         TreeGrid tg= createTreeGrid();
-
+        tg.setHeightFull();
         treehl.add(tg);
         treehl.setFlexGrow(1, tg);
 
@@ -167,6 +167,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         treeGrid.addColumn(JobManager::getTyp).setHeader("Typ").setAutoWidth(true);
         treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setAutoWidth(true);
         treeGrid.addColumn(JobManager::getScriptpath).setHeader("ScriptPath").setAutoWidth(true);
+        treeGrid.addColumn(JobManager::getMailEmpfaenger).setHeader("MAIL_EMPFAENGER").setAutoWidth(true);
+        treeGrid.addColumn(JobManager::getMailCcEmpfaenger).setHeader("MAIL_CC_EMPFAENGER").setAutoWidth(true);
         treeGrid.addColumn(jobManager -> {
             // Retrieve the connection ID from the Configuration object
             return jobManager.getConnection() != null ? jobManager.getConnection().getName() : "N/A";
@@ -397,7 +399,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         dialog.setDraggable(true);
         dialog.setResizable(true);
-        dialog.setWidth("1000px");
+        dialog.setWidth("700px");
         dialog.setHeight("400px");
         Button cancelButton = new Button("Cancel");
         Button saveButton = new Button(context.equals("Edit") ? "Save" : "Add");
@@ -432,6 +434,10 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         VerticalLayout content = new VerticalLayout();
 
         // Create and initialize fields
+        HorizontalLayout hl1 = new HorizontalLayout();
+        HorizontalLayout hl2 = new HorizontalLayout();
+        HorizontalLayout hl3 = new HorizontalLayout();
+        HorizontalLayout hl4 = new HorizontalLayout();
 
         IntegerField id = new IntegerField("ID");
         id.setValue(jobManager.getId() != null ? jobManager.getId() : null);
@@ -469,6 +475,15 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         TextField scriptpath = new TextField("SCRIPTPATH");
         scriptpath.setValue(isNew ? "" : (jobManager.getScriptpath() != null ? jobManager.getScriptpath() : ""));
         scriptpath.setWidthFull();
+
+        TextField mailEmpfaenger = new TextField("MAIL_EMPFAENGER");
+        mailEmpfaenger.setValue(isNew ? "" : (jobManager.getMailEmpfaenger() != null ? jobManager.getMailEmpfaenger() : ""));
+        mailEmpfaenger.setWidthFull();
+
+        TextField mailCcEmpfaenger = new TextField("MAIL_CC_EMPFAENGER");
+        mailCcEmpfaenger.setValue(isNew ? "" : (jobManager.getMailCcEmpfaenger() != null ? jobManager.getMailCcEmpfaenger() : ""));
+        mailCcEmpfaenger.setWidthFull();
+
 
         List<String> uniqueTyps = jobDefinitionService.getUniqueTypList();
 
@@ -508,6 +523,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         command.addValueChangeListener(event -> jobManager.setCommand(event.getValue()));
         cron.addValueChangeListener(event -> jobManager.setCron(event.getValue()));
         scriptpath.addValueChangeListener(event -> jobManager.setScriptpath(event.getValue()));
+        mailEmpfaenger.addValueChangeListener(event -> jobManager.setMailEmpfaenger(event.getValue()));
+        mailCcEmpfaenger.addValueChangeListener(event -> jobManager.setMailCcEmpfaenger(event.getValue()));
         typComboBox.addValueChangeListener(event -> {
             String selectedTyp = event.getValue();
             typComboBox.setValue(selectedTyp);
@@ -535,8 +552,12 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             }
         });
 
+        hl1.add(id, name, namespace);
+        hl2.add(command, cron, parameter);
+        hl3.add(pid, typComboBox, verbindungComboBox);
+        hl4.add(mailEmpfaenger, mailCcEmpfaenger);
         // Add all fields to the content layout
-        content.add(id, name, namespace, command, cron, parameter , pid, scriptpath, typComboBox, verbindungComboBox);
+        content.add(hl1, hl2, scriptpath, hl3, hl4);
         logPannel.logMessage(Constants.INFO, "Ending editJobDefinition");
         return content;
     }

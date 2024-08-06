@@ -98,6 +98,7 @@ public class JobDefinitionService {
 
         List<String> uniqueTyps = new ArrayList<>();
         uniqueTyps.add("sql_procedure");
+        uniqueTyps.add("sql_report");
         uniqueTyps.add("Shell");
         uniqueTyps.add("Jobchain");
         uniqueTyps.add("Node");
