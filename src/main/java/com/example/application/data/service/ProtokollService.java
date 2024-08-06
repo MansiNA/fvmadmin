@@ -52,7 +52,9 @@ public class ProtokollService {
     public Protokoll save(Protokoll protokoll) {
         return protokollRepository.save(protokoll);
     }
-
+    public List<Protokoll> findAllLogsOrderedByZeitpunktDesc() {
+        return protokollRepository.findAllByOrderByZeitpunktDesc();
+    }
     public void deleteById(Long id) {
         protokollRepository.deleteById(id);
     }

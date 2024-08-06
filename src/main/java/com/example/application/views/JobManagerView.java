@@ -158,21 +158,21 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         updateGrid();
 
         // Add the hierarchy column for displaying the hierarchical data
-        treeGrid.addHierarchyColumn(JobManager::getName).setHeader("Name").setAutoWidth(true);
+        treeGrid.addHierarchyColumn(JobManager::getName).setHeader("Name").setAutoWidth(true).setResizable(true);
 
         // Add other columns except id and pid
-        treeGrid.addColumn(JobManager::getNamespace).setHeader("Namespace").setAutoWidth(true);
-        treeGrid.addColumn(JobManager::getCommand).setHeader("Command").setAutoWidth(true);
-        treeGrid.addColumn(JobManager::getCron).setHeader("Cron").setAutoWidth(true);
-        treeGrid.addColumn(JobManager::getTyp).setHeader("Typ").setAutoWidth(true);
-        treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setAutoWidth(true);
-        treeGrid.addColumn(JobManager::getScriptpath).setHeader("ScriptPath").setAutoWidth(true);
-        treeGrid.addColumn(JobManager::getMailEmpfaenger).setHeader("MAIL_EMPFAENGER").setAutoWidth(true);
-        treeGrid.addColumn(JobManager::getMailCcEmpfaenger).setHeader("MAIL_CC_EMPFAENGER").setAutoWidth(true);
+        treeGrid.addColumn(JobManager::getNamespace).setHeader("Namespace").setAutoWidth(true).setResizable(true);
+        treeGrid.addColumn(JobManager::getCommand).setHeader("Command").setAutoWidth(true).setResizable(true);
+        treeGrid.addColumn(JobManager::getCron).setHeader("Cron").setAutoWidth(true).setResizable(true);
+        treeGrid.addColumn(JobManager::getTyp).setHeader("Typ").setAutoWidth(true).setResizable(true);
+        treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setAutoWidth(true).setResizable(true);
+        treeGrid.addColumn(JobManager::getScriptpath).setHeader("ScriptPath").setAutoWidth(true).setResizable(true);
+        treeGrid.addColumn(JobManager::getMailEmpfaenger).setHeader("MAIL_EMPFAENGER").setAutoWidth(true).setResizable(true);
+        treeGrid.addColumn(JobManager::getMailCcEmpfaenger).setHeader("MAIL_CC_EMPFAENGER").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(jobManager -> {
             // Retrieve the connection ID from the Configuration object
             return jobManager.getConnection() != null ? jobManager.getConnection().getName() : "N/A";
-        }).setHeader("Verbindung").setAutoWidth(true);
+        }).setHeader("Verbindung").setAutoWidth(true).setResizable(true);
 
       //  treeGrid.setWidth("350px");
         treeGrid.addExpandListener(event -> System.out.println(String.format("Expanded %s item(s)", event.getItems().size())));
@@ -248,7 +248,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             }
 
             return buttonsLayout;
-        }).setHeader("Actions").setAutoWidth(true);
+        }).setHeader("Actions").setAutoWidth(true).setResizable(true);
 
 
         updateJobManagerSubscription();

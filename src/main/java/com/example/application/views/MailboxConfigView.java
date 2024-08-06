@@ -3,6 +3,7 @@ package com.example.application.views;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.Mailbox;
 import com.example.application.data.entity.MailboxShutdown;
+import com.example.application.data.entity.Protokoll;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.ProtokollService;
 import com.vaadin.flow.component.Component;
@@ -61,6 +62,7 @@ public class MailboxConfigView  extends VerticalLayout {
     Integer ret = 0;
    // Button button = new Button("load");
     Button refresh = new Button("refresh");
+    Button showLog = new Button("show log");
     Button onOffButton = new Button("");
     private List<MailboxShutdown> affectedMailboxes;
     private List<Mailbox> mailboxen;
@@ -92,7 +94,7 @@ public class MailboxConfigView  extends VerticalLayout {
 
         HorizontalLayout hl = new HorizontalLayout();
      //   hl.add(comboBox,button,refresh);
-        hl.add(comboBox,refresh);
+        hl.add(comboBox,refresh, showLog);
         hl.setAlignItems(Alignment.BASELINE);
          setSizeFull();
         add(hl);
@@ -221,12 +223,15 @@ public class MailboxConfigView  extends VerticalLayout {
             if (affectedMailboxes.isEmpty()) {
                 onOffButton.setText("Alle ausschalten");
             } else {
-                refresh.setEnabled(false);
                 onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
             }
         });
 
-       // button.addClickListener(clickEvent -> {
+        showLog.addClickListener(e -> {
+            showLogDialog();
+        });
+
+        // button.addClickListener(clickEvent -> {
         comboBox.addValueChangeListener(event->{
 
             UI ui = UI.getCurrent();
@@ -263,7 +268,6 @@ public class MailboxConfigView  extends VerticalLayout {
 
                     if (mailboxen == null || mailboxen.isEmpty()) {
                         onOffButton.setEnabled(false);
-                        refresh.setEnabled(false);
                         if(mailboxen != null && mailboxen.isEmpty()) {
                             Notification.show("Keine Mailbox Infos gefunden!", 5000, Notification.Position.MIDDLE);
                         }
@@ -274,7 +278,6 @@ public class MailboxConfigView  extends VerticalLayout {
                             System.out.println("empty....................."+affectedMailboxes.size());
                             onOffButton.setText("Alle ausschalten");
                         } else {
-                            refresh.setEnabled(false);
                             System.out.println("affect....................."+affectedMailboxes.size());
                             onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
                         }
@@ -290,6 +293,24 @@ public class MailboxConfigView  extends VerticalLayout {
 
     }
 
+    private void showLogDialog() {
+        Dialog dialog = new Dialog();
+        dialog.setWidth("800px");
+        dialog.setHeight("500px");
+
+        Grid<Protokoll> grid = new Grid<>(Protokoll.class);
+        grid.setItems(protokollService.findAllLogsOrderedByZeitpunktDesc());
+
+        grid.setColumns("id", "username", "zeitpunkt", "info", "shutdownReason");
+        grid.getColumnByKey("id").setHeader("ID").setResizable(true).setAutoWidth(true);
+        grid.getColumnByKey("username").setHeader("Username").setResizable(true).setAutoWidth(true);
+        grid.getColumnByKey("zeitpunkt").setHeader("Zeitpunkt").setResizable(true).setAutoWidth(true);
+        grid.getColumnByKey("info").setHeader("Info").setResizable(true).setAutoWidth(true);
+        grid.getColumnByKey("shutdownReason").setHeader("Shutdown Reason").setResizable(true).setAutoWidth(true);
+
+        dialog.add(grid);
+        dialog.open();
+    }
     private void allMailBoxTurnOnOff() {
         if (onOffButton.getText().startsWith("Alle ausschalten")) {
             showShutdownReasonDialog(this::disableAllMailboxes);
@@ -342,7 +363,6 @@ public class MailboxConfigView  extends VerticalLayout {
         affectedMailboxes = fetchTableData();
         if(result.equals("Ok")) {
             onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
-            refresh.setEnabled(false);
         } else if(!result.equals("")){
             Notification.show("Error while Alle ausschalten").addThemeVariants(NotificationVariant.LUMO_ERROR);;
         }
@@ -371,7 +391,6 @@ public class MailboxConfigView  extends VerticalLayout {
         deleteVerbindungShutdownTable();
         affectedMailboxes.clear();
         onOffButton.setText("Alle ausschalten");
-        refresh.setEnabled(true);
         onOffButton.setEnabled(true);
         updateList();
     }
