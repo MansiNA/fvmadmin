@@ -215,7 +215,16 @@ public class MailboxConfigView  extends VerticalLayout {
 
         onOffButton.addClickListener(e -> allMailBoxTurnOnOff());
 
-        refresh.addClickListener(e -> updateList());
+        refresh.addClickListener(e -> {
+            updateList();
+            affectedMailboxes = fetchTableData();
+            if (affectedMailboxes.isEmpty()) {
+                onOffButton.setText("Alle ausschalten");
+            } else {
+                refresh.setEnabled(false);
+                onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
+            }
+        });
 
        // button.addClickListener(clickEvent -> {
         comboBox.addValueChangeListener(event->{
