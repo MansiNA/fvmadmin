@@ -12,6 +12,9 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
 import lombok.Getter;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -19,9 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import javax.mail.MessagingException;
+import java.io.*;
 import java.sql.*;
 import java.util.Date;
 import java.util.Map;
@@ -134,6 +136,11 @@ public class JobExecutor implements Job {
                 case "Shell":
                     executeShellJob(jobManager);
                     updateJobHistory();
+                    break;
+                case "sql_report":
+                    if ("EXCEL_EXPORT".equals(jobManager.getCommand())) {
+                        generateAndSendExcelReport(jobManager);
+                    }
                     break;
                 default:
                     throw new Exception("Unsupported job type: " + jobManager.getTyp());
@@ -281,6 +288,90 @@ public class JobExecutor implements Job {
         System.out.println("end executeShellJob");
         System.out.println("Shell script executed successfully:\n" + output);
     }
+
+    private void generateAndSendExcelReport(JobManager jobManager) throws Exception {
+        Configuration configuration = jobManager.getConnection();
+        String dbUrl = configuration.getDb_Url();
+        String username = configuration.getUserName();
+        String password = Configuration.decodePassword(configuration.getPassword());
+
+        String[] parts = jobManager.getParameter().split(";");
+        String fileName = parts[0];
+        String filePath = "D:\\file\\" + fileName;
+
+        try (Connection conn = DriverManager.getConnection(dbUrl, username, password);
+             Workbook workbook = new XSSFWorkbook()) {
+            for (int i = 1; i < parts.length; i++) {
+                String[] sheetAndQuery = parts[i].split(":");
+                if (sheetAndQuery.length != 2) {
+                    throw new IllegalArgumentException("Invalid sheet name and query format for part: " + parts[i]);
+                }
+
+                String sheetName = sheetAndQuery[0];
+                String query = sheetAndQuery[1];
+                Sheet sheet = workbook.createSheet(sheetName);
+                createSheetFromQuery(sheet, query, conn);
+            }
+//            runningStatements.put(jobManager.getId(), stmt);
+//
+            stopFlags.put(jobManager.getId(), new AtomicBoolean(false));
+
+            jobHistory = createJobHistory(jobManager);
+            jobHistoryService.createOrUpdateJobHistory(jobHistory);
+
+            File file = new File(filePath);
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                workbook.write(fos);
+            }
+
+            sendEmailWithAttachment(fileName, file);
+        } catch (SQLException | IOException e) {
+            throw new Exception("Error generating Excel report", e);
+        }
+    }
+
+
+    private void createSheetFromQuery(Sheet sheet, String query, Connection conn) throws SQLException {
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+            System.out.println(sheet.getSheetName() +"=  query:   "+query);
+            int rownum = 0;
+            int colnum = 0;
+            var rsMetaData = rs.getMetaData();
+            var header = sheet.createRow(rownum++);
+            for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {
+                var cell = header.createCell(colnum++);
+                cell.setCellValue(rsMetaData.getColumnLabel(i));
+            }
+            while (rs.next()) {
+                var row = sheet.createRow(rownum++);
+                colnum = 0;
+                for (int i = 1; i <= rsMetaData.getColumnCount(); i++) {
+                    var cell = row.createCell(colnum++);
+                    cell.setCellValue(rs.getString(i));
+                }
+            }
+        }
+    }
+    private void sendEmailWithAttachment(String fileName, File file) {
+        try {
+            EMailVersenden email = new EMailVersenden();
+
+            email.versendeEMail("Testemail","Der Inhalt", "abc@gmail.com","xyz@gmail.com","");
+
+//            EMailVersenden emailVersenden = new EMailVersenden();
+//            emailVersenden.versendeEMail(
+//                    "Generated Excel Report",
+//                    "Please find the attached Excel report.",
+//                    "abc@gmail.com",
+//                    "xyz@example.com",
+//                    file
+//            );
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public static void stopProcessold(int jobId) {
         Process process = runningProcesses.get(jobId);
