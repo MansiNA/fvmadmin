@@ -381,8 +381,8 @@ public class JobExecutor implements Job {
             emailVersenden.versendeEMail(
                     "Generated Excel Report",
                     "Please find the attached Excel report.",
-                   "kavathiyamansi@gmail.com",// "m.quaschny@dbuss.de",
-                    "mansikavathiya1998@gmail.com", // jobManager.getMailEmpfaenger(),
+                   "m.quaschny@dbuss.de",
+                     jobManager.getMailEmpfaenger(),
                     file
             );
         } catch (Exception e) {
