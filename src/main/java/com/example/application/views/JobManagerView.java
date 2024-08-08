@@ -484,7 +484,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         mailCcEmpfaenger.setValue(isNew ? "" : (jobManager.getMailCcEmpfaenger() != null ? jobManager.getMailCcEmpfaenger() : ""));
         mailCcEmpfaenger.setWidthFull();
 
-
         List<String> uniqueTyps = jobDefinitionService.getUniqueTypList();
 
         ComboBox<String> typComboBox = new ComboBox<>("Typ");
@@ -496,13 +495,18 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         ComboBox<Configuration> verbindungComboBox = new ComboBox<>("Verbindung");
         verbindungComboBox.setEnabled(false);
         if(!isNew) {
-            if (jobManager.getTyp().equals("sql_procedure")) {
+            if (jobManager.getTyp().equals("sql_procedure") || jobManager.getTyp().equals("sql_report")) {
                 verbindungComboBox.setEnabled(true);
             }
             if (jobManager.getTyp().equals("Shell")) {
                 verbindungComboBox.isReadOnly();
             }
+            if (!("sql_report".equals(jobManager.getTyp()))) {
+                mailEmpfaenger.setEnabled(false);
+                mailCcEmpfaenger.setEnabled(false);
+            }
         }
+
         try {
             List<Configuration> configList = configurationService.findMessageConfigurations();
             if (configList != null && !configList.isEmpty()) {
@@ -529,10 +533,17 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             String selectedTyp = event.getValue();
             typComboBox.setValue(selectedTyp);
             jobManager.setTyp(selectedTyp);
-            if ("sql_procedure".equals(selectedTyp)) {
+            if ("sql_procedure".equals(selectedTyp) || "sql_report".equals(selectedTyp)) {
                 verbindungComboBox.setEnabled(true);
             } else {
                 verbindungComboBox.setEnabled(false);
+            }
+            if (!("sql_report".equals(selectedTyp))) {
+                mailEmpfaenger.setEnabled(false);
+                mailCcEmpfaenger.setEnabled(false);
+            } else {
+                mailEmpfaenger.setEnabled(true);
+                mailCcEmpfaenger.setEnabled(true);
             }
         });
         parameter.addValueChangeListener(event -> jobManager.setParameter(event.getValue()));
