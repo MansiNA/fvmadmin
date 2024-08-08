@@ -26,6 +26,7 @@ import javax.mail.MessagingException;
 import java.io.*;
 import java.sql.*;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +49,7 @@ public class JobExecutor implements Job {
     private StringBuilder output;
     private JobManager jobManager;
 
+    Map<Integer, Long> jobIdwithProcessIDMap = new HashMap<>();
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         startType = context.getMergedJobDataMap().getString("startType");
@@ -71,7 +73,15 @@ public class JobExecutor implements Job {
 
     private JobHistory createJobHistory(JobManager jobManager) throws IOException {
         JobHistory jobHistory = new JobHistory();
-        jobHistory.setProcessId(processID);
+
+        if(!jobManager.getTyp().equals("Shell")) {
+            processID = generateUniqueProcessId();
+            System.out.println(processID+"######################################");
+            jobHistory.setProcessId(processID);
+        } else {
+            jobHistory.setProcessId(processID);
+        }
+        jobIdwithProcessIDMap.put(jobManager.getId(), processID);
         jobHistory.setJobName(jobManager.getName());
         jobHistory.setNamespace(jobManager.getNamespace());
         jobHistory.setParameter(jobManager.getParameter());
@@ -107,6 +117,8 @@ public class JobExecutor implements Job {
     }
 
     private void updateJobHistory() {
+        processID = jobIdwithProcessIDMap.get(jobManager.getId());
+        System.out.println("after update processID "+processID);
         jobHistory.setEndTime(new Date());
         if (output != null && output.length() > 0) {
             jobHistory.setReturnValue(output.toString());
@@ -460,5 +472,12 @@ public class JobExecutor implements Job {
                 System.err.println("Error stopping SQL procedure for job id: " + jobId + " - " + e.getMessage());
             }
         }
+    }
+
+    private long generateUniqueProcessId() {
+        // This method should ensure that the process ID is unique.
+        // For simplicity, we're using the current time in milliseconds.
+        // For production, consider using a UUID or other unique ID generation strategy.
+        return System.currentTimeMillis(); // Simplistic approach; adapt as needed
     }
 }
