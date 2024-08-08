@@ -141,6 +141,7 @@ public class JobExecutor implements Job {
             switch (jobManager.getTyp()) {
                 case "sql_procedure":
                     executeSQLJob(jobManager);
+                    updateJobHistory();
                     break;
                 case "Command":
                     executeCommandJob(jobManager);
@@ -152,6 +153,7 @@ public class JobExecutor implements Job {
                 case "sql_report":
                     if ("EXCEL_EXPORT".equals(jobManager.getCommand()) || "EXCEL_REPORT".equals(jobManager.getCommand())) {
                         generateAndSendExcelReport(jobManager);
+                        updateJobHistory();
                     }
                     break;
                 default:
@@ -217,6 +219,7 @@ public class JobExecutor implements Job {
             System.out.println("Procedure executed successfully.");
 
         } catch (SQLException e) {
+            exitCode = 1;
             if (stopFlags.get(jobManager.getId()).get()) {
                 throw new Exception("Job " + jobManager.getName() + " was stopped manually.");
             }
@@ -338,6 +341,10 @@ public class JobExecutor implements Job {
             System.out.println("generate excel ending");
             sendEmailWithAttachment(fileName, file);
         } catch (SQLException | IOException e) {
+            exitCode = 1;
+            if (stopFlags.get(jobManager.getId()).get()) {
+                throw new Exception("Job " + jobManager.getName() + " was stopped manually.");
+            }
             throw new Exception("Error generating Excel report", e);
         }
     }
@@ -365,7 +372,7 @@ public class JobExecutor implements Job {
             }
         }
     }
-    private void sendEmailWithAttachment(String fileName, File file) {
+    private void sendEmailWithAttachment(String fileName, File file) throws Exception {
         try {
             EMailVersenden emailVersenden = SpringContextHolder.getBean(EMailVersenden.class);
 
@@ -374,12 +381,15 @@ public class JobExecutor implements Job {
             emailVersenden.versendeEMail(
                     "Generated Excel Report",
                     "Please find the attached Excel report.",
-                    "m.quaschny@dbuss.de",
-                    jobManager.getMailEmpfaenger(),
+                   "kavathiyamansi@gmail.com",// "m.quaschny@dbuss.de",
+                    "mansikavathiya1998@gmail.com", // jobManager.getMailEmpfaenger(),
                     file
             );
-        } catch (MessagingException e) {
+        } catch (Exception e) {
+            exitCode = 1;
             e.printStackTrace();
+            throw new Exception("Error while send mail: "+ e.getMessage());
+
         }
     }
 
