@@ -55,7 +55,6 @@ import java.util.stream.Collectors;
 @RolesAllowed({"ADMIN","USER","FVM","TVM"})
 public class TableView extends VerticalLayout {
 
-    private String exportPath;
     String myPath;
 
     private ConfigurationService service;
@@ -83,13 +82,11 @@ public class TableView extends VerticalLayout {
     private static String user;
     private static String password;
 
-    public TableView(@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service, SqlDefinitionService sqlDefinitionService, JdbcTemplate jdbcTemplate) throws SQLException, IOException {
+    public TableView(ConfigurationService service, SqlDefinitionService sqlDefinitionService, JdbcTemplate jdbcTemplate) throws SQLException, IOException {
         //add(new H1("Table View"));
-        this.exportPath = p_exportPath;
         this.sqlDefinitionService = sqlDefinitionService;
         this.jdbcTemplate = jdbcTemplate;
 
-        System.out.println("Export Path: " + exportPath);
         exportButton.setVisible(false);
         runButton.setEnabled(false);
 
@@ -135,7 +132,7 @@ public class TableView extends VerticalLayout {
         exportButton.addClickListener(clickEvent -> {
 
             Notification.show("Exportiere Daten" );
-            generateExcelFile(rows, exportPath + "query.xlsx");
+            generateExcelFile(rows, "query.xlsx");
         });
 
         runButton.addClickListener(clickEvent -> {
