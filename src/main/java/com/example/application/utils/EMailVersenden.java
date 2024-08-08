@@ -37,10 +37,10 @@ public class EMailVersenden {
         System.out.println("username"+ absender);
 
         Properties properties = new Properties();
-        properties.setProperty("mail.smtp.host", "smtp.gmail.com");
-        properties.setProperty("mail.smtp.port", String.valueOf(587));
-        properties.setProperty("mail.smtp.auth", String.valueOf(true));
-        properties.setProperty("mail.smtp.starttls.enable", String.valueOf(true));
+        properties.setProperty("mail.smtp.host", smtpHost);
+        properties.setProperty("mail.smtp.port", String.valueOf(smtpPort));
+        properties.setProperty("mail.smtp.auth", String.valueOf(smtpAuth));
+        properties.setProperty("mail.smtp.starttls.enable", String.valueOf(starttlsEnable));
         properties.setProperty("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
 //        properties.setProperty("mail.smtp.host", smtpHost);
 //        properties.setProperty("mail.smtp.port", String.valueOf(smtpPort));
