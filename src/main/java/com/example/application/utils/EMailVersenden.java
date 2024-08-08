@@ -17,41 +17,30 @@ public class EMailVersenden {
     @Value("${mail.smtp.host}")
     private String smtpHost;
 
-    @Value("${mail.smtp.port}")
-    private int smtpPort;
-
-    @Value("${mail.smtp.auth}")
-    private boolean smtpAuth;
-
-    @Value("${mail.smtp.starttls.enable}")
-    private boolean starttlsEnable;
-
-    @Value("${mail.username}")
-    private  String absender;
-
-    @Value("${mail.password}")
-    private String password;
 
 
-    public void versendeEMail(String betreff, String inhalt, String empfaenger, File attachment) throws MessagingException {
+    public void versendeEMail(String betreff, String inhalt, String absender, String empfaenger, File attachment) throws MessagingException {
         System.out.println("username"+ absender);
-
-        Properties properties = new Properties();
+        Properties properties = System.getProperties();
         properties.setProperty("mail.smtp.host", smtpHost);
-        properties.setProperty("mail.smtp.port", String.valueOf(smtpPort));
-        properties.setProperty("mail.smtp.auth", String.valueOf(smtpAuth));
-        properties.setProperty("mail.smtp.starttls.enable", String.valueOf(starttlsEnable));
-        properties.setProperty("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
+        Session session = Session.getDefaultInstance( properties );
+
+//        Properties properties = new Properties();
+//        properties.setProperty("mail.smtp.host", smtpHost);
+//        properties.setProperty("mail.smtp.port", String.valueOf(smtpPort));
+//        properties.setProperty("mail.smtp.auth", String.valueOf(smtpAuth));
+//        properties.setProperty("mail.smtp.starttls.enable", String.valueOf(starttlsEnable));
+//        properties.setProperty("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
 //        properties.setProperty("mail.smtp.host", smtpHost);
 //        properties.setProperty("mail.smtp.port", String.valueOf(smtpPort));
 //        properties.setProperty("mail.smtp.auth", String.valueOf(smtpAuth));
 //        properties.setProperty("mail.smtp.starttls.enable", String.valueOf(starttlsEnable));
 
-        Session session = Session.getInstance(properties, new Authenticator() {
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(absender, password);
-            }
-        });
+//        Session session = Session.getInstance(properties, new Authenticator() {
+//            protected PasswordAuthentication getPasswordAuthentication() {
+//                return new PasswordAuthentication(absender, password);
+//            }
+//        });
 
         MimeMessage message = new MimeMessage(session);
         message.setFrom(new InternetAddress(absender));
@@ -78,7 +67,7 @@ public class EMailVersenden {
         System.out.println("send email...............");
     }
 
-    public void versendeEMail( String betreff, String inhalt, String empfaenger) throws MessagingException, AddressException {
+    public void versendeEMail( String betreff, String inhalt, String absender, String empfaenger) throws MessagingException, AddressException {
         System.out.println("username"+ absender);
         Properties properties = System.getProperties();
         properties.setProperty("mail.smtp.host", smtpHost);

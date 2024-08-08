@@ -357,11 +357,12 @@ public class JobExecutor implements Job {
         try {
             EMailVersenden emailVersenden = SpringContextHolder.getBean(EMailVersenden.class);
 
-     //       emailVersenden.versendeEMail("Testemail","Der Inhalt", jobManager.getMailEmpfaenger());
+     //       emailVersenden.versendeEMail("Testemail","Der Inhalt","m.quaschny@dbuss.de", jobManager.getMailEmpfaenger());
 
             emailVersenden.versendeEMail(
                     "Generated Excel Report",
                     "Please find the attached Excel report.",
+                    "m.quaschny@dbuss.de",
                     jobManager.getMailEmpfaenger(),
                     file
             );
