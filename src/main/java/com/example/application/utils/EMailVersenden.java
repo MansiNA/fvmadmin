@@ -1,5 +1,7 @@
 package com.example.application.utils;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.persistence.PrePersist;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -25,13 +27,15 @@ public class EMailVersenden {
     private boolean starttlsEnable;
 
     @Value("${mail.username}")
-    private String username;
+    private  String absender;
 
     @Value("${mail.password}")
     private String password;
 
 
-    public void versendeEMail(String betreff, String inhalt, String absender, String empfaenger, File attachment) throws MessagingException {
+    public void versendeEMail(String betreff, String inhalt, String empfaenger, File attachment) throws MessagingException {
+        System.out.println("username"+ absender);
+
         Properties properties = new Properties();
         properties.setProperty("mail.smtp.host", "smtp.gmail.com");
         properties.setProperty("mail.smtp.port", String.valueOf(587));
@@ -45,7 +49,7 @@ public class EMailVersenden {
 
         Session session = Session.getInstance(properties, new Authenticator() {
             protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication("abc@gmail.com", "abc123");
+                return new PasswordAuthentication(absender, password);
             }
         });
 
@@ -74,10 +78,10 @@ public class EMailVersenden {
         System.out.println("send email...............");
     }
 
-    public static void versendeEMail( String betreff, String inhalt, String absender, String empfaenger, String smtpHost ) throws MessagingException, AddressException {
+    public void versendeEMail( String betreff, String inhalt, String empfaenger) throws MessagingException, AddressException {
+        System.out.println("username"+ absender);
         Properties properties = System.getProperties();
-       // properties.setProperty( "mail.smtp.host", smtpHost );
-        properties.setProperty("mail.smtp.host", "smtp.gmail.com");
+        properties.setProperty("mail.smtp.host", smtpHost);
         Session session = Session.getDefaultInstance( properties );
         MimeMessage message = new MimeMessage( session );
         message.setFrom( new InternetAddress( absender ) );

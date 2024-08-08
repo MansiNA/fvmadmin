@@ -138,7 +138,7 @@ public class JobExecutor implements Job {
                     updateJobHistory();
                     break;
                 case "sql_report":
-                    if ("EXCEL_EXPORT".equals(jobManager.getCommand())) {
+                    if ("EXCEL_EXPORT".equals(jobManager.getCommand()) || "EXCEL_REPORT".equals(jobManager.getCommand())) {
                         generateAndSendExcelReport(jobManager);
                     }
                     break;
@@ -290,6 +290,7 @@ public class JobExecutor implements Job {
     }
 
     private void generateAndSendExcelReport(JobManager jobManager) throws Exception {
+        System.out.println("generate excel starting");
         Configuration configuration = jobManager.getConnection();
         String dbUrl = configuration.getDb_Url();
         String username = configuration.getUserName();
@@ -297,7 +298,6 @@ public class JobExecutor implements Job {
 
         String[] parts = jobManager.getParameter().split(";");
         String fileName = parts[0];
-        String filePath = "D:\\file\\" + fileName;
 
         try (Connection conn = DriverManager.getConnection(dbUrl, username, password);
              Workbook workbook = new XSSFWorkbook()) {
@@ -319,11 +319,11 @@ public class JobExecutor implements Job {
             jobHistory = createJobHistory(jobManager);
             jobHistoryService.createOrUpdateJobHistory(jobHistory);
 
-            File file = new File(filePath);
+            File file = new File(fileName);
             try (FileOutputStream fos = new FileOutputStream(file)) {
                 workbook.write(fos);
             }
-
+            System.out.println("generate excel ending");
             sendEmailWithAttachment(fileName, file);
         } catch (SQLException | IOException e) {
             throw new Exception("Error generating Excel report", e);
@@ -355,18 +355,16 @@ public class JobExecutor implements Job {
     }
     private void sendEmailWithAttachment(String fileName, File file) {
         try {
-            EMailVersenden email = new EMailVersenden();
+            EMailVersenden emailVersenden = SpringContextHolder.getBean(EMailVersenden.class);
 
-            email.versendeEMail("Testemail","Der Inhalt", "abc@gmail.com","xyz@gmail.com","");
+     //       emailVersenden.versendeEMail("Testemail","Der Inhalt", jobManager.getMailEmpfaenger());
 
-//            EMailVersenden emailVersenden = new EMailVersenden();
-//            emailVersenden.versendeEMail(
-//                    "Generated Excel Report",
-//                    "Please find the attached Excel report.",
-//                    "abc@gmail.com",
-//                    "xyz@example.com",
-//                    file
-//            );
+            emailVersenden.versendeEMail(
+                    "Generated Excel Report",
+                    "Please find the attached Excel report.",
+                    jobManager.getMailEmpfaenger(),
+                    file
+            );
         } catch (MessagingException e) {
             e.printStackTrace();
         }
