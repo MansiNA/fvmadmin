@@ -446,7 +446,7 @@ public class MessageExportView extends VerticalLayout {
 
     private void prepareZipAndDownloadZipFile(String nachrichtid){
            DateiZippen dateiZippen = new DateiZippen();
-           dateiZippen.createZipInMemory(nachrichtid);
+       //    dateiZippen.createZipInMemory(nachrichtid);
          //  dateiZippen.createZipOfFolder(nachrichtid);
 
         ByteArrayInputStream zipInputStream = dateiZippen.createZipInMemory(nachrichtid);
@@ -464,9 +464,20 @@ public class MessageExportView extends VerticalLayout {
             // Handle the case where zipInputStream is null or empty
             Notification.show("Failed to create ZIP file.", 3000, Notification.Position.MIDDLE);
         }
-
+        deleteSourceFolder(nachrichtid);
     }
-
+    private void deleteSourceFolder(String folderName) {
+        File sourceFolder = new File(folderName);
+        try {
+            if (sourceFolder.exists()) {
+                FileUtils.deleteDirectory(sourceFolder);
+                System.out.println("Deleted folder: " + folderName);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            Notification.show("Failed to delete source folder.", 3000, Notification.Position.MIDDLE);
+        }
+    }
     private String infoText() {
         return String.format("Exportiere NachrichtID: %s ", textField.getValue());
     }
