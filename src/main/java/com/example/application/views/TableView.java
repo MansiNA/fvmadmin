@@ -139,7 +139,7 @@ public class TableView extends VerticalLayout {
             try {
                 show_grid(sqlTextField.getValue());
                 exportButton.setVisible(true);
-                runButton.setEnabled(false);
+          //      runButton.setEnabled(false);
             } catch (SQLException ex) {
                 throw new RuntimeException(ex);
             } catch (IOException ex) {
