@@ -73,8 +73,6 @@ public class MetadatenView extends VerticalLayout {
 
     ComboBox searchAttribut = new ComboBox<>("Such-Attribut");
 
-    private String exportPath;
-
     Grid<Metadaten> grid = new Grid<>(Metadaten.class, false);
     Grid<Journal> gridEGVP = new Grid<>(Journal.class, false);
     //Grid<Ablaufdaten> gridAblaufdaten = new Grid<>(Ablaufdaten.class, false);
@@ -99,9 +97,8 @@ public class MetadatenView extends VerticalLayout {
 
     ConfirmDialog dialog = new ConfirmDialog();
 
-    public MetadatenView (@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service){
+    public MetadatenView (ConfigurationService service){
     //public MetadatenView (ConfigurationService service){
-        this.exportPath=p_exportPath;
         this.service = service;
 
         fileName = "metadaten.xls";
