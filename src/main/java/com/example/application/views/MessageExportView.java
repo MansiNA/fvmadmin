@@ -201,8 +201,8 @@ public class MessageExportView extends VerticalLayout {
                     info.setVisible(false);
 
                  //   ZipMessage("c:/tmp/messages/", NachrichtID);
-                    ZipMessage(NachrichtID);
-                    downloadZipFile(NachrichtID);
+                    prepareZipAndDownloadZipFile(NachrichtID);
+                  //  downloadZipFile(NachrichtID);
                 //    linksArea.refreshFileLinks();
                 });
             });
@@ -444,9 +444,27 @@ public class MessageExportView extends VerticalLayout {
 
     }
 
-    private void ZipMessage(String nachrichtid){
+    private void prepareZipAndDownloadZipFile(String nachrichtid){
            DateiZippen dateiZippen = new DateiZippen();
-           dateiZippen.createZipOfFolder(nachrichtid);
+           dateiZippen.createZipInMemory(nachrichtid);
+         //  dateiZippen.createZipOfFolder(nachrichtid);
+
+        ByteArrayInputStream zipInputStream = dateiZippen.createZipInMemory(nachrichtid);
+
+        if (zipInputStream != null) {
+            StreamResource streamResource = new StreamResource(nachrichtid + ".zip", () -> zipInputStream);
+            Anchor anchor = new Anchor(streamResource, "");
+            anchor.getElement().setAttribute("download", true);
+            anchor.getElement().getStyle().set("display", "none");
+            add(anchor);
+
+            // Trigger the download
+            UI.getCurrent().getPage().executeJs("arguments[0].click()", anchor);
+        } else {
+            // Handle the case where zipInputStream is null or empty
+            Notification.show("Failed to create ZIP file.", 3000, Notification.Position.MIDDLE);
+        }
+
     }
 
     private String infoText() {

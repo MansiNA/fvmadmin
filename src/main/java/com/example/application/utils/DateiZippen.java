@@ -44,7 +44,7 @@ public class DateiZippen {
         }
     }
 
-    public void createZipOfFolder(@NonNull String sourceFolderName) {
+    public void createZipOfFolderold(@NonNull String sourceFolderName) {
         Path sourceFolderPath = Paths.get(sourceFolderName);
         Path zipFilePath = Paths.get(sourceFolderPath + ".zip");
         // This baseFolderPath is upto the parent folder of sourceFolder.
@@ -82,4 +82,39 @@ public class DateiZippen {
         }
     }
 
+    public ByteArrayInputStream createZipInMemory(@NonNull String sourceFolderName) {
+        Path sourceFolderPath = Paths.get(sourceFolderName);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        try (ZipOutputStream zos = new ZipOutputStream(baos)) {
+            Path baseFolderPath = Paths.get(sourceFolderName.substring(0, sourceFolderName.indexOf(sourceFolderPath.getFileName().toString())));
+
+            Files.walkFileTree(sourceFolderPath, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) throws IOException {
+                    System.out.println(">createZipOfFolder< Adding Dir: " + dir);
+                    zos.putNextEntry(new ZipEntry(baseFolderPath.relativize(dir) + "/"));
+                    zos.closeEntry();
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
+                    System.out.println(">createZipOfFolder< Adding file: " + file);
+                    zos.putNextEntry(new ZipEntry(baseFolderPath.relativize(file).toString()));
+                    Files.copy(file, zos);
+                    zos.closeEntry();
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+
+            // Make sure to handle any remaining data in the stream
+            zos.finish();
+            return new ByteArrayInputStream(baos.toByteArray());
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+            return new ByteArrayInputStream(new byte[0]);
+        }
+    }
 }
