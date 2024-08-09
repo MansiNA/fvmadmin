@@ -104,12 +104,12 @@ public class MetadatenView extends VerticalLayout {
         this.exportPath=p_exportPath;
         this.service = service;
 
-        fileName=exportPath + "metadaten.xls";
-     //   fileName= "/data/oracle/fvmadmin/csv_export/metadaten.xls";
-        anchor = new Anchor(getStreamResource(fileName, "default content"), "click to download");
+        fileName = "metadaten.xls";
+        anchor = new Anchor("", "Click to download");
+        anchor.setEnabled(false);
 
         add(new H3("Anzeige von Metadaten, sowie der jeweils zugehörigen Ablaufdaten und EGVP-E Journal Einträge"));
-        anchor.setEnabled(false);
+
 
 
         searchAttribut.setItems("NachrichtIDIntern", "NachrichtIDExtern", "Sender","Senderaktenzeichen","SenderGovelloID","SenderpostfachName","Sendergeschäftszeichen","Empfänger","Empfaengeraktenzeichen","EmpfaengerGovelloID","Empfaengerpostfachname","Weiterleitungsgovelloid","Weiterleitungspostfachname","Betreff","Bemerkung","Fachverfahren","Fachbereich","Bearbeitername");
@@ -329,19 +329,29 @@ public class MetadatenView extends VerticalLayout {
                 smallButton.setVisible(false);
             try {
               //  generateExcel("","");
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                writeObjectsToXls(metadaten, outputStream);
 
+                // Create StreamResource from ByteArrayInputStream
+                StreamResource streamResource = new StreamResource(fileName,
+                        () -> new ByteArrayInputStream(outputStream.toByteArray()));
 
-                writeObjectsToXls(metadaten,fileName);
-                //writeObjectsToCsv(metadaten,"c:\\tmp\\out.csv");
-
-                File file= new File(fileName);
-                StreamResource streamResource = new StreamResource(file.getName(),()->getStream(file));
-
+                // Set the download URL for the anchor and enable it
                 anchor.setHref(streamResource);
-                //anchor = new Anchor(streamResource, String.format("%s (%d KB)", file.getName(), (int) file.length() / 1024));
-
                 anchor.setEnabled(true);
                 smallButton.setVisible(false);
+
+//                writeObjectsToXls(metadaten,fileName);
+//                //writeObjectsToCsv(metadaten,"c:\\tmp\\out.csv");
+//
+//                File file= new File(fileName);
+//                StreamResource streamResource = new StreamResource(file.getName(),()->getStream(file));
+//
+//                anchor.setHref(streamResource);
+//                //anchor = new Anchor(streamResource, String.format("%s (%d KB)", file.getName(), (int) file.length() / 1024));
+//
+//                anchor.setEnabled(true);
+//                smallButton.setVisible(false);
 
 
             } catch (IOException e) {
@@ -922,7 +932,7 @@ public class MetadatenView extends VerticalLayout {
     }
 
 
-    public static void writeObjectsToXls(List<Metadaten> objects, String filePath) throws IOException {
+    public static void writeObjectsToXls(List<Metadaten> objects, ByteArrayOutputStream outputStream) throws IOException {
         // Erstellen Sie ein Workbook-Objekt
         Workbook workbook = new HSSFWorkbook();
         // Erstellen Sie ein neues Arbeitsblatt im Workbook
@@ -1029,9 +1039,9 @@ public class MetadatenView extends VerticalLayout {
         }
 
         // Schreiben Sie das Workbook in eine Datei
-        FileOutputStream fileOut = new FileOutputStream(filePath);
-        workbook.write(fileOut);
-        fileOut.close();
+     //   FileOutputStream fileOut = new FileOutputStream(filePath);
+        workbook.write(outputStream);
+     //   fileOut.close();
         workbook.close();
     }
 
