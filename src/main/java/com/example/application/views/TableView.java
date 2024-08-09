@@ -669,19 +669,17 @@ public class TableView extends VerticalLayout {
         }
 
         try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-            // Write the workbook to the specified file
-            try (FileOutputStream fileOut = new FileOutputStream(fileName)) {
-                workbook.write(fileOut);
-            } catch (Exception e) {
-                // e.printStackTrace();
-                Notification.show(e.getMessage(), 5000, Notification.Position.MIDDLE);
-            }
-            // Close the workbook
+            // Write the workbook content to the ByteArrayOutputStream
+            workbook.write(outputStream);
+
+            // Close the workbook to free up resources
             workbook.close();
 
-            File file = new File(fileName);
-            StreamResource streamResource = new StreamResource(file.getName(), () -> getStream(file));
+            // Create a StreamResource from the ByteArrayOutputStream
+            StreamResource streamResource = new StreamResource(fileName,
+                    () -> new ByteArrayInputStream(outputStream.toByteArray()));
 
             Anchor anchor = new Anchor(streamResource, "");
             anchor.getElement().setAttribute("download", true);
