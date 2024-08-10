@@ -4,6 +4,7 @@ import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.JobManager;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.JobDefinitionService;
+import com.example.application.service.EmailService;
 import com.example.application.utils.Constants;
 import com.example.application.utils.JobDefinitionUtils;
 import com.example.application.utils.JobExecutor;
@@ -61,6 +62,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Scheduler scheduler;
     private Button allStartButton = new Button("All Start");
     private Button allStopButton = new Button("All Stop");
+    private Button sendMailButton = new Button("Testmail");
+
     private final UI ui;
     private static final Set<SerializableConsumer<String>> subscribers = new HashSet<>();
     private static final Set<SerializableConsumer<String>> start_subscribers = new HashSet<>();
@@ -77,9 +80,11 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private LogPannel logPannel;
     private Boolean isLogsVisible = false;
     private Boolean isVisible = false;
+    private final EmailService emailService;
 
-    public JobManagerView(JobDefinitionService jobDefinitionService, ConfigurationService configurationService) {
+    public JobManagerView(EmailService emailService, JobDefinitionService jobDefinitionService, ConfigurationService configurationService) {
 
+        this.emailService = emailService;
         this.jobDefinitionService = jobDefinitionService;
         this.configurationService = configurationService;
 
@@ -91,7 +96,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         this.ui = UI.getCurrent();
 
-        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"),  allStartButton, allStopButton);
+        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"), sendMailButton,  allStartButton, allStopButton);
         hl.setAlignItems(Alignment.BASELINE);
         add(hl);
 
@@ -283,6 +288,31 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                     Notification.show("Error executing job: " + jobManager.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
             }
+
+        });
+
+        sendMailButton.addClickListener(event -> {
+            System.out.println("Versende Email...");
+            try {
+
+                try {
+                    emailService.sendSimpleMessage("michael.quaschny@dataport.de","Testnachricht","Test test");
+                    System.out.println("Mail wurde versendet...");
+
+                } catch (Exception e) {
+                    System.out.println("Mail konnte nicht versendet werden!!!");
+                    e.printStackTrace();
+
+                }
+
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+
+
+            }
+
 
         });
 
@@ -672,6 +702,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         scheduler.scheduleJob(jobDetail, trigger);
         logPannel.logMessage(Constants.INFO, "Ending scheduleJob manualy for " + jobManager.getName());
     }
+
+
 
     public boolean isJobRunning(int jobId) throws SchedulerException {
         JobKey jobKey = new JobKey("job-" + jobId, "group1");

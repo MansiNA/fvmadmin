@@ -22,7 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.mail.MessagingException;
 import java.io.*;
 import java.sql.*;
 import java.util.Date;
@@ -373,24 +372,8 @@ public class JobExecutor implements Job {
         }
     }
     private void sendEmailWithAttachment(String fileName, File file) throws Exception {
-        try {
-            EMailVersenden emailVersenden = SpringContextHolder.getBean(EMailVersenden.class);
 
-     //       emailVersenden.versendeEMail("Testemail","Der Inhalt","m.quaschny@dbuss.de", jobManager.getMailEmpfaenger());
-
-            emailVersenden.versendeEMail(
-                    "Generated Excel Report",
-                    "Please find the attached Excel report.",
-                   "m.quaschny@dbuss.de",
-                     jobManager.getMailEmpfaenger(),
-                    file
-            );
-        } catch (Exception e) {
-            exitCode = 1;
-            e.printStackTrace();
-            throw new Exception("Error while send mail: "+ e.getMessage());
-
-        }
+            System.out.println("Hier wird die Mail versendet mit Dateil " + fileName);
     }
 
 
