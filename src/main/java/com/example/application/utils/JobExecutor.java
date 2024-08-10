@@ -5,6 +5,7 @@ import com.example.application.data.entity.JobHistory;
 import com.example.application.data.entity.JobManager;
 import com.example.application.data.service.JobDefinitionService;
 import com.example.application.data.service.JobHistoryService;
+import com.example.application.service.EmailService;
 import com.example.application.views.JobManagerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.UI;
@@ -374,6 +375,32 @@ public class JobExecutor implements Job {
     private void sendEmailWithAttachment(String fileName, File file) throws Exception {
 
             System.out.println("Hier wird die Mail versendet mit Dateil " + fileName);
+
+        try {
+            EmailService emailVersenden = SpringContextHolder.getBean(EmailService.class);
+
+            //       emailVersenden.versendeEMail("Testemail","Der Inhalt","m.quaschny@dbuss.de", jobManager.getMailEmpfaenger());
+
+            /*
+            emailVersenden.sendSimpleMessage(
+                    jobManager.getMailEmpfaenger(),
+                    "Please find the attached Excel report.",
+                    "Testmail"
+            );
+
+             */
+
+            emailVersenden.sendAttachMessage("michael.quaschny@dataport.de","Report","Inhalt der Mail","test.html");
+
+
+        } catch (Exception e) {
+            exitCode = 1;
+            e.printStackTrace();
+            throw new Exception("Error while send mail: "+ e.getMessage());
+
+        }
+
+
     }
 
 
