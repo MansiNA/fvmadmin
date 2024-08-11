@@ -374,21 +374,10 @@ public class JobExecutor implements Job {
     }
     private void sendEmailWithAttachment(String fileName, File file) throws Exception {
 
-            System.out.println("Hier wird die Mail versendet mit Dateil " + fileName);
+            System.out.println("Hier wird die Mail versendet mit Datei: " + fileName);
 
         try {
             EmailService emailVersenden = SpringContextHolder.getBean(EmailService.class);
-
-            //       emailVersenden.versendeEMail("Testemail","Der Inhalt","m.quaschny@dbuss.de", jobManager.getMailEmpfaenger());
-
-            /*
-            emailVersenden.sendSimpleMessage(
-                    jobManager.getMailEmpfaenger(),
-                    "Please find the attached Excel report.",
-                    "Testmail"
-            );
-
-             */
 
             emailVersenden.sendAttachMessage("michael.quaschny@dataport.de","Report","Inhalt der Mail","test.html");
 

@@ -35,7 +35,7 @@ public class EmailServiceImpl implements EmailService {
     public void sendAttachMessage(String to, String subject, String text, String attachement) {
         MimeMessagePreparator preparator = mimeMessage -> {
             mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
-            mimeMessage.setFrom(new InternetAddress("demo@thexpertdev.com"));
+            mimeMessage.setFrom(new InternetAddress("noreplay@dataport.de"));
             mimeMessage.setSubject(subject);
             mimeMessage.setText(text);
 
