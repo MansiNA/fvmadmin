@@ -21,6 +21,7 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
@@ -335,11 +336,18 @@ public class JobExecutor implements Job {
             jobHistoryService.createOrUpdateJobHistory(jobHistory);
 
             File file = new File(fileName);
-            try (FileOutputStream fos = new FileOutputStream(file)) {
-                workbook.write(fos);
-            }
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            workbook.write(baos);
+            workbook.close();
+
+            // Convert ByteArrayOutputStream to a ByteArrayInputStream
+            ByteArrayInputStream inMemoryFileStream = new ByteArrayInputStream(baos.toByteArray());
+
+            // Send the email with the in-memory file
+            sendEmailWithAttachment("report.xlsx", inMemoryFileStream);
+
             System.out.println("generate excel ending");
-            sendEmailWithAttachment(fileName, file);
+           // sendEmailWithAttachment(fileName, file);
         } catch (SQLException | IOException e) {
             exitCode = 1;
             if (stopFlags.get(jobManager.getId()).get()) {
@@ -372,14 +380,34 @@ public class JobExecutor implements Job {
             }
         }
     }
-    private void sendEmailWithAttachment(String fileName, File file) throws Exception {
+    private void sendEmailWithAttachment(String fileName, InputStream inputStream) throws Exception {
+
+        System.out.println("Sending email with attachment: " + fileName);
+
+        try {
+            EmailService emailService = SpringContextHolder.getBean(EmailService.class);
+
+            // Convert the InputStream to a ByteArrayResource
+            byte[] fileBytes = inputStream.readAllBytes();
+            ByteArrayResource byteArrayResource = new ByteArrayResource(fileBytes);
+
+            // Send the email
+            emailService.sendAttachMessage("michael.quaschny@dataport.de", jobManager.getMailBetreff(), jobManager.getMailText(), fileName, byteArrayResource);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new Exception("Error while sending mail: " + e.getMessage(), e);
+        }
+    }
+
+    private void sendEmailWithAttachmentOld(String fileName, File file) throws Exception {
 
             System.out.println("Hier wird die Mail versendet mit Datei: " + fileName);
             System.out.println("file path "+file.getAbsolutePath());
         try {
             EmailService emailVersenden = SpringContextHolder.getBean(EmailService.class);
 
-            emailVersenden.sendAttachMessage("michael.quaschny@dataport.de",jobManager.getMailBetreff(),jobManager.getMailText(),file.getAbsolutePath());
+          //  emailVersenden.sendAttachMessage("michael.quaschny@dataport.de",jobManager.getMailBetreff(),jobManager.getMailText(),file.getAbsolutePath());
         //    emailVersenden.sendAttachMessage("michael.quaschny@dataport.de",jobManager.getMailBetreff(),jobManager.getMailText(),fileName);
 
 

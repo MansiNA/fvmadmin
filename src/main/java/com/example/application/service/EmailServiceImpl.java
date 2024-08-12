@@ -2,6 +2,7 @@ package com.example.application.service;
 
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -58,5 +59,25 @@ public class EmailServiceImpl implements EmailService {
 
         emailSender.send (preparator);
     }
+
+    public void sendAttachMessage(String to, String subject, String text, String attachmentFileName, ByteArrayResource byteArrayResource) {
+        MimeMessagePreparator preparator = mimeMessage -> {
+            mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
+            mimeMessage.setFrom(new InternetAddress("noreplay@dataport.de"));
+            mimeMessage.setSubject(subject);
+            mimeMessage.setText(text);
+
+            try {
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+                helper.addAttachment(attachmentFileName, byteArrayResource);
+                helper.setText(text, true);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        };
+
+        emailSender.send(preparator);
+    }
+
 
 }

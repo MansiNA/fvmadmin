@@ -107,7 +107,7 @@ public class UserConfigurationView extends VerticalLayout {
         closeButton.addClickListener(e -> {
             dialog.close();
         });
-        Button addButton = new Button("add");
+        Button addButton = new Button("set");
         addButton.addClickListener(e -> {
 
             String nameValue = name.getValue();
