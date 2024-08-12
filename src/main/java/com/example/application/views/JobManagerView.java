@@ -172,6 +172,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         treeGrid.addColumn(JobManager::getTyp).setHeader("Typ").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(JobManager::getScriptpath).setHeader("ScriptPath").setAutoWidth(true).setResizable(true);
+        treeGrid.addColumn(JobManager::getMailBetreff).setHeader("MailBetreff").setAutoWidth(true).setResizable(true);
+        treeGrid.addColumn(JobManager::getMailText).setHeader("MailText").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(JobManager::getMailEmpfaenger).setHeader("MAIL_EMPFAENGER").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(JobManager::getMailCcEmpfaenger).setHeader("MAIL_CC_EMPFAENGER").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(jobManager -> {
@@ -468,6 +470,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         HorizontalLayout hl2 = new HorizontalLayout();
         HorizontalLayout hl3 = new HorizontalLayout();
         HorizontalLayout hl4 = new HorizontalLayout();
+        HorizontalLayout hl5 = new HorizontalLayout();
 
         IntegerField id = new IntegerField("ID");
         id.setValue(jobManager.getId() != null ? jobManager.getId() : null);
@@ -506,6 +509,14 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         scriptpath.setValue(isNew ? "" : (jobManager.getScriptpath() != null ? jobManager.getScriptpath() : ""));
         scriptpath.setWidthFull();
 
+        TextField mailBetreff = new TextField("MAIL_BETREFF");
+        mailBetreff.setValue(isNew ? "" : (jobManager.getMailBetreff() != null ? jobManager.getMailBetreff() : ""));
+        mailBetreff.setWidthFull();
+
+        TextField mailText = new TextField("MAIL_TEXT");
+        mailText.setValue(isNew ? "" : (jobManager.getMailText() != null ? jobManager.getMailText() : ""));
+        mailText.setWidthFull();
+
         TextField mailEmpfaenger = new TextField("MAIL_EMPFAENGER");
         mailEmpfaenger.setValue(isNew ? "" : (jobManager.getMailEmpfaenger() != null ? jobManager.getMailEmpfaenger() : ""));
         mailEmpfaenger.setWidthFull();
@@ -534,6 +545,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             if (!("sql_report".equals(jobManager.getTyp()))) {
                 mailEmpfaenger.setEnabled(false);
                 mailCcEmpfaenger.setEnabled(false);
+                mailText.setEnabled(false);
+                mailBetreff.setEnabled(false);
             }
         }
 
@@ -557,6 +570,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         command.addValueChangeListener(event -> jobManager.setCommand(event.getValue()));
         cron.addValueChangeListener(event -> jobManager.setCron(event.getValue()));
         scriptpath.addValueChangeListener(event -> jobManager.setScriptpath(event.getValue()));
+        mailBetreff.addValueChangeListener(event -> jobManager.setMailBetreff(event.getValue()));
+        mailText.addValueChangeListener(event -> jobManager.setMailText(event.getValue()));
         mailEmpfaenger.addValueChangeListener(event -> jobManager.setMailEmpfaenger(event.getValue()));
         mailCcEmpfaenger.addValueChangeListener(event -> jobManager.setMailCcEmpfaenger(event.getValue()));
         typComboBox.addValueChangeListener(event -> {
@@ -571,9 +586,13 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             if (!("sql_report".equals(selectedTyp))) {
                 mailEmpfaenger.setEnabled(false);
                 mailCcEmpfaenger.setEnabled(false);
+                mailBetreff.setEnabled(false);
+                mailText.setEnabled(false);
             } else {
                 mailEmpfaenger.setEnabled(true);
                 mailCcEmpfaenger.setEnabled(true);
+                mailBetreff.setEnabled(true);
+                mailText.setEnabled(true);
             }
         });
         parameter.addValueChangeListener(event -> jobManager.setParameter(event.getValue()));
@@ -597,8 +616,9 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         hl2.add(command, cron, parameter);
         hl3.add(pid, typComboBox, verbindungComboBox);
         hl4.add(mailEmpfaenger, mailCcEmpfaenger);
+        hl5.add(mailBetreff, mailText);
         // Add all fields to the content layout
-        content.add(hl1, hl2, scriptpath, hl3, hl4);
+        content.add(hl1, hl2, scriptpath, hl3, hl4, hl5);
         logPannel.logMessage(Constants.INFO, "Ending editJobDefinition");
         return content;
     }
