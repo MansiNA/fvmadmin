@@ -122,11 +122,6 @@ public class JobExecutor implements Job {
         processID = jobIdwithProcessIDMap.get(jobManager.getId());
         System.out.println("after update processID "+processID);
         jobHistory.setEndTime(new Date());
-        if (output != null && output.length() > 0) {
-            jobHistory.setReturnValue(output.toString());
-        } else {
-            jobHistory.setReturnValue("No output or empty output.");
-        }
 
         if ("sql_report".equalsIgnoreCase(jobManager.getTyp())) {
             if (returnValue != null && returnValue.length() > 0) {
