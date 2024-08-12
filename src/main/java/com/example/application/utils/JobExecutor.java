@@ -48,6 +48,7 @@ public class JobExecutor implements Job {
 
 
     private StringBuilder output;
+    private String returnValue;
     private JobManager jobManager;
 
     Map<Integer, Long> jobIdwithProcessIDMap = new HashMap<>();
@@ -126,6 +127,20 @@ public class JobExecutor implements Job {
         } else {
             jobHistory.setReturnValue("No output or empty output.");
         }
+
+        if ("sql_report".equalsIgnoreCase(jobManager.getTyp())) {
+            if (returnValue != null && returnValue.length() > 0) {
+                jobHistory.setReturnValue(returnValue);
+            }
+        } else {
+            // Otherwise, store the output as the return value
+            if (output != null && output.length() > 0) {
+                jobHistory.setReturnValue(output.toString());
+            } else {
+                jobHistory.setReturnValue("No output or empty output.");
+            }
+        }
+
         jobHistory.setMemoryUsage(getMemoryUsage( processID));
         jobHistory.setExitCode(exitCode);
         jobHistoryService.createOrUpdateJobHistory(jobHistory);
@@ -335,7 +350,6 @@ public class JobExecutor implements Job {
             jobHistory = createJobHistory(jobManager);
             jobHistoryService.createOrUpdateJobHistory(jobHistory);
 
-            File file = new File(fileName);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             workbook.write(baos);
             workbook.close();
@@ -343,12 +357,15 @@ public class JobExecutor implements Job {
             // Convert ByteArrayOutputStream to a ByteArrayInputStream
             ByteArrayInputStream inMemoryFileStream = new ByteArrayInputStream(baos.toByteArray());
 
+            returnValue = fileName +" generate";
+
             // Send the email with the in-memory file
-            sendEmailWithAttachment("report.xlsx", inMemoryFileStream);
+            sendEmailWithAttachment(fileName, inMemoryFileStream);
 
             System.out.println("generate excel ending");
            // sendEmailWithAttachment(fileName, file);
         } catch (SQLException | IOException e) {
+            returnValue = "Error: "+ e.getMessage();
             exitCode = 1;
             if (stopFlags.get(jobManager.getId()).get()) {
                 throw new Exception("Job " + jobManager.getName() + " was stopped manually.");
@@ -393,10 +410,12 @@ public class JobExecutor implements Job {
 
             // Send the email
             emailService.sendAttachMessage("michael.quaschny@dataport.de", jobManager.getMailBetreff(), jobManager.getMailText(), fileName, byteArrayResource);
-
+            returnValue = "email send success!";
         } catch (Exception e) {
             e.printStackTrace();
-            throw new Exception("Error while sending mail: " + e.getMessage(), e);
+            exitCode = 1;
+            returnValue = "Error while sending mail: " + e.getMessage();
+            throw new Exception(returnValue, e);
         }
     }
 
