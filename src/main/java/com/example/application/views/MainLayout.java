@@ -58,6 +58,8 @@ public class MainLayout extends AppLayout {
         userRoles = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
+        userRoles.forEach(role -> System.out.println("-----------------Role: " + role));
+
         isAdmin = checkAdminRole();
         userName = authentication.getName();
         createHeader();
@@ -265,9 +267,12 @@ public class MainLayout extends AppLayout {
 
 
     private void createDrawer() {
-        boolean isFVM = userRoles.contains("FVM");
-        boolean isCOKPIT = userRoles.contains("COKPIT");
-        boolean isTVM = userRoles.contains("TVM");
+        boolean isFVM = userRoles.contains("ROLE_FVM");
+        boolean isCOKPIT = userRoles.contains("ROLE_COKPIT");
+        boolean isTVM = userRoles.contains("ROLE_TVM");
+        System.out.println("isFVM "+isFVM);
+        System.out.println("isCOKPIT "+isCOKPIT);
+        System.out.println("isTVM "+isTVM);
 
         RouterLink listView = new RouterLink("Info", ListView.class);
         RouterLink mailboxConfig = new RouterLink("Postfach Verwaltung", MailboxConfigView.class);
