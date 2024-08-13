@@ -26,6 +26,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.treegrid.TreeGrid;
+import com.vaadin.flow.data.provider.hierarchy.TreeDataProvider;
 import com.vaadin.flow.function.SerializableConsumer;
 import com.vaadin.flow.router.*;
 import jakarta.annotation.security.RolesAllowed;
@@ -62,7 +63,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Scheduler scheduler;
     private Button allStartButton = new Button("All Start");
     private Button allStopButton = new Button("All Stop");
-    private Button sendMailButton = new Button("Testmail");
+   // private Button sendMailButton = new Button("Testmail");
 
     private final UI ui;
     private static final Set<SerializableConsumer<String>> subscribers = new HashSet<>();
@@ -73,6 +74,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     Map<Integer, Button> startButtons = new HashMap<>();
     Map<Integer, Button> stopButtons = new HashMap<>();
     List<JobManager> listOfJobManager;
+    List<JobManager> listOfGridItem;
     boolean isContinueChildJob = false;
     boolean isJobChainRunning = false;
     private int jobChainId;
@@ -96,7 +98,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         this.ui = UI.getCurrent();
 
-        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"), sendMailButton,  allStartButton, allStopButton);
+        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"),  allStartButton, allStopButton);
         hl.setAlignItems(Alignment.BASELINE);
         add(hl);
 
@@ -293,30 +295,30 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         });
 
-        sendMailButton.addClickListener(event -> {
-            System.out.println("Versende Email...");
-            try {
-
-                try {
-                    emailService.sendSimpleMessage("michael.quaschny@dataport.de","Testnachricht","Test test");
-                    System.out.println("Mail wurde versendet...");
-
-                } catch (Exception e) {
-                    System.out.println("Mail konnte nicht versendet werden!!!");
-                    e.printStackTrace();
-
-                }
-
-
-            } catch (Exception e) {
-
-                e.printStackTrace();
-
-
-            }
-
-
-        });
+//        sendMailButton.addClickListener(event -> {
+//            System.out.println("Versende Email...");
+//            try {
+//
+//                try {
+//                    emailService.sendSimpleMessage("michael.quaschny@dataport.de","Testnachricht","Test test");
+//                    System.out.println("Mail wurde versendet...");
+//
+//                } catch (Exception e) {
+//                    System.out.println("Mail konnte nicht versendet werden!!!");
+//                    e.printStackTrace();
+//
+//                }
+//
+//
+//            } catch (Exception e) {
+//
+//                e.printStackTrace();
+//
+//
+//            }
+//
+//
+//        });
 
         allStopButton.addClickListener(event -> {
             List<JobManager> jobManagerList = jobDefinitionService.findAll();
@@ -336,21 +338,49 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             }
         });
 
-         if (MainLayout.isAdmin) {
-             GridContextMenu<JobManager> contextMenu = treeGrid.addContextMenu();
-             GridMenuItem<JobManager> editItem = contextMenu.addItem("Edit", event -> {
-                 showEditAndNewDialog(event.getItem().get(), "Edit");
-             });
-             GridMenuItem<JobManager> newItem = contextMenu.addItem("New", event -> {
-                 showEditAndNewDialog(event.getItem().get(), "New");
-             });
-             GridMenuItem<JobManager> deleteItem = contextMenu.addItem("Delete", event -> {
-                 deleteTreeGridItem(event.getItem().get());
-             });
-         }
+
+        if (MainLayout.isAdmin) {
+
+            GridContextMenu<JobManager> contextMenu = treeGrid.addContextMenu();
+            //   if (listOfJobManager != null && !listOfJobManager.isEmpty()) {
+            contextMenu.addItem("Edit", event -> {
+                if (listOfGridItem != null && !listOfGridItem.isEmpty()) {
+                    System.out.println("edityyyyyyyyyy......."+listOfGridItem);
+                    showEditAndNewDialog(event.getItem().get(), "Edit");
+                }
+            });
+
+            contextMenu.addItem("Delete", event -> {
+                if (listOfGridItem != null && !listOfGridItem.isEmpty()) {
+                    System.out.println("deleteyyyyyyyyyy......."+listOfGridItem);
+                    deleteTreeGridItem(event.getItem().get());
+                }
+                //      refreshContextMenu(contextMenu); // Refresh menu after deletion
+            });
+            //    }
+
+            // "New" option is always available
+            contextMenu.addItem("New", event -> {
+                System.out.println("newyyyyyyyyyy......."+listOfGridItem);
+                if (listOfGridItem != null && !listOfGridItem.isEmpty()) {
+                    System.out.println("------------with parent");
+                    showEditAndNewDialog(event.getItem().get(), "New");
+                } else {
+                    System.out.println("------------no parent");
+                    JobManager jobManager = new JobManager();
+                    jobManager.setId(0);
+                    showEditAndNewDialog(jobManager, "New");
+                }
+                //  refreshContextMenu(contextMenu); // Refresh menu after adding a new item
+            });
+
+
+        }
+
         logPannel.logMessage(Constants.INFO, "Ending createTreeGrid");
         return treeGrid;
     }
+
 
 
     private void expandAll(List<JobManager> rootItems) {
@@ -421,9 +451,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         JobManager newJobDefination = new JobManager();
 
         if(context.equals("New")){
-            List<JobManager> jobManagerList = jobDefinitionService.findAll();
-        //    newJobDefination.setId( (jobManagerList.size() + 1));
-            newJobDefination.setPid(jobManager.getPid());
+            System.out.println("##########"+jobManager);
+            newJobDefination.setPid(jobManager.getId());
             dialog.add(editJobDefinition(newJobDefination, true)); // For adding new entry
         } else {
             dialog.add(editJobDefinition(jobManager, false)); // For editing existing entry
@@ -502,7 +531,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         parameter.setWidthFull();
 
         IntegerField pid = new IntegerField("PID");
-        pid.setValue(jobManager.getPid() != 0 ? jobManager.getPid() : 0);
+        pid.setValue(jobManager.getPid() != null ? jobManager.getPid() : 0);
         pid.setWidthFull();
 
         TextField scriptpath = new TextField("SCRIPTPATH");
@@ -642,9 +671,16 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         });
 
         deleteButton.addClickListener(saveEvent -> {
-            jobDefinitionService.deleteById(jobManager.getId());
+            List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
+            boolean hasChildren = !childJobs.isEmpty();
+            if(hasChildren) {
+                Notification.show(jobManager.getName()+"- Child entries exist!  No delete." , 5000, Notification.Position.MIDDLE);
+            } else {
+                jobDefinitionService.deleteById(jobManager.getId());
 
-            updateGrid();
+                updateGrid();
+            }
+
             dialog.close(); // Close the confirmation dialog
         });
 
@@ -658,6 +694,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         listOfJobManager = jobDefinitionService.findAll();
         List<JobManager> rootItems = jobDefinitionService.getRootJobManager();
         treeGrid.setItems(rootItems, jobDefinitionService ::getChildJobManager);
+        TreeDataProvider<JobManager> dataProvider = (TreeDataProvider<JobManager>) treeGrid.getDataProvider();
+         listOfGridItem = dataProvider.getTreeData().getRootItems();
       //  expandAll(rootItems);
     }
 
