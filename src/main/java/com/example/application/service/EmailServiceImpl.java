@@ -60,8 +60,12 @@ public class EmailServiceImpl implements EmailService {
         emailSender.send (preparator);
     }
 
-    public void sendAttachMessage(String to, String subject, String text, String attachmentFileName, ByteArrayResource byteArrayResource) {
+    @Override
+    public void sendAttachMessage(String to, String cc, String subject, String text, String attachmentFileName, ByteArrayResource byteArrayResource) {
         MimeMessagePreparator preparator = mimeMessage -> {
+            if (cc != null && !cc.isEmpty()) {
+                mimeMessage.setRecipient(Message.RecipientType.CC, new InternetAddress(cc));
+            }
             mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
             mimeMessage.setFrom(new InternetAddress("noreplay@dataport.de"));
             mimeMessage.setSubject(subject);

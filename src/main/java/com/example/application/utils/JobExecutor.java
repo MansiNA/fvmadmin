@@ -404,7 +404,7 @@ public class JobExecutor implements Job {
             ByteArrayResource byteArrayResource = new ByteArrayResource(fileBytes);
 
             // Send the email
-            emailService.sendAttachMessage("michael.quaschny@dataport.de", jobManager.getMailBetreff(), jobManager.getMailText(), fileName, byteArrayResource);
+            emailService.sendAttachMessage(jobManager.getMailEmpfaenger(), jobManager.getMailCcEmpfaenger(), jobManager.getMailBetreff(), jobManager.getMailText(), fileName, byteArrayResource);
             returnValue = "email send success!";
         } catch (Exception e) {
             e.printStackTrace();
