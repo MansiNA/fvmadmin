@@ -274,9 +274,11 @@ public class MainLayout extends AppLayout {
         System.out.println("isCOKPIT "+isCOKPIT);
         System.out.println("isTVM "+isTVM);
 
+        VerticalLayout drawerLayout = new VerticalLayout();
+
         RouterLink listView = new RouterLink("Info", ListView.class);
         RouterLink mailboxConfig = new RouterLink("Postfach Verwaltung", MailboxConfigView.class);
-        RouterLink MessageExport = new RouterLink("Message Exporter", MessageExportView.class);
+        RouterLink messageExport = new RouterLink("Message Exporter", MessageExportView.class);
         RouterLink elaFavoriten = new RouterLink("ELA-Upload (geplant)", ElaFavoritenView.class);
         RouterLink tableExport = new RouterLink("Table Export", TableExportView.class);
         RouterLink quarantaeneView = new RouterLink("Quarantäne Info", QuarantaeneView.class);
@@ -284,7 +286,7 @@ public class MainLayout extends AppLayout {
         RouterLink hangingMessagesView = new RouterLink("Hängende Nachrichten", HangingMessagesView.class);
         RouterLink tableView = new RouterLink("Table Viewer", TableView.class);
         RouterLink cockpitView = new RouterLink("eKP-Cockpit", CockpitView.class);
-        RouterLink DashboardView = new RouterLink("Dashboard (geplant)", DashboardView.class);
+        RouterLink dashboardView = new RouterLink("Dashboard (geplant)", DashboardView.class);
         RouterLink fileBrowserView = new RouterLink("LogFileBrowser", FileBrowserView.class);
         RouterLink configureView = new RouterLink("Configuration", ConfigurationView.class);
         RouterLink userConfigView = new RouterLink("User Configuration", UserConfigurationView.class);
@@ -295,65 +297,63 @@ public class MainLayout extends AppLayout {
 
         RouterLink link = new RouterLink("Login", LoginView.class);
 
-
         if (isAdmin) {
-            addToDrawer(new VerticalLayout(
+            drawerLayout.add(
                     //    tableExport,
                     //    mailboxConfig,
                     //    elaFavoriten,
                     //    listView,
                     tableView,
                     metadatenView,
-                    MessageExport,
+                    messageExport,
                     mailboxConfig,
                     cockpitView,
                     fileBrowserView,
                     quarantaeneView,
                     hangingMessagesView,
                     elaFavoriten,
-                    DashboardView,
-                    //   configureView,
+                    dashboardView,
                     jobManagerView,
                     userConfigView,
                     serverConfigView
-            ));
-
-        } else if (isPFUser) {
-            addToDrawer(new VerticalLayout(
-                    mailboxConfig
-            ));
-        } else if (isUser) {
-            addToDrawer(new VerticalLayout(
-                    tableView,
-                    metadatenView
-                    //    mailboxConfig
-                    //    cockpitView,
-                    //     quarantaeneView
-            ));
-        } else if (isFVM) {
-            addToDrawer(new VerticalLayout(
-            tableView,
-            metadatenView,
-            cockpitView,
-            fileBrowserView,
-                    jobManagerView,
-                    hangingMessagesView,
-            fileBrowserView,
-            quarantaeneView
-
-            ));
-        } else if (isCOKPIT) {
-            addToDrawer(new VerticalLayout(
-                    cockpitView
-            ));
-        } else if (isTVM) {
-            addToDrawer(new VerticalLayout(
-                    tableView
-            ));
-        } else {
-            addToDrawer(new VerticalLayout(link));
+            );
         }
 
+        if (isPFUser) {
+            drawerLayout.add(mailboxConfig);
+        }
+
+        if (isUser) {
+            drawerLayout.add(tableView, metadatenView);
+        }
+
+        if (isFVM) {
+            drawerLayout.add(
+                    tableView,
+                    metadatenView,
+                    cockpitView,
+                    fileBrowserView,
+                    jobManagerView,
+                    hangingMessagesView,
+                    quarantaeneView
+            );
+        }
+
+        if (isCOKPIT) {
+            drawerLayout.add(cockpitView);
+        }
+
+        if (isTVM) {
+            drawerLayout.add(tableView);
+        }
+
+        // If the user doesn't have any of the expected roles, show the login link
+        if (drawerLayout.getComponentCount() == 0) {
+            drawerLayout.add(link);
+        }
+
+        // Add the layout to the drawer
+        addToDrawer(drawerLayout);
 
     }
 
