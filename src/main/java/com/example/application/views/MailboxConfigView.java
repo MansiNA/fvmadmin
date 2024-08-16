@@ -37,6 +37,7 @@ import com.vaadin.flow.router.Route;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -67,6 +68,14 @@ public class MailboxConfigView  extends VerticalLayout {
     private List<MailboxShutdown> affectedMailboxes;
     private List<Mailbox> mailboxen;
     private String switchLable;
+    @Value("${spring.datasource.jdbc-url}")
+    private String defaultJdbcUrl;
+
+    @Value("${spring.datasource.username}")
+    private String defaultUsername;
+
+    @Value("${spring.datasource.password}")
+    private String defaultPassword;
 
     public MailboxConfigView(ConfigurationService service, ProtokollService protokollService)  {
 
@@ -492,9 +501,9 @@ public class MailboxConfigView  extends VerticalLayout {
     }
     private void connectWithDefaultDatabase() {
         DriverManagerDataSource ds = new DriverManagerDataSource();
-        ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
-        ds.setUsername("EKP_MONITOR");
-        ds.setPassword("ekp123");
+        ds.setUrl(defaultJdbcUrl);
+        ds.setUsername(defaultUsername);
+        ds.setPassword(defaultPassword);
         this.jdbcTemplate = new JdbcTemplate(ds);
     }
 
