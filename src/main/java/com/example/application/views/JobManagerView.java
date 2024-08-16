@@ -24,6 +24,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.provider.hierarchy.TreeDataProvider;
@@ -514,7 +515,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         namespace.setValue(isNew ? "" : (jobManager.getNamespace() != null ? jobManager.getNamespace() : ""));
         namespace.setWidthFull();
 
-        TextField command = new TextField("COMMAND");
+        TextArea command = new TextArea("COMMAND");
         command.setValue(isNew ? "" : (jobManager.getCommand() != null ? jobManager.getCommand() : ""));
         command.setWidthFull();
 

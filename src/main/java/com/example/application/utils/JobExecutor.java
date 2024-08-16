@@ -123,7 +123,7 @@ public class JobExecutor implements Job {
         System.out.println("after update processID "+processID);
         jobHistory.setEndTime(new Date());
 
-        if ("sql_report".equalsIgnoreCase(jobManager.getTyp())) {
+        if ("sql_report".equalsIgnoreCase(jobManager.getTyp()) || "sql_procedure".equalsIgnoreCase(jobManager.getTyp())) {
             if (returnValue != null && returnValue.length() > 0) {
                 jobHistory.setReturnValue(returnValue);
             }
@@ -151,7 +151,7 @@ public class JobExecutor implements Job {
         try {
             switch (jobManager.getTyp()) {
                 case "sql_procedure":
-                    executeSQLJob(jobManager);
+                      executeSQLJob(jobManager);
                     updateJobHistory();
                     break;
                 case "Command":
@@ -226,10 +226,12 @@ public class JobExecutor implements Job {
 
             // Execute the stored procedure
             stmt.execute();
-
+            returnValue = "Procedure executed successfully";
             System.out.println("Procedure executed successfully.");
 
         } catch (SQLException e) {
+            e.getMessage();
+            returnValue = "Error: "+ e.getMessage();
             exitCode = 1;
             if (stopFlags.get(jobManager.getId()).get()) {
                 throw new Exception("Job " + jobManager.getName() + " was stopped manually.");
