@@ -62,8 +62,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Dialog resetPasswordDialog;
     private TreeGrid<JobManager> treeGrid;
     private Scheduler scheduler;
-    private Button allStartButton = new Button("All Start");
-    private Button allStopButton = new Button("All Stop");
+    private Button allCronButton = new Button("Cron Start");
+   // private Button allStopButton = new Button("All Stop");
    // private Button sendMailButton = new Button("Testmail");
 
     private final UI ui;
@@ -84,6 +84,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Boolean isLogsVisible = false;
     private Boolean isVisible = false;
     private final EmailService emailService;
+    @Value("${cron.autostart}")
+    private boolean cronAutostart;
 
     public JobManagerView(EmailService emailService, JobDefinitionService jobDefinitionService, ConfigurationService configurationService) {
 
@@ -99,11 +101,10 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         this.ui = UI.getCurrent();
 
-        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"),  allStartButton, allStopButton);
+        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"),  allCronButton);
         hl.setAlignItems(Alignment.BASELINE);
         add(hl);
 
-        allStopButton.setEnabled(false);
 
         HorizontalLayout treehl = new HorizontalLayout();
         treehl.setHeightFull();
@@ -139,6 +140,10 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
     //    restoreGlobalButtonStates();
+       getDefaultScheduler();
+    }
+
+    private void getDefaultScheduler() {
         try {
             scheduler = StdSchedulerFactory.getDefaultScheduler();
         } catch (SchedulerException e) {
@@ -152,19 +157,19 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         Boolean allStopEnabled = (Boolean) ui.getSession().getAttribute("allStopEnabled");
 
         if (allStartEnabled != null) {
-            allStartButton.setEnabled(allStartEnabled);
+            allCronButton.setEnabled(allStartEnabled);
         }
 
-        if (allStopEnabled != null) {
-            allStopButton.setEnabled(allStopEnabled);
-        }
+//        if (allStopEnabled != null) {
+//            allStopButton.setEnabled(allStopEnabled);
+//        }
     }
 
     private TreeGrid<JobManager> createTreeGrid() {
         logPannel.logMessage(Constants.INFO, "Starting createTreeGrid");
         treeGrid = new TreeGrid<>();
         updateGrid();
-
+        getDefaultScheduler();
         // Add the hierarchy column for displaying the hierarchical data
         treeGrid.addHierarchyColumn(JobManager::getName).setHeader("Name").setAutoWidth(true).setResizable(true);
 
@@ -191,6 +196,13 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         treeGrid.setThemeName("dense");
         treeGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_NO_ROW_BORDERS, GridVariant.LUMO_COMPACT);
 
+        if(isAnyCronJobRunning()) {
+            updateAllButtonsState(ui, "Cron Stop");
+          //  updateAllButtonsState(ui, false, true);
+        } else {
+            updateAllButtonsState(ui, "Cron Start");
+          //  updateAllButtonsState(ui, true, false);
+        }
         treeGrid.addComponentColumn(jobManager -> {
             // Create a layout to hold the buttons for each row
             HorizontalLayout buttonsLayout = new HorizontalLayout();
@@ -274,70 +286,32 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 //            }
 //        });
 
-        allStartButton.addClickListener(event -> {
+        if(cronAutostart) {
+          //  allCronJobSart();
+        }
+        allCronButton.addClickListener(event -> {
 
-            List<JobManager> jobManagerList = jobDefinitionService.findAll();
-         //   Notification.show("start running...", 3000, Notification.Position.MIDDLE);
-            allStartButton.setEnabled(false);
-            allStopButton.setEnabled(true);
-//            ui.getSession().setAttribute("allStartEnabled", false);
-//            ui.getSession().setAttribute("allStopEnabled", true);
-            notifySubscribers("start running all...");
-            for (JobManager jobManager : jobManagerList) {
-                try {
-                    String type = jobManager.getTyp();
-                    if(jobManager.getCron() != null && !type.equals("Node") && !type.equals("Jobchain")) {
-                        scheduleJob(jobManager);
+            if (allCronButton.getText().equals("Cron Start")) {
+              allCronJobSart();
+            } else {
+                // Stop the cron jobs
+                allCronButton.setText("Cron Start");
+                List<JobManager> jobManagerList = jobDefinitionService.findAll();
+                Notification.show("stop running...", 3000, Notification.Position.MIDDLE);
+
+                for (JobManager jobManager : jobManagerList) {
+                    try {
+                        if(jobManager.getCron() != null) {
+                            stopJob(jobManager);
+                        }
+                    } catch (Exception e) {
+                        allCronButton.setText("Cron Stop");
+                        Notification.show("Error stopping job: "+ jobManager.getName()+" " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                     }
-                } catch (Exception e) {
-                    Notification.show("Error executing job: " + jobManager.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-                }
-            }
-
-        });
-
-//        sendMailButton.addClickListener(event -> {
-//            System.out.println("Versende Email...");
-//            try {
-//
-//                try {
-//                    emailService.sendSimpleMessage("michael.quaschny@dataport.de","Testnachricht","Test test");
-//                    System.out.println("Mail wurde versendet...");
-//
-//                } catch (Exception e) {
-//                    System.out.println("Mail konnte nicht versendet werden!!!");
-//                    e.printStackTrace();
-//
-//                }
-//
-//
-//            } catch (Exception e) {
-//
-//                e.printStackTrace();
-//
-//
-//            }
-//
-//
-//        });
-
-        allStopButton.addClickListener(event -> {
-            List<JobManager> jobManagerList = jobDefinitionService.findAll();
-            Notification.show("stop running...", 3000, Notification.Position.MIDDLE);
-            allStartButton.setEnabled(true);
-            allStopButton.setEnabled(false);
-//            ui.getSession().setAttribute("allStartEnabled", true);
-//            ui.getSession().setAttribute("allStopEnabled", false);
-            for (JobManager jobManager : jobManagerList) {
-                try {
-                    if(jobManager.getCron() != null) {
-                        stopJob(jobManager);
-                    }
-                } catch (Exception e) {
-                    Notification.show("Error stopping job: "+ jobManager.getName()+" " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                 }
             }
         });
+
 
 
         if (MainLayout.isAdmin) {
@@ -701,9 +675,26 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
       //  expandAll(rootItems);
     }
 
+    private void  allCronJobSart(){
+        List<JobManager> jobManagerList = jobDefinitionService.findAll();
+
+        allCronButton.setText("Cron Stop");
+        notifySubscribers("start running all...");
+        for (JobManager jobManager : jobManagerList) {
+            try {
+                String type = jobManager.getTyp();
+                if(jobManager.getCron() != null && !type.equals("Node") && !type.equals("Jobchain")) {
+                    scheduleJob(jobManager);
+                }
+            } catch (Exception e) {
+                allCronButton.setText("Cron Start");
+                Notification.show("Error executing job: " + jobManager.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+        }
+    }
     private void scheduleJob(JobManager jobManager) throws SchedulerException {
         logPannel.logMessage(Constants.INFO, "Starting scheduleJob with cron for " + jobManager.getName());
-        scheduler = StdSchedulerFactory.getDefaultScheduler();
+        getDefaultScheduler();
         scheduler.start();
       //  notifySubscribers(",,"+jobManager.getId());
         JobDataMap jobDataMap = new JobDataMap();
@@ -734,7 +725,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     private void scheduleJobWithoutCorn(JobManager jobManager) throws SchedulerException {
         logPannel.logMessage(Constants.INFO, "Starting scheduleJob manualy for " + jobManager.getName());
-        scheduler = StdSchedulerFactory.getDefaultScheduler();
+        getDefaultScheduler();
         scheduler.start();
 
         JobDataMap jobDataMap = new JobDataMap();
@@ -974,10 +965,12 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     private void updateUIBasedOnMessage(UI ui, String displayMessage, int jobId, boolean isCron) {
         if (displayMessage.contains("start running all")) {
-            updateAllButtonsState(ui, false, true);
+            updateAllButtonsState(ui, "Cron Stop");
+          //  updateAllButtonsState(ui, false, true);
         } else if (displayMessage.contains("stopped successfully") || displayMessage.contains("not found running") || displayMessage.contains("Error stopping job")) {
             if(!isAnyCronJobRunning()) {
-                updateAllButtonsState(ui, true, false);
+                updateAllButtonsState(ui, "Cron Start");
+              //  updateAllButtonsState(ui, true, false);
             }
 
             if (jobId != 0) {
@@ -1004,10 +997,18 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     private void updateAllButtonsState(UI ui, boolean startEnabled, boolean stopEnabled) {
         ui.access(() -> {
-            allStartButton.setEnabled(startEnabled);
-            allStopButton.setEnabled(stopEnabled);
-            ui.getSession().setAttribute("allStartEnabled", startEnabled);
-            ui.getSession().setAttribute("allStopEnabled", stopEnabled);
+//            allStartButton.setEnabled(startEnabled);
+//            allStopButton.setEnabled(stopEnabled);
+//            ui.getSession().setAttribute("allStartEnabled", startEnabled);
+//            ui.getSession().setAttribute("allStopEnabled", stopEnabled);
+        });
+    }
+    private void updateAllButtonsState(UI ui, String action) {
+        ui.access(() -> {
+            allCronButton.setText(action);
+//            allStopButton.setEnabled(stopEnabled);
+            ui.getSession().setAttribute("action", action);
+//            ui.getSession().setAttribute("allStopEnabled", stopEnabled);
         });
     }
 
