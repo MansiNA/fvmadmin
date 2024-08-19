@@ -566,7 +566,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         ComboBox<Configuration> verbindungComboBox = new ComboBox<>("Verbindung");
         verbindungComboBox.setEnabled(false);
         if(!isNew) {
-            if (jobManager.getTyp().equals("sql_procedure") || jobManager.getTyp().equals("sql_report")) {
+            if (jobManager.getTyp().equals("sql_procedure") || jobManager.getTyp().equals("sql_report")
+                    || jobManager.getTyp().equals("sql_statement") ) {
                 verbindungComboBox.setEnabled(true);
             }
             if (jobManager.getTyp().equals("Shell")) {
@@ -608,7 +609,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             String selectedTyp = event.getValue();
             typComboBox.setValue(selectedTyp);
             jobManager.setTyp(selectedTyp);
-            if ("sql_procedure".equals(selectedTyp) || "sql_report".equals(selectedTyp)) {
+            if ("sql_procedure".equals(selectedTyp) || "sql_report".equals(selectedTyp) || "sql_statement".equals(selectedTyp)) {
                 verbindungComboBox.setEnabled(true);
             } else {
                 verbindungComboBox.setEnabled(false);

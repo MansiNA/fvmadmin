@@ -123,16 +123,17 @@ public class JobExecutor implements Job {
         System.out.println("after update processID "+processID);
         jobHistory.setEndTime(new Date());
 
-        if ("sql_report".equalsIgnoreCase(jobManager.getTyp()) || "sql_procedure".equalsIgnoreCase(jobManager.getTyp())) {
-            if (returnValue != null && returnValue.length() > 0) {
-                jobHistory.setReturnValue(returnValue);
-            }
-        } else {
-            // Otherwise, store the output as the return value
+        if ("Shell".equalsIgnoreCase(jobManager.getTyp())) {
+
             if (output != null && output.length() > 0) {
                 jobHistory.setReturnValue(output.toString());
             } else {
                 jobHistory.setReturnValue("No output or empty output.");
+            }
+        } else {
+
+            if (returnValue != null && returnValue.length() > 0) {
+                jobHistory.setReturnValue(returnValue);
             }
         }
 
@@ -151,7 +152,11 @@ public class JobExecutor implements Job {
         try {
             switch (jobManager.getTyp()) {
                 case "sql_procedure":
-                      executeSQLJob(jobManager);
+                    executeSQLProcedure(jobManager);
+                    updateJobHistory();
+                    break;
+                case "sql_statement":
+                    executeSQLStatement(jobManager);
                     updateJobHistory();
                     break;
                 case "Command":
@@ -199,7 +204,7 @@ public class JobExecutor implements Job {
             }
         }
     }
-    private void executeSQLJob(JobManager jobManager) throws Exception {
+    private void executeSQLProcedure(JobManager jobManager) throws Exception {
         // Retrieve the JDBC connection details from properties or configuration
 //        String jdbcUrl = "jdbc:oracle:thin:@37.120.189.200:1521:xe";  // Update this with your actual JDBC URL
 //        String username = "EKP_MONITOR";        // Update this with your actual database username
@@ -237,6 +242,47 @@ public class JobExecutor implements Job {
                 throw new Exception("Job " + jobManager.getName() + " was stopped manually.");
             }
             throw new Exception("Error executing SQL procedure", e);
+        }
+    }
+
+    private void executeSQLStatement(JobManager jobManager) throws Exception {
+        // Retrieve the connection details from JobManager or Configuration
+        Configuration configuration = jobManager.getConnection();
+        String dbUrl = configuration.getDb_Url();
+        String username = configuration.getUserName();
+        String password = Configuration.decodePassword(configuration.getPassword());
+
+        // SQL statement to be executed (for example, your INSERT statement)
+        String sql = jobManager.getCommand(); // e.g. "INSERT INTO ekp_monitor.mq SELECT SYSDATE, -99 FROM DUAL";
+
+        System.out.println("DB URL: " + dbUrl + ", Username: " + username);
+
+        // Set up the connection and statement objects
+        try (Connection conn = DriverManager.getConnection(dbUrl, username, password);
+             Statement stmt = conn.createStatement()) {
+
+          //  runningStatements.put(jobManager.getId(), stmt);
+            stopFlags.put(jobManager.getId(), new AtomicBoolean(false));
+
+            // Insert job history to track the progress of the job
+            jobHistory = createJobHistory(jobManager);
+            jobHistoryService.createOrUpdateJobHistory(jobHistory);
+
+            // Execute the SQL statement
+            int affectedRows = stmt.executeUpdate(sql);
+            returnValue = "SQL executed successfully, " + affectedRows + " rows affected.";
+            System.out.println(returnValue);
+
+
+
+        } catch (SQLException e) {
+            returnValue = "Error: " + e.getMessage();
+            exitCode = 1;
+            System.err.println("Error executing SQL statement: " + e.getMessage());
+            if (stopFlags.get(jobManager.getId()).get()) {
+                throw new Exception("Job " + jobManager.getName() + " was stopped manually.");
+            }
+            throw new Exception("Error executing SQL statement", e);
         }
     }
 
