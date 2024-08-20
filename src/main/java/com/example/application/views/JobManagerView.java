@@ -62,7 +62,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Dialog resetPasswordDialog;
     private TreeGrid<JobManager> treeGrid;
     private Scheduler scheduler;
-    private Button allCronButton = new Button("Cron Start");
+    public static Button allCronButton = new Button("Cron Start");
    // private Button allStopButton = new Button("All Stop");
    // private Button sendMailButton = new Button("Testmail");
 
@@ -84,8 +84,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Boolean isLogsVisible = false;
     private Boolean isVisible = false;
     private final EmailService emailService;
-    @Value("${cron.autostart}")
-    private boolean cronAutostart;
 
     public JobManagerView(EmailService emailService, JobDefinitionService jobDefinitionService, ConfigurationService configurationService) {
 
@@ -286,9 +284,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 //            }
 //        });
 
-        if(cronAutostart) {
-          //  allCronJobSart();
-        }
         allCronButton.addClickListener(event -> {
 
             if (allCronButton.getText().equals("Cron Start")) {
@@ -692,7 +687,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             }
         }
     }
-    private void scheduleJob(JobManager jobManager) throws SchedulerException {
+    public void scheduleJob(JobManager jobManager) throws SchedulerException {
         logPannel.logMessage(Constants.INFO, "Starting scheduleJob with cron for " + jobManager.getName());
         getDefaultScheduler();
         scheduler.start();
@@ -768,6 +763,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     public void stopJob(JobManager jobManager) {
         logPannel.logMessage(Constants.INFO, "Starting stopJob for " + jobManager.getName());
+        System.out.println("thisssssss....................stop................................");
        // JobKey jobKey = new JobKey("job-" + jobManager.getId(), "group1");
         try {
             JobKey cronJobKey = new JobKey("job-cron-" + jobManager.getId(), "group1");
