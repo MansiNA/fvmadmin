@@ -116,7 +116,10 @@ public class TableView extends VerticalLayout {
         configureButton.addClickListener(event -> {
             UI.getCurrent().navigate(ConfigurationView.class);
         });
-
+        configureButton.setVisible(false);
+        if(MainLayout.isAdmin) {
+            configureButton.setVisible(true);
+        }
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox, configureButton);
 

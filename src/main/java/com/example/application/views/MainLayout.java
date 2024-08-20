@@ -331,6 +331,7 @@ public class MainLayout extends AppLayout {
             drawerLayout.add(
                     tableView,
                     metadatenView,
+                    messageExport,
                     cockpitView,
                     fileBrowserView,
                     jobManagerView,
