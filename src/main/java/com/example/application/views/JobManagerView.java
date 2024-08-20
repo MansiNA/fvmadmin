@@ -90,6 +90,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         this.emailService = emailService;
         this.jobDefinitionService = jobDefinitionService;
         this.configurationService = configurationService;
+        allCronButton.setVisible(false);
 
         logPannel = new LogPannel();
         logPannel.logMessage(Constants.INFO, "Starting JobManagerView");
@@ -103,6 +104,9 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         hl.setAlignItems(Alignment.BASELINE);
         add(hl);
 
+        if(MainLayout.isAdmin) {
+            allCronButton.setVisible(true);
+        }
 
         HorizontalLayout treehl = new HorizontalLayout();
         treehl.setHeightFull();
