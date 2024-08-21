@@ -84,6 +84,7 @@ public class MailboxConfigView  extends VerticalLayout {
 
         refresh.setEnabled(false);
         onOffButton.setEnabled(false);
+        showLog.setEnabled(false);
 
         comboBox = new ComboBox<>("Verbindung");
         List<Configuration> configList = service.findMessageConfigurations();
@@ -98,6 +99,7 @@ public class MailboxConfigView  extends VerticalLayout {
             if (event.getValue() != null) {
                 refresh.setEnabled(true);  // Enable the refresh button when an item is selected
                 onOffButton.setEnabled(true);
+                showLog.setEnabled(true);
             }
         });
 
@@ -151,14 +153,14 @@ public class MailboxConfigView  extends VerticalLayout {
                     return item.getQUANTIFIER() == 0 ? "Einschalten" : "Ausschalten";
                 },
                         clickedItem -> {
-
+                            String verbindung = comboBox.getValue().getName();
                             if (clickedItem.getQUANTIFIER()==0) {
 
                              //   clickedItem.setQUANTIFIER(1);
                                 String result = updateMessageBox(clickedItem,"1");
                                 if(result.equals("Ok")) {
                                     Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird eingeschaltet...");
-                                    protokollService.logAction(clickedItem.getUSER_ID() + " wurde eingeschaltet.", "");
+                                    protokollService.logAction(verbindung,clickedItem.getUSER_ID() + " wurde eingeschaltet.", "");
                                     updateList();
                                 } else {
                                     Notification.show(result).addThemeVariants(NotificationVariant.LUMO_ERROR);;
@@ -170,7 +172,7 @@ public class MailboxConfigView  extends VerticalLayout {
                                     String result = updateMessageBox(clickedItem, "0");
                                     if(result.equals("Ok")) {
                                         Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird ausgeschaltet...");
-                                        protokollService.logAction(clickedItem.getUSER_ID() + " wurde ausgeschaltet.", reason);
+                                        protokollService.logAction(verbindung,clickedItem.getUSER_ID() + " wurde ausgeschaltet.", reason);
                                         updateList();
                                     }  else {
                                         Notification.show(result).addThemeVariants(NotificationVariant.LUMO_ERROR);;
@@ -310,15 +312,26 @@ public class MailboxConfigView  extends VerticalLayout {
         Grid<Protokoll> grid = new Grid<>(Protokoll.class);
         grid.setItems(protokollService.findAllLogsOrderedByZeitpunktDesc());
 
-        grid.setColumns("id", "username", "zeitpunkt", "info", "shutdownReason");
+        grid.setColumns("id", "username", "zeitpunkt", "info", "shutdownReason", "verbindung");
         grid.getColumnByKey("id").setHeader("ID").setResizable(true).setAutoWidth(true);
         grid.getColumnByKey("username").setHeader("Username").setResizable(true).setAutoWidth(true);
+        grid.getColumnByKey("verbindung").setHeader("Verbindung").setResizable(true).setAutoWidth(true);
         grid.getColumnByKey("zeitpunkt").setHeader("Zeitpunkt").setResizable(true).setAutoWidth(true);
         grid.getColumnByKey("info").setHeader("Info").setResizable(true).setAutoWidth(true);
         grid.getColumnByKey("shutdownReason").setHeader("Shutdown Reason").setResizable(true).setAutoWidth(true);
 
         dialog.add(grid);
+
+        Button cancelButton = new Button("Close");
+        dialog.getFooter().add(cancelButton);
+
+        cancelButton.addClickListener(cancelEvent -> {
+            dialog.close(); // Close the confirmation dialog
+        });
+
         dialog.open();
+
+
     }
     private void allMailBoxTurnOnOff() {
         if (onOffButton.getText().startsWith("Alle ausschalten")) {
@@ -358,12 +371,13 @@ public class MailboxConfigView  extends VerticalLayout {
         onOffButton.setEnabled(false);
         String result = "";
         createVerbindungShutdownTable();
+        String verbindung = comboBox.getValue().getName();
         for (Mailbox mailbox : mailboxen) {
             if (mailbox.getQUANTIFIER() == 1) {
                 mailbox.setQUANTIFIER(0);
                 result = updateMessageBox(mailbox, "0");
                 if(result.equals("Ok")) {
-                    protokollService.logAction(mailbox.getUSER_ID() + " wurde ausgeschaltet.", reason);
+                    protokollService.logAction(verbindung, mailbox.getUSER_ID() + " wurde ausgeschaltet.", reason);
                     //    protokollService.saveMailboxShutdownState(mailbox.getUSER_ID(), reason);
                     insertMailboxShutdown(mailbox.getUSER_ID(), reason);
                 }
@@ -382,6 +396,7 @@ public class MailboxConfigView  extends VerticalLayout {
     private void reEnableMailboxes() {
         String result = "";
         onOffButton.setEnabled(false);
+        String verbindung = comboBox.getValue().getName();
         for (MailboxShutdown mailboxShutdown : affectedMailboxes) {
         //for (Mailbox mailbox : mailboxen) {
             Mailbox mailbox = mailboxen.stream()
@@ -392,7 +407,7 @@ public class MailboxConfigView  extends VerticalLayout {
                 mailbox.setQUANTIFIER(1);
                 result = updateMessageBox(mailbox, "1");
                 if(result.equals("Ok")) {
-                    protokollService.logAction(mailbox.getUSER_ID() + " wurde eingeschaltet.", "");
+                    protokollService.logAction(verbindung, mailbox.getUSER_ID() + " wurde eingeschaltet.", "");
                 }
             }
         }

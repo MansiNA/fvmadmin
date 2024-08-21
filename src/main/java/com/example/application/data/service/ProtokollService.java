@@ -24,13 +24,14 @@ public class ProtokollService {
 
     }
 
-    public void logAction(String action, String reason) {
+    public void logAction(String verbindung, String action, String reason) {
         Protokoll logEntry = new Protokoll();
         logEntry.setUsername(MainLayout.userName);
         Date date = Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
         logEntry.setZeitpunkt(date);
         logEntry.setInfo(action);
         logEntry.setShutdownReason(reason);
+        logEntry.setVerbindung(verbindung);
         protokollRepository.save(logEntry);
     }
 

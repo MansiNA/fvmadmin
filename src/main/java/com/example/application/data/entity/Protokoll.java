@@ -30,4 +30,6 @@ public class Protokoll {
     @Column(name = "SHUTDOWN_REASON")
     private String shutdownReason;
 
+    @Column(name = "VERBINDUNG")
+    private String verbindung;
 }
