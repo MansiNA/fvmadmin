@@ -62,7 +62,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Dialog resetPasswordDialog;
     private TreeGrid<JobManager> treeGrid;
     private Scheduler scheduler;
-    public static Button allCronButton = new Button("Cron Start");
+    public  Button allCronButton = new Button("Cron Start");
    // private Button allStopButton = new Button("All Stop");
    // private Button sendMailButton = new Button("Testmail");
 
@@ -804,90 +804,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         logPannel.logMessage(Constants.INFO, "Ending stopJob for " + jobManager.getName());
     }
 
-    private void executeJobold(JobManager jobManager) {
-        System.out.println("Executing job: " + jobManager.getName());
-
-        try {
-            switch (jobManager.getTyp()) {
-                case "SQL":
-                    executeSQLJob(jobManager);
-                    break;
-                case "Command":
-                    executeCommandJob(jobManager);
-                    break;
-                case "Shell":
-                    executeShellJob(jobManager);
-                    break;
-                default:
-                    throw new Exception("Unsupported job type: " + jobManager.getTyp());
-            }
-        } catch (Exception e) {
-            Notification.show("Error executing job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-        }
-    }
-
-    private void executeSQLJob(JobManager jobManager) throws Exception {
-        // Dummy database connection example
-        String jdbcUrl = "jdbc:your_database_url";
-        String username = "your_db_username";
-        String password = "your_db_password";
-
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, username, password);
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(jobManager.getCommand())) {
-            while (rs.next()) {
-                // Process the result set
-                System.out.println(rs.getString(1));
-            }
-        }
-    }
-
-    private void executeCommandJob(JobManager jobManager) throws Exception {
-        String command = jobManager.getCommand();
-        Process process = Runtime.getRuntime().exec(command);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            System.out.println(line);
-        }
-        int exitCode = process.waitFor();
-        if (exitCode != 0) {
-            throw new Exception("Command execution failed with exit code " + exitCode);
-        }
-    }
-
-    private Process process;
-    private void executeShellJob(JobManager jobManager) throws Exception {
-        //   String scriptPath = "D:\\file\\executer.cmd"; // Absolute path to the script
-        String jobName = jobManager.getName();
-        String sPath = jobManager.getScriptpath() + jobManager.getCommand();
-
-
-        ProcessBuilder processBuilder;
-        if (System.getProperty("os.name").toLowerCase().contains("win")) {
-            // Quote the script path to handle spaces and special characters
-            processBuilder = new ProcessBuilder("cmd.exe", "/c", "\"" + sPath + "\"", jobName, jobManager.getParameter());
-        } else {
-            processBuilder = new ProcessBuilder("sh", "-c", "\"" + sPath + "\" " + jobName + " " + jobManager.getParameter());
-        }
-        processBuilder.redirectErrorStream(true);
-        process = processBuilder.start();
-
-        // Capture the output
-        StringBuilder output = new StringBuilder();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            output.append(line).append("\n");
-        }
-        int exitCode = process.waitFor();
-        if (exitCode != 0) {
-            throw new Exception("Shell script execution failed with exit code " + exitCode + "\nOutput:\n" + output);
-        }
-
-        // Print the successful output for debugging
-        System.out.println("Shell script executed successfully:\n" + output);
-    }
 
     private void updateJobManagerSubscription() {
 //        UI ui = getUI().orElse(null);

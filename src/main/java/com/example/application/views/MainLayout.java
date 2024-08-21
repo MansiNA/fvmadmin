@@ -93,7 +93,7 @@ public class MainLayout extends AppLayout {
       //  JobManagerView jobManagerView = SpringContextHolder.getBean(JobManagerView.class);
         List<JobManager> jobManagerList = jobDefinitionService.findAll();
 
-        JobManagerView.allCronButton.setText("Cron Stop");
+     //   JobManagerView.allCronButton.setText("Cron Stop");
         JobManagerView.notifySubscribers("start running all...");
         for (JobManager jobManager : jobManagerList) {
             try {
@@ -102,7 +102,7 @@ public class MainLayout extends AppLayout {
                   scheduleJob(jobManager);
                 }
             } catch (Exception e) {
-                JobManagerView.allCronButton.setText("Cron Start");
+        //        JobManagerView.allCronButton.setText("Cron Start");
                 Notification.show("Error executing job: " + jobManager.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             }
         }
