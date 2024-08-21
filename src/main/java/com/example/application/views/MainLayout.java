@@ -1,9 +1,12 @@
 package com.example.application.views;
 
+import com.example.application.data.entity.JobManager;
 import com.example.application.data.entity.User;
+import com.example.application.data.service.JobDefinitionService;
 import com.example.application.data.service.UserService;
 import com.example.application.security.AuthenticatedUser;
-import com.example.application.utils.OSInfoUtil;
+import com.example.application.utils.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
@@ -21,6 +24,11 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.router.HighlightConditions;
 import com.vaadin.flow.router.RouterLink;
+import org.quartz.*;
+import org.quartz.impl.StdSchedulerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -38,6 +46,8 @@ import java.util.stream.Collectors;
 public class MainLayout extends AppLayout {
 
     private final AuthenticatedUser authenticatedUser;
+    private JobDefinitionService jobDefinitionService;
+
     private final UserService userService;
 
     public static boolean isAdmin;
@@ -47,11 +57,14 @@ public class MainLayout extends AppLayout {
     public static List<String> userRoles;
     public static String userName;
 
-    public MainLayout(AuthenticatedUser authenticatedUser, UserService userService){
+    private boolean cronAutostart;
+    private static int count = 0;
+    public MainLayout( @Value("${cron.autostart}") boolean cronAutostart, AuthenticatedUser authenticatedUser, UserService userService){
 
 
         this.authenticatedUser = authenticatedUser;
         this.userService = userService;
+        this.cronAutostart = cronAutostart;
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         // Get all roles assigned to the user
@@ -62,10 +75,125 @@ public class MainLayout extends AppLayout {
 
         isAdmin = checkAdminRole();
         userName = authentication.getName();
+
+        System.out.println(count+"------------------------------------------");
+        System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        if(cronAutostart && count == 0) {
+            count = count + 1;
+            allCronJobSart();
+        }
         createHeader();
         createDrawer();
+
     }
 
+    private void  allCronJobSart(){
+        System.out.println("all cron start");
+        jobDefinitionService = SpringContextHolder.getBean(JobDefinitionService.class);
+      //  JobManagerView jobManagerView = SpringContextHolder.getBean(JobManagerView.class);
+        List<JobManager> jobManagerList = jobDefinitionService.findAll();
+
+        JobManagerView.allCronButton.setText("Cron Stop");
+        JobManagerView.notifySubscribers("start running all...");
+        for (JobManager jobManager : jobManagerList) {
+            try {
+                String type = jobManager.getTyp();
+                if(jobManager.getCron() != null && !type.equals("Node") && !type.equals("Jobchain")) {
+                  scheduleJob(jobManager);
+                }
+            } catch (Exception e) {
+                JobManagerView.allCronButton.setText("Cron Start");
+                Notification.show("Error executing job: " + jobManager.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+        }
+    }
+
+    public void scheduleJob(JobManager jobManager) throws SchedulerException {
+        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+        scheduler.start();
+        //  notifySubscribers(",,"+jobManager.getId());
+        JobDataMap jobDataMap = new JobDataMap();
+        try {
+            jobDataMap.put("jobManager", JobDefinitionUtils.serializeJobDefinition(jobManager));
+        } catch (JsonProcessingException e) {
+            Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        jobDataMap.put("startType", "cron");
+
+        JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
+                .withIdentity("job-cron-" + jobManager.getId(), "group1")
+                .usingJobData(jobDataMap)
+                .build();
+
+        // Using the cron expression from the JobManager
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("trigger-cron-" + jobManager.getId(), "group1")
+                .withSchedule(CronScheduleBuilder.cronSchedule(jobManager.getCron()))
+                .forJob(jobDetail)
+                .build();
+
+        scheduler.scheduleJob(jobDetail, trigger);
+    }
+
+//    @EventListener(ApplicationReadyEvent.class)
+//    public void onApplicationReady() {
+//        if (cronAutostart) {
+//            System.out.println("Cron jobs will be started automatically");
+//            startAllCronJobs();
+//        } else {
+//            System.out.println("Cron jobs will not be started automatically");
+//        }
+//    }
+//
+//    private void startAllCronJobs() {
+//        JobDefinitionService jobDefinitionService = SpringContextHolder.getBean(JobDefinitionService.class);
+//        List<JobManager> jobManagerList = jobDefinitionService.findAll();
+//
+//        //   JobManagerView.allCronButton.setText("Cron Stop");
+//        //   JobManagerView.notifySubscribers("Start running all cron jobs...");
+//
+//        for (JobManager jobManager : jobManagerList) {
+//            try {
+//                String type = jobManager.getTyp();
+//                if (jobManager.getCron() != null && !type.equals("Node") && !type.equals("Jobchain")) {
+//                    scheduleJob(jobManager);
+//                }
+//            } catch (Exception e) {
+//                //         JobManagerView.allCronButton.setText("Cron Start");
+//                //          Notification.show("Error executing job: " + jobManager.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+//            }
+//        }
+//    }
+//
+//    public void scheduleJob(JobManager jobManager) throws SchedulerException {
+//        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+//        scheduler.start();
+//
+//        JobDataMap jobDataMap = new JobDataMap();
+//        try {
+//            jobDataMap.put("jobManager", JobDefinitionUtils.serializeJobDefinition(jobManager));
+//        } catch (JsonProcessingException e) {
+//            //      Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+//            return;
+//        }
+//
+//        jobDataMap.put("startType", "cron");
+//
+//        JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
+//                .withIdentity("job-cron-" + jobManager.getId(), "group1")
+//                .usingJobData(jobDataMap)
+//                .build();
+//
+//        Trigger trigger = TriggerBuilder.newTrigger()
+//                .withIdentity("trigger-cron-" + jobManager.getId(), "group1")
+//                .withSchedule(CronScheduleBuilder.cronSchedule(jobManager.getCron()))
+//                .forJob(jobDetail)
+//                .build();
+//
+//        scheduler.scheduleJob(jobDetail, trigger);
+//    }
     private void createHeader() {
         H1 logo = new H1("eKP Web-Admin");
         logo.addClassNames("text-l","m-m");
