@@ -892,7 +892,10 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             jobId = 0;
         }
         if (displayMessage != null && !displayMessage.isEmpty()) {
-            Notification.show(displayMessage, 5000, Notification.Position.MIDDLE);
+            System.out.println(displayMessage);
+            if(!isCron) {
+                Notification.show(displayMessage, 5000, Notification.Position.MIDDLE);
+            }
         }
         updateUIBasedOnMessage(ui, displayMessage, jobId, isCron);
     }
