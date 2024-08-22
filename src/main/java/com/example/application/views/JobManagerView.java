@@ -317,7 +317,9 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
             GridContextMenu<JobManager> contextMenu = treeGrid.addContextMenu();
             //   if (listOfJobManager != null && !listOfJobManager.isEmpty()) {
+
             contextMenu.addItem("Edit", event -> {
+                System.out.println("edityyyyyyyyyy......."+listOfGridItem);
                 Optional<JobManager> selectedItem = event.getItem();
                 if (selectedItem.isPresent() && listOfGridItem != null && !listOfGridItem.isEmpty()) {
                     System.out.println("edityyyyyyyyyy......."+listOfGridItem);
@@ -348,16 +350,23 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 }
             });
 
-            treeGrid.addContextMenu().setDynamicContentHandler(jobManager -> {
-
-                // Conditionally show "Edit" and "Delete" items based on selection
-                boolean hasSelection = jobManager != null ? true:false;
-                contextMenu.getItems().stream()
-                        .filter(item -> item.getText().equals("Edit") || item.getText().equals("Delete"))
-                        .forEach(item -> item.setVisible(hasSelection));
-
-                return hasSelection;
-            });
+//            treeGrid.addContextMenu().setDynamicContentHandler(selectedItem -> {
+//
+//                // Conditionally show "Edit" and "Delete" items based on selection
+//                // Always show "New" item
+//                contextMenu.getItems().stream()
+//                        .filter(item -> item.getText().equals("New"))
+//                        .forEach(item -> item.setVisible(true));
+//
+//                // Conditionally show "Edit" and "Delete" items based on selection
+//                boolean hasSelection = selectedItem != null;
+//                contextMenu.getItems().stream()
+//                        .filter(item -> item.getText().equals("Edit") || item.getText().equals("Delete"))
+//                        .forEach(item -> item.setVisible(hasSelection));
+//
+//                // Return whether there is a selection
+//                return hasSelection;
+//            });
         }
 
         logPannel.logMessage(Constants.INFO, "Ending createTreeGrid");
