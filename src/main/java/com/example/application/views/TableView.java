@@ -1,6 +1,7 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.JobManager;
 import com.example.application.data.entity.SqlDefinition;
 import com.example.application.data.entity.TableInfo;
 import com.example.application.data.service.ConfigurationService;
@@ -250,16 +251,57 @@ public class TableView extends VerticalLayout {
         });
 
         if(MainLayout.isAdmin) {
+//            GridContextMenu<SqlDefinition> contextMenu = treeGrid.addContextMenu();
+//            GridMenuItem<SqlDefinition> editItem = contextMenu.addItem("Edit", event -> {
+//                showEditAndNewDialog(event.getItem().get(), "Edit");
+//            });
+//            GridMenuItem<SqlDefinition> newItem = contextMenu.addItem("New", event -> {
+//                showEditAndNewDialog(event.getItem().get(), "New");
+//            });
+//            GridMenuItem<SqlDefinition> deleteItem = contextMenu.addItem("Delete", event -> {
+//                deleteTreeGridItem(event.getItem().get());
+//            });
+
             GridContextMenu<SqlDefinition> contextMenu = treeGrid.addContextMenu();
-            GridMenuItem<SqlDefinition> editItem = contextMenu.addItem("Edit", event -> {
-                showEditAndNewDialog(event.getItem().get(), "Edit");
+            //   if (listOfJobManager != null && !listOfJobManager.isEmpty()) {
+            contextMenu.addItem("Edit", event -> {
+                Optional<SqlDefinition> selectedItem = event.getItem();
+                if (selectedItem.isPresent()) {
+                    showEditAndNewDialog(event.getItem().get(), "Edit");
+                }
             });
-            GridMenuItem<SqlDefinition> newItem = contextMenu.addItem("New", event -> {
-                showEditAndNewDialog(event.getItem().get(), "New");
+
+            contextMenu.addItem("Delete", event -> {
+                Optional<SqlDefinition> selectedItem = event.getItem();
+                if (selectedItem.isPresent() ) {
+                    deleteTreeGridItem(event.getItem().get());
+                }
             });
-            GridMenuItem<SqlDefinition> deleteItem = contextMenu.addItem("Delete", event -> {
-                deleteTreeGridItem(event.getItem().get());
+
+            // "New" option is always available
+            contextMenu.addItem("New", event -> {
+                Optional<SqlDefinition> selectedItem = event.getItem();
+                if (selectedItem.isPresent()) {
+                    System.out.println("------------with parent");
+                    showEditAndNewDialog(event.getItem().get(), "New");
+                } else {
+                    System.out.println("------------no parent");
+                    SqlDefinition sqlDefinition = new SqlDefinition();
+                    sqlDefinition.setId(null);
+                    showEditAndNewDialog(sqlDefinition, "New");
+                }
             });
+
+//            treeGrid.addContextMenu().setDynamicContentHandler(jobManager -> {
+//
+//                // Conditionally show "Edit" and "Delete" items based on selection
+//                boolean hasSelection = jobManager != null ? true:false;
+//                contextMenu.getItems().stream()
+//                        .filter(item -> item.getText().equals("Edit") || item.getText().equals("Delete"))
+//                        .forEach(item -> item.setVisible(hasSelection));
+//
+//                return hasSelection;
+//            });
         }
         return treeGrid;
     }
@@ -270,9 +312,9 @@ public class TableView extends VerticalLayout {
         SqlDefinition newSqlDefinition = new SqlDefinition();
 
         if(context.equals("New")){
-            List<SqlDefinition> sqlDefinitionList = sqlDefinitionService.getAllSqlDefinitions();
-            newSqlDefinition.setId((long) (sqlDefinitionList.size() + 1));
-            newSqlDefinition.setPid(sqlDefinition.getPid());
+          //  List<SqlDefinition> sqlDefinitionList = sqlDefinitionService.getAllSqlDefinitions();
+           // newSqlDefinition.setId((long) (sqlDefinitionList.size() + 1));
+            newSqlDefinition.setPid(sqlDefinition.getId());
             dialog.add(editSqlDefination(newSqlDefinition, true)); // For adding new entry
         } else {
             dialog.add(editSqlDefination(sqlDefinition, false)); // For editing existing entry
@@ -354,7 +396,7 @@ public class TableView extends VerticalLayout {
         pid.addValueChangeListener(event -> {
             try {
                 if (event.getValue() != null && !event.getValue().isEmpty()) {
-                    Long pidValue = Long.parseLong(event.getValue());
+                    Integer pidValue = Integer.valueOf(event.getValue());
                     sqlDefinition.setPid(pidValue);
                 } else {
                     sqlDefinition.setPid(null);

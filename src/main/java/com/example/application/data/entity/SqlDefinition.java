@@ -12,10 +12,10 @@ public class SqlDefinition {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(name = "PID")
-    private Long pid;
+    private Integer pid;
 
     @Column(name = "SQL", length = 4000)
     private String sql;

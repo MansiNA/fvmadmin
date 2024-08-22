@@ -27,7 +27,7 @@ public class SqlDefinitionService {
         return sqlDefinitionList;
     }
 
-    public SqlDefinition getSqlDefinitionById(Long id) {
+    public SqlDefinition getSqlDefinitionById(Integer id) {
         return sqlDefinitionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("SqlDefinition not found with id: " + id));
     }
@@ -36,7 +36,7 @@ public class SqlDefinitionService {
         return sqlDefinitionRepository.save(sqlDefinition);
     }
 
-    public void deleteSqlDefinitionById(Long id) {
+    public void deleteSqlDefinitionById(Integer id) {
         sqlDefinitionRepository.deleteById(id);
     }
 
