@@ -318,25 +318,26 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             GridContextMenu<JobManager> contextMenu = treeGrid.addContextMenu();
             //   if (listOfJobManager != null && !listOfJobManager.isEmpty()) {
             contextMenu.addItem("Edit", event -> {
-                if (listOfGridItem != null && !listOfGridItem.isEmpty()) {
+                Optional<JobManager> selectedItem = event.getItem();
+                if (selectedItem.isPresent() && listOfGridItem != null && !listOfGridItem.isEmpty()) {
                     System.out.println("edityyyyyyyyyy......."+listOfGridItem);
                     showEditAndNewDialog(event.getItem().get(), "Edit");
                 }
             });
 
             contextMenu.addItem("Delete", event -> {
-                if (listOfGridItem != null && !listOfGridItem.isEmpty()) {
+                Optional<JobManager> selectedItem = event.getItem();
+                if (selectedItem.isPresent() && listOfGridItem != null && !listOfGridItem.isEmpty()) {
                     System.out.println("deleteyyyyyyyyyy......."+listOfGridItem);
                     deleteTreeGridItem(event.getItem().get());
                 }
-                //      refreshContextMenu(contextMenu); // Refresh menu after deletion
             });
-            //    }
 
             // "New" option is always available
             contextMenu.addItem("New", event -> {
                 System.out.println("newyyyyyyyyyy......."+listOfGridItem);
-                if (listOfGridItem != null && !listOfGridItem.isEmpty()) {
+                Optional<JobManager> selectedItem = event.getItem();
+                if (selectedItem.isPresent() && listOfGridItem != null && !listOfGridItem.isEmpty()) {
                     System.out.println("------------with parent");
                     showEditAndNewDialog(event.getItem().get(), "New");
                 } else {
@@ -345,10 +346,18 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                     jobManager.setId(0);
                     showEditAndNewDialog(jobManager, "New");
                 }
-                //  refreshContextMenu(contextMenu); // Refresh menu after adding a new item
             });
 
+            treeGrid.addContextMenu().setDynamicContentHandler(jobManager -> {
 
+                // Conditionally show "Edit" and "Delete" items based on selection
+                boolean hasSelection = jobManager != null ? true:false;
+                contextMenu.getItems().stream()
+                        .filter(item -> item.getText().equals("Edit") || item.getText().equals("Delete"))
+                        .forEach(item -> item.setVisible(hasSelection));
+
+                return hasSelection;
+            });
         }
 
         logPannel.logMessage(Constants.INFO, "Ending createTreeGrid");
