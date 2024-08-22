@@ -439,7 +439,10 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private VerticalLayout showEditAndNewDialog(JobManager jobManager, String context){
         logPannel.logMessage(Constants.INFO, "Starting showEditAndNewDialog");
         VerticalLayout dialogLayout = new VerticalLayout();
+//        dialogLayout.setWidth("1200px");
+//        dialogLayout.setHeight("800px");
         Dialog dialog = new Dialog();
+
         JobManager newJobDefination = new JobManager();
 
         if(context.equals("New")){
@@ -452,8 +455,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         dialog.setDraggable(true);
         dialog.setResizable(true);
-        dialog.setWidth("800px");
-        dialog.setHeight("600px");
+        dialog.setWidth("1300px");
+        dialog.setHeight("900px");
         Button cancelButton = new Button("Cancel");
         Button saveButton = new Button(context.equals("Edit") ? "Save" : "Add");
         dialog.getFooter().add(saveButton, cancelButton);
@@ -486,29 +489,30 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         logPannel.logMessage(Constants.INFO, "Starting editJobDefinition");
         VerticalLayout content = new VerticalLayout();
 
+
         // Create and initialize fields
         HorizontalLayout hl1 = new HorizontalLayout();
         HorizontalLayout hl2 = new HorizontalLayout();
         HorizontalLayout hl3 = new HorizontalLayout();
         HorizontalLayout hl4 = new HorizontalLayout();
-        HorizontalLayout hl5 = new HorizontalLayout();
 
         IntegerField id = new IntegerField("ID");
         id.setValue(jobManager.getId() != null ? jobManager.getId() : null);
-        id.setWidthFull();
+        id.setWidth("50px");
         id.setReadOnly(true);
 
         TextField name = new TextField("NAME");
         name.setValue(isNew ? "" : (jobManager.getName() != null ? jobManager.getName() : ""));
-        name.setWidthFull();
+        name.setWidth("500px");
 
         TextField namespace = new TextField("NAMESPACE");
         namespace.setValue(isNew ? "" : (jobManager.getNamespace() != null ? jobManager.getNamespace() : ""));
         namespace.setWidthFull();
 
-        TextArea command = new TextArea("COMMAND");
+        TextField command = new TextField("COMMAND");
         command.setValue(isNew ? "" : (jobManager.getCommand() != null ? jobManager.getCommand() : ""));
-        command.setWidthFull();
+        command.setWidth("500px");
+        command.setTooltipText("Auszuführendes Programm, oder EXCEL_REPORT für Reporting.");
 
         TextField cron = new TextField("CRON");
         cron.setValue(isNew ? "" : (jobManager.getCron() != null ? jobManager.getCron() : ""));
@@ -521,20 +525,26 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         TextField parameter = new TextField("PARAMETER");
         parameter.setValue(isNew ? "" : (jobManager.getParameter() != null ? jobManager.getParameter() : ""));
         parameter.setWidthFull();
+        parameter.setTooltipText("dem Script zu übergebene Parameter. Bei EXCEL_REPORT im Format Filename;Sheetname:SQL");
 
         IntegerField pid = new IntegerField("PID");
+        pid.setTooltipText("ID des Vorgängers");
         pid.setValue(jobManager.getPid() != null ? jobManager.getPid() : 0);
-        pid.setWidthFull();
+        pid.setWidth("50px");
 
         TextField scriptpath = new TextField("SCRIPTPATH");
         scriptpath.setValue(isNew ? "" : (jobManager.getScriptpath() != null ? jobManager.getScriptpath() : ""));
+        scriptpath.setTooltipText("Verzeichnis, in dem das Script abgelegt ist");
         scriptpath.setWidthFull();
 
         TextField mailBetreff = new TextField("MAIL_BETREFF");
         mailBetreff.setValue(isNew ? "" : (jobManager.getMailBetreff() != null ? jobManager.getMailBetreff() : ""));
         mailBetreff.setWidthFull();
+        mailBetreff.setTooltipText("Text im Betreff dr Mail");
 
-        TextField mailText = new TextField("MAIL_TEXT");
+        TextArea mailText = new TextArea("MAIL_TEXT");
+        mailText.setTooltipText("Inhalt der Mail");
+        mailText.setHeight("120px");
         mailText.setValue(isNew ? "" : (jobManager.getMailText() != null ? jobManager.getMailText() : ""));
         mailText.setWidthFull();
 
@@ -634,13 +644,18 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             }
         });
 
-        hl1.add(id,pid, name, namespace, cron);
-        hl2.add(command, parameter );
-        hl3.add(typComboBox, verbindungComboBox);
-        //hl4.add();
+        hl1.add(id,pid, name, namespace);
+        hl1.setWidthFull();
+        hl2.setWidthFull();
+        hl2.add(command, scriptpath );
+        hl3.add(cron, typComboBox, verbindungComboBox);
+        mailEmpfaenger.setWidthFull();
+        mailCcEmpfaenger.setWidthFull();
+        hl4.add(mailEmpfaenger, mailCcEmpfaenger);
+        hl4.setWidthFull();
         //hl5.add(mailBetreff, mailText);
         // Add all fields to the content layout
-        content.add(hl1, hl2, scriptpath, hl3, hl4, mailEmpfaenger, mailCcEmpfaenger, mailBetreff,mailText );
+        content.add(hl1, hl2, parameter, hl3, hl4, mailBetreff,mailText );
         logPannel.logMessage(Constants.INFO, "Ending editJobDefinition");
         return content;
     }
