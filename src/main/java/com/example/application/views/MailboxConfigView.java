@@ -48,6 +48,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @PageTitle("Mailbox Verwaltung")
@@ -310,7 +311,14 @@ public class MailboxConfigView  extends VerticalLayout {
         dialog.setHeight("500px");
 
         Grid<Protokoll> grid = new Grid<>(Protokoll.class);
-        grid.setItems(protokollService.findAllLogsOrderedByZeitpunktDesc());
+        List<Protokoll> protokollList = protokollService.findAllLogsOrderedByZeitpunktDesc();
+        String targetVerbindung = comboBox.getValue().getName();  // Replace with the verbindung value you're searching for
+
+        List<Protokoll> filteredProtokollList = protokollList.stream()
+                .filter(protokoll -> targetVerbindung.equals(protokoll.getVerbindung()))
+                .collect(Collectors.toList());
+
+        grid.setItems(filteredProtokollList);
 
         grid.setColumns("id", "username", "zeitpunkt", "info", "shutdownReason", "verbindung");
         grid.getColumnByKey("id").setHeader("ID").setResizable(true).setAutoWidth(true);
