@@ -452,8 +452,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         dialog.setDraggable(true);
         dialog.setResizable(true);
-        dialog.setWidth("700px");
-        dialog.setHeight("400px");
+        dialog.setWidth("800px");
+        dialog.setHeight("600px");
         Button cancelButton = new Button("Cancel");
         Button saveButton = new Button(context.equals("Edit") ? "Save" : "Add");
         dialog.getFooter().add(saveButton, cancelButton);
@@ -634,13 +634,13 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             }
         });
 
-        hl1.add(id, name, namespace);
-        hl2.add(command, cron, parameter);
-        hl3.add(pid, typComboBox, verbindungComboBox);
-        hl4.add(mailEmpfaenger, mailCcEmpfaenger);
-        hl5.add(mailBetreff, mailText);
+        hl1.add(id,pid, name, namespace, cron);
+        hl2.add(command, parameter );
+        hl3.add(typComboBox, verbindungComboBox);
+        //hl4.add();
+        //hl5.add(mailBetreff, mailText);
         // Add all fields to the content layout
-        content.add(hl1, hl2, scriptpath, hl3, hl4, hl5);
+        content.add(hl1, hl2, scriptpath, hl3, hl4, mailEmpfaenger, mailCcEmpfaenger, mailBetreff,mailText );
         logPannel.logMessage(Constants.INFO, "Ending editJobDefinition");
         return content;
     }
