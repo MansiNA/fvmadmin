@@ -12,7 +12,10 @@ import com.example.application.utils.LogPannel;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.contextmenu.ContextMenu;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.crud.Crud;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
@@ -84,6 +87,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Boolean isLogsVisible = false;
     private Boolean isVisible = false;
     private final EmailService emailService;
+    Button menuButton = new Button("Show/Hide Columns");
 
     public JobManagerView(EmailService emailService, JobDefinitionService jobDefinitionService, ConfigurationService configurationService) {
 
@@ -100,7 +104,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         this.ui = UI.getCurrent();
 
-        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"),  allCronButton);
+        HorizontalLayout hl = new HorizontalLayout(new H2("Job Manager"),  allCronButton, menuButton);
         hl.setAlignItems(Alignment.BASELINE);
         add(hl);
 
@@ -176,34 +180,72 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         treeGrid.addHierarchyColumn(JobManager::getName).setHeader("Name").setAutoWidth(true).setResizable(true);
 
         // Add other columns except id and pid
-        treeGrid.addColumn(JobManager::getNamespace).setHeader("Namespace").setAutoWidth(true).setResizable(true);
+        TreeGrid.Column<JobManager> namespaceColumn = treeGrid.addColumn(JobManager::getNamespace).setHeader("Namespace").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(JobManager::getCommand).setHeader("Command").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(JobManager::getCron).setHeader("Cron").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(JobManager::getTyp).setHeader("Typ").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setAutoWidth(true).setResizable(true);
-        treeGrid.addColumn(JobManager::getScriptpath).setHeader("ScriptPath").setAutoWidth(true).setResizable(true);
-        treeGrid.addColumn(JobManager::getMailBetreff).setHeader("MailBetreff").setAutoWidth(true).setResizable(true);
-        treeGrid.addColumn(JobManager::getMailText).setHeader("MailText").setAutoWidth(true).setResizable(true);
-        treeGrid.addColumn(JobManager::getMailEmpfaenger).setHeader("MAIL_EMPFAENGER").setAutoWidth(true).setResizable(true);
-        treeGrid.addColumn(JobManager::getMailCcEmpfaenger).setHeader("MAIL_CC_EMPFAENGER").setAutoWidth(true).setResizable(true);
-        treeGrid.addColumn(jobManager -> {
+//        treeGrid.addColumn(JobManager::getScriptpath).setHeader("ScriptPath").setAutoWidth(true).setResizable(true);
+//        treeGrid.addColumn(JobManager::getMailBetreff).setHeader("MailBetreff").setAutoWidth(true).setResizable(true);
+//        treeGrid.addColumn(JobManager::getMailText).setHeader("MailText").setAutoWidth(true).setResizable(true);
+//        treeGrid.addColumn(JobManager::getMailEmpfaenger).setHeader("MAIL_EMPFAENGER").setAutoWidth(true).setResizable(true);
+//        treeGrid.addColumn(JobManager::getMailCcEmpfaenger).setHeader("MAIL_CC_EMPFAENGER").setAutoWidth(true).setResizable(true);
+//        treeGrid.addColumn(jobManager -> {
+//            // Retrieve the connection ID from the Configuration object
+//            return jobManager.getConnection() != null ? jobManager.getConnection().getName() : "N/A";
+//        }).setHeader("Verbindung").setAutoWidth(true).setResizable(true);
+
+        TreeGrid.Column<JobManager> scriptPathColumn = treeGrid.addColumn(JobManager::getScriptpath)
+                .setHeader("ScriptPath").setAutoWidth(true).setResizable(true);
+
+        TreeGrid.Column<JobManager> mailBetreffColumn = treeGrid.addColumn(JobManager::getMailBetreff)
+                .setHeader("MailBetreff").setAutoWidth(true).setResizable(true);
+
+        TreeGrid.Column<JobManager> mailTextColumn = treeGrid.addColumn(JobManager::getMailText)
+                .setHeader("MailText").setAutoWidth(true).setResizable(true);
+
+        TreeGrid.Column<JobManager> mailEmpfaengerColumn = treeGrid.addColumn(JobManager::getMailEmpfaenger)
+                .setHeader("MAIL_EMPFAENGER").setAutoWidth(true).setResizable(true);
+
+        TreeGrid.Column<JobManager> mailCcEmpfaengerColumn = treeGrid.addColumn(JobManager::getMailCcEmpfaenger)
+                .setHeader("MAIL_CC_EMPFAENGER").setAutoWidth(true).setResizable(true);
+
+        TreeGrid.Column<JobManager> verbindungColumn = treeGrid.addColumn(jobManager -> {
             // Retrieve the connection ID from the Configuration object
             return jobManager.getConnection() != null ? jobManager.getConnection().getName() : "N/A";
         }).setHeader("Verbindung").setAutoWidth(true).setResizable(true);
 
-      //  treeGrid.setWidth("350px");
+        //  treeGrid.setWidth("350px");
         treeGrid.addExpandListener(event -> System.out.println(String.format("Expanded %s item(s)", event.getItems().size())));
         treeGrid.addCollapseListener(event -> System.out.println(String.format("Collapsed %s item(s)", event.getItems().size())));
 
         treeGrid.setThemeName("dense");
         treeGrid.addThemeVariants(GridVariant.LUMO_NO_BORDER, GridVariant.LUMO_NO_ROW_BORDERS, GridVariant.LUMO_COMPACT);
 
+
+        menuButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        scriptPathColumn.setVisible(false);
+        mailBetreffColumn.setVisible(false);
+        mailTextColumn.setVisible(false);
+        mailEmpfaengerColumn.setVisible(false);
+        mailCcEmpfaengerColumn.setVisible(false);
+        verbindungColumn.setVisible(false);
+        ColumnToggleContextMenu columnToggleContextMenu = new ColumnToggleContextMenu(menuButton);
+        columnToggleContextMenu.addColumnToggleItem("Namespace", namespaceColumn);
+        columnToggleContextMenu.addColumnToggleItem("ScriptPath", scriptPathColumn);
+        columnToggleContextMenu.addColumnToggleItem("MailBetreff", mailBetreffColumn);
+        columnToggleContextMenu.addColumnToggleItem("MailText", mailTextColumn);
+        columnToggleContextMenu.addColumnToggleItem("MAIL_EMPFAENGER", mailEmpfaengerColumn);
+        columnToggleContextMenu.addColumnToggleItem("MAIL_CC_EMPFAENGER", mailCcEmpfaengerColumn);
+        columnToggleContextMenu.addColumnToggleItem("Verbindung", verbindungColumn);
+
         if(isAnyCronJobRunning()) {
             updateAllButtonsState(ui, "Cron Stop");
-          //  updateAllButtonsState(ui, false, true);
+            //  updateAllButtonsState(ui, false, true);
         } else {
             updateAllButtonsState(ui, "Cron Start");
-          //  updateAllButtonsState(ui, true, false);
+            //  updateAllButtonsState(ui, true, false);
         }
         treeGrid.addComponentColumn(jobManager -> {
             // Create a layout to hold the buttons for each row
@@ -291,7 +333,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         allCronButton.addClickListener(event -> {
 
             if (allCronButton.getText().equals("Cron Start")) {
-              allCronJobSart();
+                allCronJobSart();
             } else {
                 // Stop the cron jobs
                 allCronButton.setText("Cron Start");
@@ -1044,5 +1086,20 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             // Handle the exception appropriately
         }
         return false;
+    }
+
+    private static class ColumnToggleContextMenu extends ContextMenu {
+        public ColumnToggleContextMenu(Component target) {
+            super(target);
+            setOpenOnClick(true);
+        }
+
+        void addColumnToggleItem(String label, Grid.Column<JobManager> column) {
+            MenuItem menuItem = this.addItem(label, e -> {
+                column.setVisible(e.getSource().isChecked());
+            });
+            menuItem.setCheckable(true);
+            menuItem.setChecked(column.isVisible());
+        }
     }
 }
