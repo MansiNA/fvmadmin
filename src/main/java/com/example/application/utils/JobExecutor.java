@@ -375,6 +375,12 @@ public class JobExecutor implements Job {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, username, password);
              Workbook workbook = new XSSFWorkbook()) {
+
+            stopFlags.put(jobManager.getId(), new AtomicBoolean(false));
+
+            jobHistory = createJobHistory(jobManager);
+            jobHistoryService.createOrUpdateJobHistory(jobHistory);
+
             for (int i = 1; i < parts.length; i++) {
                 String[] sheetAndQuery = parts[i].split(":");
                 if (sheetAndQuery.length != 2) {
@@ -386,12 +392,7 @@ public class JobExecutor implements Job {
                 Sheet sheet = workbook.createSheet(sheetName);
                 createSheetFromQuery(sheet, query, conn);
             }
-//            runningStatements.put(jobManager.getId(), stmt);
-//
-            stopFlags.put(jobManager.getId(), new AtomicBoolean(false));
 
-            jobHistory = createJobHistory(jobManager);
-            jobHistoryService.createOrUpdateJobHistory(jobHistory);
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             workbook.write(baos);
@@ -407,7 +408,7 @@ public class JobExecutor implements Job {
 
             System.out.println("generate excel ending");
            // sendEmailWithAttachment(fileName, file);
-        } catch (SQLException | IOException e) {
+        } catch (Exception e) {
             returnValue = "Error: "+ e.getMessage();
             exitCode = 1;
             if (stopFlags.get(jobManager.getId()).get()) {
