@@ -67,6 +67,7 @@ public class TableView extends VerticalLayout {
     //private Article descriptionTextField;
     private TextArea sqlTextField;
     private Details queryDetails;
+    private TextArea queryInfo;
     public static Connection conn;
     private ResultSet resultset;
     private Button exportButton = new Button("Export");
@@ -162,13 +163,14 @@ public class TableView extends VerticalLayout {
         //  treehl.setWidthFull();
         treehl.setAlignItems(Alignment.BASELINE);
 
-        queryDetails = new Details("SQL Auswahl",treehl);
-        queryDetails.setOpened(true);
-        queryDetails.setWidthFull();
-        queryDetails.setSummaryText("Bitte Abfrage auswählen");
+      //  queryDetails = new Details("SQL Auswahl",treehl);
+      //  queryDetails.setOpened(true);
+      //  queryDetails.setWidthFull();
+      //  queryDetails.setSummaryText("Bitte Abfrage auswählen");
 
 
-        add(hl, queryDetails);
+      //  add(hl, queryDetails);
+        add(hl,treehl);
 
         HorizontalLayout horizontalLayout = new HorizontalLayout();
         horizontalLayout.add(runButton, exportButton);
@@ -187,13 +189,17 @@ public class TableView extends VerticalLayout {
 
      */
 
-    private TextArea createSQLTextField() {
-        sqlTextField = new TextArea("Abfrage:");
+    private VerticalLayout createSQLTextField() {
+
+        VerticalLayout vl = new VerticalLayout();
+
+        sqlTextField = new TextArea("SQL:");
+
         sqlTextField.setReadOnly(true); // Set as read-only as per your requirement
         //sqlTextField.setMaxLength(2000);
         sqlTextField.setWidth("900px");
         //  sqlTextField.setEnabled(false);
-        sqlTextField.setHelperText("SQL");
+        //sqlTextField.setHelperText("SQL");
 
         // sqlTextField.addClassName("no-boarder");
         sqlTextField.getStyle().set("--vaadin-input-field-readonly-border", "0px");
@@ -207,9 +213,18 @@ public class TableView extends VerticalLayout {
                 // TextAreaVariant.LUMO_ALIGN_RIGHT,
                 TextAreaVariant.LUMO_HELPER_ABOVE_FIELD
         );
+        queryInfo = new TextArea("Beschreibung");
+        queryInfo.setWidthFull();
+        queryInfo.addThemeVariants(
+                TextAreaVariant.LUMO_SMALL,
+                // TextAreaVariant.LUMO_ALIGN_RIGHT,
+                TextAreaVariant.LUMO_HELPER_ABOVE_FIELD
+        );
+        queryInfo.setReadOnly(true);
 
+        vl.add(queryInfo,sqlTextField);
 
-        return sqlTextField;
+        return vl;
     }
     private TreeGrid createTreeGrid() {
         treeGrid = new TreeGrid<>();
@@ -239,7 +254,9 @@ public class TableView extends VerticalLayout {
                     sql = "";
                 }
 
-                queryDetails.setSummaryText(selectedItem.getName() + ": " + selectedItem.getBeschreibung());
+          //      queryDetails.setSummaryText(selectedItem.getName() + ": " + selectedItem.getBeschreibung());
+
+                queryInfo.setValue(selectedItem.getBeschreibung());
 
                 sqlTextField.setValue(sql);
                 System.out.println("jetzt Ausführen: " + selectedItem.getSql());
@@ -322,8 +339,8 @@ public class TableView extends VerticalLayout {
 
         dialog.setDraggable(true);
         dialog.setResizable(true);
-        dialog.setWidth("1000px");
-        dialog.setHeight("400px");
+        dialog.setWidth("900px");
+        dialog.setHeight("800px");
         Button cancelButton = new Button("Cancel");
         Button saveButton = new Button(context.equals("Edit") ? "Save" : "Add");
         dialog.getFooter().add(saveButton, cancelButton);
@@ -359,17 +376,24 @@ public class TableView extends VerticalLayout {
         name.setValue(isNew ? "" : (sqlDefinition.getName() != null ? sqlDefinition.getName() : ""));
         name.setWidthFull();
 
-        TextField sql = new TextField("SQL");
+        TextArea sql = new TextArea("SQL");
         sql.setValue(isNew ? "" : (sqlDefinition.getSql() != null ? sqlDefinition.getSql() : ""));
         sql.setWidthFull();
+        sql.setHeight("150px");
 
-        TextField beschreibung = new TextField("BESCHREIBUNG");
+        TextArea beschreibung = new TextArea("BESCHREIBUNG");
         beschreibung.setValue(isNew ? "" : (sqlDefinition.getBeschreibung() != null ? sqlDefinition.getBeschreibung() : ""));
         beschreibung.setWidthFull();
+        beschreibung.setHeight("150px");
+
+        TextField id = new TextField("ID");
+        id.setValue(sqlDefinition.getId() != null ? sqlDefinition.getId().toString() : "");
+        id.setWidth("50px");
+        id.setEnabled(false);
 
         TextField pid = new TextField("PID");
         pid.setValue(sqlDefinition.getPid() != null ? sqlDefinition.getPid().toString() : "");
-        pid.setWidthFull();
+        pid.setWidth("50px");
 
         MultiSelectComboBox<String> rolesComboBox = new MultiSelectComboBox<>("Roles");
         List<SqlDefinition> sqlDefinitionList = sqlDefinitionService.getAllSqlDefinitions();
@@ -411,7 +435,11 @@ public class TableView extends VerticalLayout {
             sqlDefinition.setAccessRoles(selectedRolesString);
         });
 
-        content.add(name,sql,beschreibung, pid, rolesComboBox);
+        HorizontalLayout hl1 = new HorizontalLayout();
+        hl1.setWidthFull();
+        hl1.add(id,pid, name);
+
+        content.add(hl1, sql,beschreibung, rolesComboBox);
         return content;
     }
 
