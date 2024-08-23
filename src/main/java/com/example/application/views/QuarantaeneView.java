@@ -69,9 +69,8 @@ public class QuarantaeneView extends VerticalLayout {
     ComboBox FehlertypCB;
 
 
-    public QuarantaeneView(@Value("${csv_exportPath}") String p_exportPath, ConfigurationService service) {
+    public QuarantaeneView( ConfigurationService service) {
         this.service = service;
-        this.exportPath=p_exportPath;
 
         Paragraph paragraph = new Paragraph("Hier erfolgt eine Auflistung von aktuellen EGVP-E Quarantäne-Nachrichten");
         paragraph.setMaxHeight("400px");
@@ -192,9 +191,9 @@ public class QuarantaeneView extends VerticalLayout {
 
                 System.out.println("aktuelle_SQL:" + sql);
 
-                generateExcel(exportPath + "quarantaene_export.xls",sql);
+                generateExcel( "quarantaene_export.xls",sql);
 
-                File file= new File(exportPath + "quarantaene_export.xls");
+                File file= new File( "quarantaene_export.xls");
                 StreamResource streamResource = new StreamResource(file.getName(),()->getStream(file));
 
                 anchor.setHref(streamResource);
