@@ -156,6 +156,7 @@ public class TableView extends VerticalLayout {
 
 
         TreeGrid tg= createTreeGrid();
+        tg.setWidth("500px");
 
         treehl.add(tg, createSQLTextField());
         treehl.setFlexGrow(1, tg);
