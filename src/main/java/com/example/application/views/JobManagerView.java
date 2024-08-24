@@ -367,6 +367,9 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                     System.out.println("edityyyyyyyyyy......."+listOfGridItem);
                     showEditAndNewDialog(event.getItem().get(), "Edit");
                 }
+                else {
+                    Notification.show("Bitte erst Eintrag zum Bearbeiten auswählen.", 5000, Notification.Position.MIDDLE);
+                }
             });
 
             contextMenu.addItem("Delete", event -> {
@@ -374,6 +377,9 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 if (selectedItem.isPresent() && listOfGridItem != null && !listOfGridItem.isEmpty()) {
                     System.out.println("deleteyyyyyyyyyy......."+listOfGridItem);
                     deleteTreeGridItem(event.getItem().get());
+                }
+                else {
+                    Notification.show("Bitte erst Eintrag zum Löschen auswählen.", 5000, Notification.Position.MIDDLE);
                 }
             });
 
