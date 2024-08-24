@@ -285,7 +285,7 @@ public class CockpitView extends VerticalLayout{
 
     }
 
-    private void setAssignee(String status) {
+    private void setAlerting(String status) {
         // Update checked state of menu items
         menu.getItems().forEach(item -> item
                 .setChecked(item.getText().equals(status)));
@@ -360,21 +360,22 @@ public class CockpitView extends VerticalLayout{
         menu = new ContextMenu();
         menu.setTarget(alerting);
         MenuItem menuItem = menu.addItem("on", event -> {
+            setAlerting("On");
             System.out.println("Alter Mail eingeschaltet");
         });
         menu.addItem("off", event -> {
+            setAlerting("Off");
             System.out.println("Alter Mail ausgeschaltet");
+
         });
         menu.addItem("E-Mail Konfiguration", event -> {
             System.out.println("Konfig-Dialog aufrufen");
         });
         menuItem.setCheckable(true);
 
+        setAlerting("Off");
 
-
-        setAssignee("On");
-
-        Div assigneeInfo = new Div(new Span("Alerting: "), alerting);
+        Div assigneeInfo = new Div(new Span("eMail-Alerting: "), alerting);
         alerting.getStyle().set("font-weight", "bold");
 
 
