@@ -73,7 +73,7 @@ import java.util.stream.Stream;
 import com.wontlost.ckeditor.VaadinCKEditor;
 import com.wontlost.ckeditor.VaadinCKEditorBuilder;
 
-@PageTitle("eKP-Cokpit | by DBUSS GmbH")
+@PageTitle("eKP-Cokpit")
 @Route(value = "cockpit", layout= MainLayout.class)
 @RolesAllowed({"ADMIN","FVM", "COKPIT"})
 @CssImport(
