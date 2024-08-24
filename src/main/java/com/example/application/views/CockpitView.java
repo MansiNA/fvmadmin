@@ -12,16 +12,16 @@ import com.vaadin.flow.component.charts.Chart;
 import com.vaadin.flow.component.charts.model.*;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.contextmenu.ContextMenu;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Hr;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.html.Label;
-import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.BoxSizing;
@@ -192,6 +192,10 @@ public class CockpitView extends VerticalLayout{
     private Label lastRefreshLabel;
     private Label countdownLabel;
 
+    private ContextMenu menu;
+    private Span alerting;
+
+
     private UI ui ;
     Instant startTime;
     ConfigurationService service;
@@ -240,11 +244,6 @@ public class CockpitView extends VerticalLayout{
                     .join();
         });
 
-
-
-        //  add(xmlBt);
-
-
         H2 h2 = new H2("ekP / EGVP-E Monitoring");
         add(h2);
 
@@ -286,6 +285,15 @@ public class CockpitView extends VerticalLayout{
 
     }
 
+    private void setAssignee(String status) {
+        // Update checked state of menu items
+        menu.getItems().forEach(item -> item
+                .setChecked(item.getText().equals(status)));
+
+        alerting.setText(status);
+    }
+
+
     private void saveMonitor() {
         System.out.println("Titel:" + akt_mon.getTitel());
 
@@ -322,6 +330,12 @@ public class CockpitView extends VerticalLayout{
 
         autorefresh.setLabel("Autorefresh");
 
+        autorefresh.addDoubleClickListener(e->{
+
+            System.out.println("Dialog aufrufen!");
+
+        });
+
         autorefresh.addClickListener(e->{
 
             if (autorefresh.getValue()){
@@ -340,7 +354,31 @@ public class CockpitView extends VerticalLayout{
 
         updateLastRefreshLabel();
 
-        HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn,lastRefreshLabel, autorefresh, countdownLabel);
+
+        alerting = new Span();
+        //  add(xmlBt);
+        menu = new ContextMenu();
+        menu.setTarget(alerting);
+        MenuItem menuItem = menu.addItem("on", event -> {
+            System.out.println("Alter Mail eingeschaltet");
+        });
+        menu.addItem("off", event -> {
+            System.out.println("Alter Mail ausgeschaltet");
+        });
+        menu.addItem("E-Mail Konfiguration", event -> {
+            System.out.println("Konfig-Dialog aufrufen");
+        });
+        menuItem.setCheckable(true);
+
+
+
+        setAssignee("On");
+
+        Div assigneeInfo = new Div(new Span("Alerting: "), alerting);
+        alerting.getStyle().set("font-weight", "bold");
+
+
+        HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn,lastRefreshLabel, autorefresh, countdownLabel, assigneeInfo);
         layout.setPadding(false);
         layout.setAlignItems(Alignment.BASELINE);
 
