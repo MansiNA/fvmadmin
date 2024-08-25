@@ -281,11 +281,16 @@ public class TableView extends VerticalLayout {
 //            });
 
             GridContextMenu<SqlDefinition> contextMenu = treeGrid.addContextMenu();
-            //   if (listOfJobManager != null && !listOfJobManager.isEmpty()) {
+               //if (listOfJobManager != null && !listOfJobManager.isEmpty()) {
+
             contextMenu.addItem("Edit", event -> {
                 Optional<SqlDefinition> selectedItem = event.getItem();
                 if (selectedItem.isPresent()) {
                     showEditAndNewDialog(event.getItem().get(), "Edit");
+                }
+                else
+                {
+                    Notification.show("Bitte erst Eintrag zum Bearbeiten auswählen!", 5000, Notification.Position.MIDDLE);
                 }
             });
 
@@ -293,6 +298,10 @@ public class TableView extends VerticalLayout {
                 Optional<SqlDefinition> selectedItem = event.getItem();
                 if (selectedItem.isPresent() ) {
                     deleteTreeGridItem(event.getItem().get());
+                }
+                else
+                {
+                    Notification.show("Bitte erst Eintrag zum Entfernen auswählen!", 5000, Notification.Position.MIDDLE);
                 }
             });
 

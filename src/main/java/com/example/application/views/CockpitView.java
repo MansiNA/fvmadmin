@@ -361,11 +361,11 @@ public class CockpitView extends VerticalLayout{
         menu.setTarget(alerting);
         MenuItem menuItem = menu.addItem("on", event -> {
             setAlerting("On");
-            System.out.println("Alter Mail eingeschaltet");
+            System.out.println("Alerting Mail eingeschaltet");
         });
         menu.addItem("off", event -> {
             setAlerting("Off");
-            System.out.println("Alter Mail ausgeschaltet");
+            System.out.println("Alerting eMail ausgeschaltet");
 
         });
         menu.addItem("E-Mail Konfiguration", event -> {
