@@ -63,10 +63,29 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendAttachMessage(String to, String cc, String subject, String text, String attachmentFileName, ByteArrayResource byteArrayResource) {
         MimeMessagePreparator preparator = mimeMessage -> {
-            if (cc != null && !cc.isEmpty()) {
-                mimeMessage.setRecipient(Message.RecipientType.CC, new InternetAddress(cc));
+            // Handle multiple "To" recipients
+            if (to != null && !to.isEmpty()) {
+                String[] toRecipients = to.split(";");
+                InternetAddress[] toAddresses = new InternetAddress[toRecipients.length];
+                for (int i = 0; i < toRecipients.length; i++) {
+                    toAddresses[i] = new InternetAddress(toRecipients[i].trim());
+                }
+                mimeMessage.setRecipients(Message.RecipientType.TO, toAddresses);
             }
-            mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
+
+            // Handle multiple "CC" recipients
+            if (cc != null && !cc.isEmpty()) {
+                String[] ccRecipients = cc.split(";");
+                InternetAddress[] ccAddresses = new InternetAddress[ccRecipients.length];
+                for (int i = 0; i < ccRecipients.length; i++) {
+                    ccAddresses[i] = new InternetAddress(ccRecipients[i].trim());
+                }
+                mimeMessage.setRecipients(Message.RecipientType.CC, ccAddresses);
+            }
+//            if (cc != null && !cc.isEmpty()) {
+//                mimeMessage.setRecipient(Message.RecipientType.CC, new InternetAddress(cc));
+//            }
+//            mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
             mimeMessage.setFrom(new InternetAddress("noreplay@dataport.de"));
             mimeMessage.setSubject(subject);
             mimeMessage.setText(text);
