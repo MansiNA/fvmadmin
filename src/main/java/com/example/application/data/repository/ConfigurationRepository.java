@@ -17,12 +17,12 @@ public interface ConfigurationRepository extends JpaRepository<Configuration, Lo
 
     @Modifying
     @Transactional
-    @Query("UPDATE Configuration c SET c.name = :name, c.userName = :userName, c.db_Url = :dbUrl WHERE c.id = :id")
-    void updateWithoutPassword(Long id, String name, String userName, String dbUrl);
+    @Query("UPDATE Configuration c SET c.name = :name, c.userName = :userName, c.db_Url = :dbUrl, c.isMonitoring = :isMonitoring WHERE c.id = :id")
+    void updateWithoutPassword(Long id, String name, String userName, String dbUrl, Integer isMonitoring);
 
     @Modifying
     @Transactional
-    @Query("UPDATE Configuration c SET c.name = :name, c.userName = :userName, c.password = :password, c.db_Url = :dbUrl WHERE c.id = :id")
-    void updateWithPassword(Long id, String name, String userName, String password, String dbUrl);
+    @Query("UPDATE Configuration c SET c.name = :name, c.userName = :userName, c.password = :password, c.db_Url = :dbUrl, c.isMonitoring = :isMonitoring WHERE c.id = :id")
+    void updateWithPassword(Long id, String name, String userName, String password, String dbUrl, Integer isMonitoring);
 
 }

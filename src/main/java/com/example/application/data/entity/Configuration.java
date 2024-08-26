@@ -28,6 +28,9 @@ public class Configuration {
 
     private String db_Url="";
 
+    @Column(name = "IS_MONITORING")
+    private Integer isMonitoring;
+
     // Method to encode a password to Base64
     // Method to encode a password to URL-safe Base64
     public static String encodePassword(String plainTextPassword) {

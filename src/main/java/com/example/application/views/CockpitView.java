@@ -316,9 +316,17 @@ public class CockpitView extends VerticalLayout{
         try {
             List<Configuration> configList = service.findMessageConfigurations();
             if (configList != null && !configList.isEmpty()) {
-                comboBox.setItems(configList);
-                comboBox.setItemLabelGenerator(Configuration::getName);
-                comboBox.setValue(configList.get(0));
+
+                List<Configuration> filteredConfigList = configList.stream()
+                        .filter(config -> config.getIsMonitoring() != null && config.getIsMonitoring() == 1)
+                        .toList();
+                if (!filteredConfigList.isEmpty()) {
+                    comboBox.setItems(filteredConfigList);
+                    comboBox.setItemLabelGenerator(Configuration::getName);
+                    comboBox.setValue(filteredConfigList.get(0)); // Set the first item as the default value
+                } else {
+                    Notification.show("No configurations available for monitoring.", 5000, Notification.Position.MIDDLE);
+                }
             }
 
         } catch (Exception e) {

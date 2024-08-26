@@ -72,7 +72,8 @@ public class ConfigurationService {
                             config.getName(),
                             config.getUserName(),
                             encodedPassword,
-                            config.getDb_Url()
+                            config.getDb_Url(),
+                            config.getIsMonitoring()
                     );
                 } else {
                     System.out.println("password not changed!!!!");
@@ -80,7 +81,8 @@ public class ConfigurationService {
                             config.getId(),
                             config.getName(),
                             config.getUserName(),
-                            config.getDb_Url()
+                            config.getDb_Url(),
+                            config.getIsMonitoring()
                     );
                 }
             } else {

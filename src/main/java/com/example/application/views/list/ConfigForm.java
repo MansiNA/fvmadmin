@@ -7,13 +7,14 @@ import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.binder.BeanValidationBinder;
-import com.vaadin.flow.data.binder.Binder;
-import com.vaadin.flow.data.binder.ValidationException;
+import com.vaadin.flow.data.binder.*;
+import com.vaadin.flow.data.converter.Converter;
 import com.vaadin.flow.shared.Registration;
 
 public class ConfigForm extends FormLayout {
@@ -23,6 +24,7 @@ public class ConfigForm extends FormLayout {
     TextField userName = new TextField("Username");
     PasswordField password = new PasswordField("Password");
     TextField db_Url = new TextField("DB-ConnectionString");
+    Checkbox isMonitoring = new Checkbox("Is Monitoring");
 
     Button save=new Button("Save");
     Button delete = new Button("Delete");
@@ -35,13 +37,35 @@ public class ConfigForm extends FormLayout {
     public ConfigForm() {
         addClassName("config-form");
 
-        binder.bindInstanceFields(this);
+      //  binder.bindInstanceFields(this);
+        // Bind fields without "isMonitoring" which needs special handling
+        binder.forField(name).bind("name");
+        binder.forField(userName).bind("userName");
+        binder.forField(password).bind("password");
+        binder.forField(db_Url).bind("db_Url");
 
+        // Custom binding for isMonitoring with a converter from Integer to Boolean
+        binder.forField(isMonitoring)
+                .withConverter(new Converter<Boolean, Integer>() {
+                    @Override
+                    public Result<Integer> convertToModel(Boolean fieldValue, ValueContext context) {
+                        // Convert Boolean to Integer
+                        return Result.ok(fieldValue ? 1 : 0);
+                    }
+
+                    @Override
+                    public Boolean convertToPresentation(Integer integer, ValueContext context) {
+                        // Convert Integer to Boolean
+                        return integer != null && integer == 1;
+                    }
+                })
+                .bind("isMonitoring");
         add(
                 name,
                 userName,
                 password,
                 db_Url,
+                isMonitoring,
                 createButtonLayout()
         );
 
@@ -66,7 +90,10 @@ public class ConfigForm extends FormLayout {
             this.configuration = configuration;
         }
 
-        public Configuration getConfiguration() { return configuration; }
+        public Configuration getConfiguration() {
+            return configuration;
+
+        }
     }
 
     public static class SaveEvent extends ConfigFormEvent {
