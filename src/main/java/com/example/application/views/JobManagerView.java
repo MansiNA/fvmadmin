@@ -181,10 +181,10 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         // Add other columns except id and pid
         TreeGrid.Column<JobManager> namespaceColumn = treeGrid.addColumn(JobManager::getNamespace).setHeader("Namespace").setAutoWidth(true).setResizable(true);
-        treeGrid.addColumn(JobManager::getCommand).setHeader("Command").setAutoWidth(true).setResizable(true);
+        treeGrid.addColumn(JobManager::getCommand).setHeader("Command").setWidth("120px").setResizable(true);
         treeGrid.addColumn(JobManager::getCron).setHeader("Cron").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(JobManager::getTyp).setHeader("Typ").setAutoWidth(true).setResizable(true);
-        treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setAutoWidth(true).setResizable(true);
+        treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setWidth("100px").setResizable(true);
 //        treeGrid.addColumn(JobManager::getScriptpath).setHeader("ScriptPath").setAutoWidth(true).setResizable(true);
 //        treeGrid.addColumn(JobManager::getMailBetreff).setHeader("MailBetreff").setAutoWidth(true).setResizable(true);
 //        treeGrid.addColumn(JobManager::getMailText).setHeader("MailText").setAutoWidth(true).setResizable(true);
