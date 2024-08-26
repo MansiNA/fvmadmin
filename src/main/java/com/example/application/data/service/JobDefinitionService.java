@@ -33,8 +33,9 @@ public class JobDefinitionService {
         return jobManagerList;
     }
 
-    public Optional<JobManager> findById(Integer id) {
-        return jobDefinitionRepository.findById(id);
+    public JobManager getJobManagerById(Integer id) {
+        JobManager jobManager = jobDefinitionRepository.findById(id).get();
+        return jobManager;
     }
 
     public JobManager save(JobManager jobManager) {

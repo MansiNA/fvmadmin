@@ -498,7 +498,9 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             newJobDefination.setPid(jobManager.getId());
             dialog.add(editJobDefinition(newJobDefination, true)); // For adding new entry
         } else {
+            jobManager = jobDefinitionService.getJobManagerById(jobManager.getId());
             dialog.add(editJobDefinition(jobManager, false)); // For editing existing entry
+
         }
 
         dialog.setDraggable(true);
@@ -513,11 +515,12 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             dialog.close(); // Close the confirmation dialog
         });
 
+        JobManager finalJobManager = jobManager;
         saveButton.addClickListener(saveEvent -> {
             if(context.equals("New")) {
                 saveSqlDefinition(newJobDefination);
             } else {
-                saveSqlDefinition(jobManager);
+                saveSqlDefinition(finalJobManager);
             }
             updateGrid();
             dialog.close(); // Close the confirmation dialog
@@ -536,7 +539,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private Component editJobDefinition(JobManager jobManager, boolean isNew) {
         logPannel.logMessage(Constants.INFO, "Starting editJobDefinition");
         VerticalLayout content = new VerticalLayout();
-
 
         // Create and initialize fields
         HorizontalLayout hl1 = new HorizontalLayout();
