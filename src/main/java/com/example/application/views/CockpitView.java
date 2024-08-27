@@ -1,6 +1,7 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.utils.myCallback;
@@ -378,6 +379,10 @@ public class CockpitView extends VerticalLayout{
         });
         menu.addItem("E-Mail Konfiguration", event -> {
             System.out.println("Konfig-Dialog aufrufen");
+        });
+        menu.addItem("E-Mail Dialog", event -> {
+            System.out.println("Konfig-Dialog aufrufen");
+            emailConfigurationDialog();
         });
         menuItem.setCheckable(true);
 
@@ -1194,6 +1199,93 @@ public class CockpitView extends VerticalLayout{
         System.out.println(monitor + "... 3");
         content.add(titel, hr);
         return content;
+    }
+
+    private void emailConfigurationDialog() {
+        // Create a dialog with a header title
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("E-Mail Konfiguration");
+
+        // Create fields for user input
+        TextField mailEmpfaengerField = new TextField("MAIL_EMPFAENGER");
+        TextField mailCCEmpfaengerField = new TextField("MAIL_CC_EMPFAENGER");
+        TextField mailBetreffField = new TextField("MAIL_BETREFF");
+        TextArea mailTextArea = new TextArea("MAIL_TEXT");
+        TextField intervalField = new TextField("Intervall (in minutes)");
+
+        // Set widths for fields
+        mailEmpfaengerField.setWidth("100%");
+        mailCCEmpfaengerField.setWidth("100%");
+        mailBetreffField.setWidth("100%");
+        mailTextArea.setWidth("100%");
+        mailTextArea.setHeight("150px"); // Adjust height as needed
+        intervalField.setWidth("100%");
+
+        // Create and style buttons
+        Button saveButton = new Button("Save", event -> {
+            String mailEmpfaenger = mailEmpfaengerField.getValue();
+            String mailCCEmpfaenger = mailCCEmpfaengerField.getValue();
+            String mailBetreff = mailBetreffField.getValue();
+            String mailText = mailTextArea.getValue();
+            String interval = intervalField.getValue();
+
+            // Create a new MonitorAlerting object
+            MonitorAlerting monitorAlerting = new MonitorAlerting(
+                    null, // Assuming `id` is auto-generated
+                    mailEmpfaenger,
+                    mailCCEmpfaenger,
+                    mailBetreff,
+                    mailText,
+                    Integer.parseInt(interval) // Convert interval to Integer
+            );
+
+            try {
+                DriverManagerDataSource ds = new DriverManagerDataSource();
+                com.example.application.data.entity.Configuration conf;
+                conf = comboBox.getValue();
+
+                ds.setUrl(conf.getDb_Url());
+                ds.setUsername(conf.getUserName());
+                ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+                jdbcTemplate.setDataSource(ds);
+                jdbcTemplate.update(
+                        "INSERT INTO FVM_MONITOR_ALERTING (MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, INTERVALL) VALUES (?, ?, ?, ?, ?)",
+                        monitorAlerting.getMailEmpfaenger(),
+                        monitorAlerting.getMailCCEmpfaenger(),
+                        monitorAlerting.getMailBetreff(),
+                        monitorAlerting.getMailText(),
+                        monitorAlerting.getIntervall()
+                );
+                Notification.show("Configuration saved successfully.");
+            } catch (Exception e) {
+                Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+
+            dialog.close(); // Close the dialog after saving
+        });
+        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY); // Apply primary theme
+
+        Button cancelButton = new Button("Cancel", event -> dialog.close());
+        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY); // Apply tertiary theme
+
+        // Create layout and add components
+        VerticalLayout layout = new VerticalLayout(
+                mailEmpfaengerField,
+                mailCCEmpfaengerField,
+                mailBetreffField,
+                mailTextArea,
+                intervalField,
+                new HorizontalLayout(saveButton, cancelButton) // Align buttons horizontally
+        );
+        layout.setSpacing(true); // Add spacing between components
+        layout.setPadding(true); // Add padding around the layout
+        layout.setMargin(true); // Add margin around the layout
+        layout.setWidth("500px"); // Set a fixed width for the layout
+
+        // Add layout to dialog
+        dialog.add(layout);
+        dialog.setWidth("600px"); // Set a fixed width for the dialog
+        dialog.open(); // Open the dialog
     }
 
     private static VerticalLayout showEditDialogOld(fvm_monitoring Inhalt){
