@@ -1245,7 +1245,9 @@ public class CockpitView extends VerticalLayout{
                 ds.setUrl(conf.getDb_Url());
                 ds.setUsername(conf.getUserName());
                 ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+
                 jdbcTemplate.setDataSource(ds);
+                jdbcTemplate.update("DELETE FROM FVM_MONITOR_ALERTING");
                 jdbcTemplate.update(
                         "INSERT INTO FVM_MONITOR_ALERTING (MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CHECK_INTERVALL) VALUES (?, ?, ?, ?, ?)",
                         monitorAlerting.getMailEmpfaenger(),
