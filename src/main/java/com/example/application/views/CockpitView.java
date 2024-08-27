@@ -379,11 +379,9 @@ public class CockpitView extends VerticalLayout{
         });
         menu.addItem("E-Mail Konfiguration", event -> {
             System.out.println("Konfig-Dialog aufrufen");
-        });
-        menu.addItem("E-Mail Dialog", event -> {
-            System.out.println("Konfig-Dialog aufrufen");
             emailConfigurationDialog();
         });
+
         menuItem.setCheckable(true);
 
         setAlerting("Off");
@@ -1249,7 +1247,7 @@ public class CockpitView extends VerticalLayout{
                 ds.setPassword(Configuration.decodePassword(conf.getPassword()));
                 jdbcTemplate.setDataSource(ds);
                 jdbcTemplate.update(
-                        "INSERT INTO FVM_MONITOR_ALERTING (MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, INTERVALL) VALUES (?, ?, ?, ?, ?)",
+                        "INSERT INTO FVM_MONITOR_ALERTING (MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CHECK_INTERVALL) VALUES (?, ?, ?, ?, ?)",
                         monitorAlerting.getMailEmpfaenger(),
                         monitorAlerting.getMailCCEmpfaenger(),
                         monitorAlerting.getMailBetreff(),
@@ -1258,6 +1256,8 @@ public class CockpitView extends VerticalLayout{
                 );
                 Notification.show("Configuration saved successfully.");
             } catch (Exception e) {
+                e.getMessage();
+                e.printStackTrace();
                 Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             }
 
