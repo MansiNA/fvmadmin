@@ -32,32 +32,49 @@ public class EmailServiceImpl implements EmailService {
         emailSender.send(message);
     }
 
+
     @Override
-    public void sendAttachMessage(String to, String subject, String text, String attachement) {
+    public void sendAttachMessage(String to, String cc, String subject, String text) {
         MimeMessagePreparator preparator = mimeMessage -> {
-            mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
+            // Handle multiple "To" recipients
+            if (to != null && !to.isEmpty()) {
+                String[] toRecipients = to.split(";");
+                InternetAddress[] toAddresses = new InternetAddress[toRecipients.length];
+                for (int i = 0; i < toRecipients.length; i++) {
+                    toAddresses[i] = new InternetAddress(toRecipients[i].trim());
+                }
+                mimeMessage.setRecipients(Message.RecipientType.TO, toAddresses);
+            }
+
+            // Handle multiple "CC" recipients
+            if (cc != null && !cc.isEmpty()) {
+                String[] ccRecipients = cc.split(";");
+                InternetAddress[] ccAddresses = new InternetAddress[ccRecipients.length];
+                for (int i = 0; i < ccRecipients.length; i++) {
+                    ccAddresses[i] = new InternetAddress(ccRecipients[i].trim());
+                }
+                mimeMessage.setRecipients(Message.RecipientType.CC, ccAddresses);
+            }
+//            if (cc != null && !cc.isEmpty()) {
+//                mimeMessage.setRecipient(Message.RecipientType.CC, new InternetAddress(cc));
+//            }
+//            mimeMessage.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
             mimeMessage.setFrom(new InternetAddress("noreplay@dataport.de"));
             mimeMessage.setSubject(subject);
             mimeMessage.setText(text);
 
-            //String attachment = "test.csv";
-            try{
-
-                FileSystemResource file = new FileSystemResource(new File(attachement));
-                if (file.exists()){
-                    MimeMessageHelper helper= new MimeMessageHelper(mimeMessage,true);
-                    helper.addAttachment(file.getFilename(), file);
-                    helper.setText("",true);
-                } else {
-                    System.out.println("File not Found: " + attachement);
-                }
-            } catch (Exception ex){
+            try {
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+                //   helper.addAttachment(attachmentFileName, byteArrayResource);
+                helper.setText(text, true);
+            } catch (Exception ex) {
                 ex.printStackTrace();
             }
-
         };
+        System.out.println("Email sending.......");
+        emailSender.send(preparator);
+        System.out.println("Email send success.......");
 
-        emailSender.send (preparator);
     }
 
     @Override
@@ -101,6 +118,5 @@ public class EmailServiceImpl implements EmailService {
 
         emailSender.send(preparator);
     }
-
 
 }

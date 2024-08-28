@@ -4,6 +4,8 @@ import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
+import com.example.application.service.EmailService;
+import com.example.application.utils.SpringContextHolder;
 import com.example.application.utils.myCallback;
 import com.example.application.views.list.MonitoringForm;
 import com.vaadin.flow.component.*;
@@ -44,16 +46,19 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wontlost.ckeditor.Config;
 import com.wontlost.ckeditor.Constants;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.security.RolesAllowed;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -62,6 +67,7 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -73,6 +79,7 @@ import java.util.stream.Stream;
 
 import com.wontlost.ckeditor.VaadinCKEditor;
 import com.wontlost.ckeditor.VaadinCKEditorBuilder;
+import org.springframework.scheduling.annotation.Scheduled;
 
 @PageTitle("eKP-Cokpit")
 @Route(value = "cockpit", layout= MainLayout.class)
@@ -84,6 +91,7 @@ import com.wontlost.ckeditor.VaadinCKEditorBuilder;
 public class CockpitView extends VerticalLayout{
     @Autowired
     JdbcTemplate jdbcTemplate;
+    private EmailService emailService;
 
     myCallback callback=new myCallback() {
         @Override
@@ -201,11 +209,13 @@ public class CockpitView extends VerticalLayout{
     Instant startTime;
     ConfigurationService service;
     MonitoringForm form;
+    private String alertingState;
+    private LocalDateTime lastAlertTime = LocalDateTime.of(1970, 1, 1, 0, 0); // Initialize to epoch start
 
-
-    public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service) {
+    public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService) {
         this.jdbcTemplate = jdbcTemplate;
-        this.service=service;
+        this.service = service;
+        this.emailService = emailService;
 
         addClassName("cockpit-view");
         setSizeFull();
@@ -292,9 +302,14 @@ public class CockpitView extends VerticalLayout{
                 .setChecked(item.getText().equals(status)));
 
         alerting.setText(status);
+        alertingState = status;
     }
 
-
+    @PostConstruct
+    public void init() {
+        setAlerting(alertingState);
+        checkForAlerts();
+    }
     private void saveMonitor() {
         System.out.println("Titel:" + akt_mon.getTitel());
 
@@ -329,7 +344,7 @@ public class CockpitView extends VerticalLayout{
                     Notification.show("No configurations available for monitoring.", 5000, Notification.Position.MIDDLE);
                 }
             }
-
+            updateGrid();
         } catch (Exception e) {
             // Display the error message to the user
             Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
@@ -384,7 +399,7 @@ public class CockpitView extends VerticalLayout{
 
         menuItem.setCheckable(true);
 
-        setAlerting("Off");
+        setAlerting("On");
 
         Div assigneeInfo = new Div(new Span("eMail-Alerting: "), alerting);
         alerting.getStyle().set("font-weight", "bold");
@@ -473,9 +488,6 @@ public class CockpitView extends VerticalLayout{
         });
 
 
-
-
-
         if(param_Liste != null) {
             grid.setItems(param_Liste);
         }
@@ -539,6 +551,56 @@ public class CockpitView extends VerticalLayout{
         }).setWidth("120px").setFlexGrow(0);*/
 
 
+    }
+
+    @Scheduled(fixedRateString = "#{fetchEmailConfiguration().getIntervall() * 1000}") // Schedule based on user-defined interval
+    public void checkForAlerts() {
+        if (!"On".equals(alertingState)) {
+            return; // Exit if alerting is not "On"
+        }
+
+        // Fetch email configurations
+        MonitorAlerting monitorAlerting = fetchEmailConfiguration();
+
+        if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
+            return; // Exit if no configuration or interval is set
+        }
+
+        // Check all monitoring entries
+        List<fvm_monitoring> monitorings = param_Liste;
+
+        for (fvm_monitoring monitoring : monitorings) {
+            System.out.println(monitoring.getTitel() + "shouldSendAlert(monitoring) = "+shouldSendAlert(monitoring));
+            if (shouldSendAlert(monitoring)) {
+                System.out.println("shouldSendEmail(monitorAlerting) = "+shouldSendEmail(monitorAlerting));
+                if (shouldSendEmail(monitorAlerting)) {
+                    System.out.println("send email............. = "+shouldSendEmail(monitorAlerting));
+                    sendAlertEmail(monitorAlerting, monitoring);
+                    lastAlertTime = LocalDateTime.now(); // Update last alert time
+                }
+            }
+        }
+    }
+
+    private boolean shouldSendAlert(fvm_monitoring monitoring) {
+        return monitoring.getAktueller_Wert() > monitoring.getError_Schwellwert();
+    }
+
+    private boolean shouldSendEmail(MonitorAlerting monitorAlerting) {
+        // Calculate the next valid email sending time
+        LocalDateTime nextValidTime = lastAlertTime.plusMinutes(monitorAlerting.getIntervall());
+        return LocalDateTime.now().isAfter(nextValidTime);
+    }
+
+    private void sendAlertEmail(MonitorAlerting config, fvm_monitoring monitoring) {
+
+        try {
+            emailService.sendAttachMessage(config.getMailEmpfaenger(), config.getMailCCEmpfaenger(), config.getMailBetreff(), config.getMailText());
+            Notification.show("email send success!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Error while sending mail: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
     }
 
     private void stopCountdown() {
@@ -1219,8 +1281,7 @@ public class CockpitView extends VerticalLayout{
         mailTextArea.setHeight("150px"); // Adjust height as needed
         intervalField.setWidth("100%");
 
-        MonitorAlerting monitorAlerting = new MonitorAlerting();
-        fetchEmailConfiguration(monitorAlerting);
+        MonitorAlerting monitorAlerting = fetchEmailConfiguration();
 
         Optional.ofNullable(monitorAlerting.getMailEmpfaenger()).ifPresent(mailEmpfaengerField::setValue);
         Optional.ofNullable(monitorAlerting.getMailCCEmpfaenger()).ifPresent(mailCCEmpfaengerField::setValue);
@@ -1294,7 +1355,8 @@ public class CockpitView extends VerticalLayout{
         }
     }
 
-    private void fetchEmailConfiguration(MonitorAlerting monitorAlerting) {
+    private MonitorAlerting fetchEmailConfiguration() {
+        MonitorAlerting monitorAlerting = new MonitorAlerting();
         try {
 
             DriverManagerDataSource ds = new DriverManagerDataSource();
@@ -1324,6 +1386,7 @@ public class CockpitView extends VerticalLayout{
             e.printStackTrace();
             Notification.show("Failed to load configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
+        return monitorAlerting;
     }
 
     private static VerticalLayout showEditDialogOld(fvm_monitoring Inhalt){
