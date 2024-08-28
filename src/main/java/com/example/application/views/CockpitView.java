@@ -1209,7 +1209,7 @@ public class CockpitView extends VerticalLayout{
         TextField mailCCEmpfaengerField = new TextField("MAIL_CC_EMPFAENGER");
         TextField mailBetreffField = new TextField("MAIL_BETREFF");
         TextArea mailTextArea = new TextArea("MAIL_TEXT");
-        TextField intervalField = new TextField("Intervall (in minutes)");
+        IntegerField intervalField = new IntegerField("Intervall (in minutes)");
 
         // Set widths for fields
         mailEmpfaengerField.setWidth("100%");
@@ -1219,49 +1219,24 @@ public class CockpitView extends VerticalLayout{
         mailTextArea.setHeight("150px"); // Adjust height as needed
         intervalField.setWidth("100%");
 
-        // Create and style buttons
+        MonitorAlerting monitorAlerting = new MonitorAlerting();
+        fetchEmailConfiguration(monitorAlerting);
+
+        mailEmpfaengerField.setValue(monitorAlerting.getMailEmpfaenger());
+        mailCCEmpfaengerField.setValue(monitorAlerting.getMailCCEmpfaenger());
+        mailBetreffField.setValue(monitorAlerting.getMailBetreff());
+        mailTextArea.setValue(monitorAlerting.getMailText());
+        intervalField.setValue(monitorAlerting.getIntervall());
         Button saveButton = new Button("Save", event -> {
-            String mailEmpfaenger = mailEmpfaengerField.getValue();
-            String mailCCEmpfaenger = mailCCEmpfaengerField.getValue();
-            String mailBetreff = mailBetreffField.getValue();
-            String mailText = mailTextArea.getValue();
-            String interval = intervalField.getValue();
+            // Update the monitorAlerting object with values from the input fields
+            monitorAlerting.setMailEmpfaenger(mailEmpfaengerField.getValue());
+            monitorAlerting.setMailCCEmpfaenger(mailCCEmpfaengerField.getValue());
+            monitorAlerting.setMailBetreff(mailBetreffField.getValue());
+            monitorAlerting.setMailText(mailTextArea.getValue());
+            monitorAlerting.setIntervall(intervalField.getValue());
 
-            // Create a new MonitorAlerting object
-            MonitorAlerting monitorAlerting = new MonitorAlerting(
-                    null, // Assuming `id` is auto-generated
-                    mailEmpfaenger,
-                    mailCCEmpfaenger,
-                    mailBetreff,
-                    mailText,
-                    Integer.parseInt(interval) // Convert interval to Integer
-            );
-
-            try {
-                DriverManagerDataSource ds = new DriverManagerDataSource();
-                com.example.application.data.entity.Configuration conf;
-                conf = comboBox.getValue();
-
-                ds.setUrl(conf.getDb_Url());
-                ds.setUsername(conf.getUserName());
-                ds.setPassword(Configuration.decodePassword(conf.getPassword()));
-
-                jdbcTemplate.setDataSource(ds);
-                jdbcTemplate.update("DELETE FROM FVM_MONITOR_ALERTING");
-                jdbcTemplate.update(
-                        "INSERT INTO FVM_MONITOR_ALERTING (MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CHECK_INTERVALL) VALUES (?, ?, ?, ?, ?)",
-                        monitorAlerting.getMailEmpfaenger(),
-                        monitorAlerting.getMailCCEmpfaenger(),
-                        monitorAlerting.getMailBetreff(),
-                        monitorAlerting.getMailText(),
-                        monitorAlerting.getIntervall()
-                );
-                Notification.show("Configuration saved successfully.");
-            } catch (Exception e) {
-                e.getMessage();
-                e.printStackTrace();
-                Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-            }
+            // Call the save method to persist the configuration
+            saveEmailConfiguration(monitorAlerting);
 
             dialog.close(); // Close the dialog after saving
         });
@@ -1288,6 +1263,66 @@ public class CockpitView extends VerticalLayout{
         dialog.add(layout);
         dialog.setWidth("600px"); // Set a fixed width for the dialog
         dialog.open(); // Open the dialog
+    }
+
+    private void saveEmailConfiguration(MonitorAlerting monitorAlerting) {
+        try {
+//            DriverManagerDataSource ds = new DriverManagerDataSource();
+//            com.example.application.data.entity.Configuration conf;
+//            conf = comboBox.getValue();
+//
+//            ds.setUrl(conf.getDb_Url());
+//            ds.setUsername(conf.getUserName());
+//            ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//
+//            jdbcTemplate.setDataSource(ds);
+            jdbcTemplate.update("DELETE FROM FVM_MONITOR_ALERTING");
+            jdbcTemplate.update(
+                    "INSERT INTO FVM_MONITOR_ALERTING (MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CHECK_INTERVALL) VALUES (?, ?, ?, ?, ?)",
+                    monitorAlerting.getMailEmpfaenger(),
+                    monitorAlerting.getMailCCEmpfaenger(),
+                    monitorAlerting.getMailBetreff(),
+                    monitorAlerting.getMailText(),
+                    monitorAlerting.getIntervall()
+            );
+            Notification.show("Configuration saved successfully.");
+        } catch (Exception e) {
+            e.getMessage();
+            e.printStackTrace();
+            Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
+
+    private void fetchEmailConfiguration(MonitorAlerting monitorAlerting) {
+        try {
+
+            DriverManagerDataSource ds = new DriverManagerDataSource();
+            com.example.application.data.entity.Configuration conf;
+            conf = comboBox.getValue();
+
+            ds.setUrl(conf.getDb_Url());
+            ds.setUsername(conf.getUserName());
+            ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+
+            jdbcTemplate.setDataSource(ds);
+
+            // Query to get the existing configuration
+            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CHECK_INTERVALL FROM FVM_MONITOR_ALERTING";
+
+            // Use jdbcTemplate to query and map results to MonitorAlerting object
+            jdbcTemplate.query(sql, rs -> {
+                // Set the values in the MonitorAlerting object from the result set
+                monitorAlerting.setMailEmpfaenger(rs.getString("MAIL_EMPFAENGER"));
+                monitorAlerting.setMailCCEmpfaenger(rs.getString("MAIL_CC_EMPFAENGER"));
+                monitorAlerting.setMailBetreff(rs.getString("MAIL_BETREFF"));
+                monitorAlerting.setMailText(rs.getString("MAIL_TEXT"));
+                monitorAlerting.setIntervall(rs.getInt("CHECK_INTERVALL"));
+            });
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Failed to load configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
     }
 
     private static VerticalLayout showEditDialogOld(fvm_monitoring Inhalt){
