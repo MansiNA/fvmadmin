@@ -1222,11 +1222,12 @@ public class CockpitView extends VerticalLayout{
         MonitorAlerting monitorAlerting = new MonitorAlerting();
         fetchEmailConfiguration(monitorAlerting);
 
-        mailEmpfaengerField.setValue(monitorAlerting.getMailEmpfaenger());
-        mailCCEmpfaengerField.setValue(monitorAlerting.getMailCCEmpfaenger());
-        mailBetreffField.setValue(monitorAlerting.getMailBetreff());
-        mailTextArea.setValue(monitorAlerting.getMailText());
-        intervalField.setValue(monitorAlerting.getIntervall());
+        Optional.ofNullable(monitorAlerting.getMailEmpfaenger()).ifPresent(mailEmpfaengerField::setValue);
+        Optional.ofNullable(monitorAlerting.getMailCCEmpfaenger()).ifPresent(mailCCEmpfaengerField::setValue);
+        Optional.ofNullable(monitorAlerting.getMailBetreff()).ifPresent(mailBetreffField::setValue);
+        Optional.ofNullable(monitorAlerting.getMailText()).ifPresent(mailTextArea::setValue);
+        Optional.ofNullable(monitorAlerting.getIntervall()).ifPresent(intervalField::setValue);
+
         Button saveButton = new Button("Save", event -> {
             // Update the monitorAlerting object with values from the input fields
             monitorAlerting.setMailEmpfaenger(mailEmpfaengerField.getValue());
