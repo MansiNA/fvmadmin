@@ -566,6 +566,9 @@ public class CockpitView extends VerticalLayout{
             return; // Exit if no configuration or interval is set
         }
 
+        // Update the LAST_ALERT_CHECKTIME column with the current datetime
+        updateLastAlertCheckTimeInDatabase(monitorAlerting);
+
         // Check the last alert time to ensure 60 minutes have passed
         LocalDateTime lastAlertTimeFromDB = fetchEmailConfiguration().getLastAlertTime();
         if (lastAlertTimeFromDB != null && lastAlertTimeFromDB.plusMinutes(60).isAfter(LocalDateTime.now())) {
@@ -587,7 +590,7 @@ public class CockpitView extends VerticalLayout{
                 System.out.println("shouldSendEmail(monitorAlerting) = "+shouldSendEmail(monitorAlerting));
                 if (shouldSendEmail(monitorAlerting)) {
                     System.out.println("send email............. = "+shouldSendEmail(monitorAlerting));
-                   // sendAlertEmail(monitorAlerting, monitoring);
+                    sendAlertEmail(monitorAlerting, monitoring);
                     lastAlertTime = LocalDateTime.now(); // Update last alert time
                     monitorAlerting.setLastAlertTime(lastAlertTime);
                     updateLastAlertTimeInDatabase(monitorAlerting); // Update the DB with the current time
@@ -632,6 +635,17 @@ public class CockpitView extends VerticalLayout{
         }
     }
 
+    private void updateLastAlertCheckTimeInDatabase(MonitorAlerting monitorAlerting) {
+        try {
+            String updateQuery = "UPDATE ekp.FVM_MONITOR_ALERTING SET LAST_ALERT_CHECKTIME = ?";
+            jdbcTemplate.update(updateQuery, LocalDateTime.now());
+
+            System.out.println("Updated last alert check time in database for ID: " + monitorAlerting.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Error while updating last alert check time in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
     private void stopCountdown() {
         if (executor != null && !executor.isShutdown()) {
             executor.shutdown();
