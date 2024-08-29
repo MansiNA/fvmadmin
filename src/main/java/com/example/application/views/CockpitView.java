@@ -566,17 +566,31 @@ public class CockpitView extends VerticalLayout{
             return; // Exit if no configuration or interval is set
         }
 
+        // Check the last alert time to ensure 60 minutes have passed
+        LocalDateTime lastAlertTimeFromDB = fetchEmailConfiguration().getLastAlertTime();
+        if (lastAlertTimeFromDB != null && lastAlertTimeFromDB.plusMinutes(60).isAfter(LocalDateTime.now())) {
+            System.out.println("60 minutes have not passed since the last alert. Skipping alert.");
+            return;
+        }
+
         // Check all monitoring entries
         List<fvm_monitoring> monitorings = param_Liste;
 
         for (fvm_monitoring monitoring : monitorings) {
+
+            if (!monitoring.getIS_ACTIVE().equals("1")) {
+                System.out.println(monitoring.getTitel() + "------------skip-----------"+monitoring.getIS_ACTIVE());
+                continue; // Skip non-active entries
+            }
             System.out.println(monitoring.getTitel() + "shouldSendAlert(monitoring) = "+shouldSendAlert(monitoring));
             if (shouldSendAlert(monitoring)) {
                 System.out.println("shouldSendEmail(monitorAlerting) = "+shouldSendEmail(monitorAlerting));
                 if (shouldSendEmail(monitorAlerting)) {
                     System.out.println("send email............. = "+shouldSendEmail(monitorAlerting));
-                    sendAlertEmail(monitorAlerting, monitoring);
+                   // sendAlertEmail(monitorAlerting, monitoring);
                     lastAlertTime = LocalDateTime.now(); // Update last alert time
+                    monitorAlerting.setLastAlertTime(lastAlertTime);
+                    updateLastAlertTimeInDatabase(monitorAlerting); // Update the DB with the current time
                 }
             }
         }
@@ -600,6 +614,21 @@ public class CockpitView extends VerticalLayout{
         } catch (Exception e) {
             e.printStackTrace();
             Notification.show("Error while sending mail: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
+
+    private void updateLastAlertTimeInDatabase(MonitorAlerting monitorAlerting) {
+        try {
+            // Assuming there is only one row in the table, remove the WHERE clause
+            String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET LAST_ALERT_TIME = ?";
+
+            // Example with JDBC
+            jdbcTemplate.update(updateQuery, LocalDateTime.now());
+
+            System.out.println("Updated last alert time in database.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Error while updating last alert time in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
 

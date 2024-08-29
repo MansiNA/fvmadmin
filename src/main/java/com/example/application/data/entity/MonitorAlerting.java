@@ -3,6 +3,9 @@ package com.example.application.data.entity;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.sql.Time;
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 public class MonitorAlerting {
@@ -13,6 +16,7 @@ public class MonitorAlerting {
     private String mailBetreff;
     private String mailText;
     private Integer intervall;
+    private LocalDateTime lastAlertTime;
 
     // Default constructor
     public MonitorAlerting() {}
