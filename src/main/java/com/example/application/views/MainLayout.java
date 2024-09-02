@@ -1,10 +1,11 @@
 package com.example.application.views;
 
-import com.example.application.data.entity.JobManager;
-import com.example.application.data.entity.User;
+import com.example.application.data.entity.*;
+import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.JobDefinitionService;
 import com.example.application.data.service.UserService;
 import com.example.application.security.AuthenticatedUser;
+import com.example.application.service.CockpitService;
 import com.example.application.utils.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.applayout.AppLayout;
@@ -29,6 +30,8 @@ import org.quartz.impl.StdSchedulerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -36,6 +39,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -47,6 +51,8 @@ public class MainLayout extends AppLayout {
 
     private final AuthenticatedUser authenticatedUser;
     private JobDefinitionService jobDefinitionService;
+    private ConfigurationService configurationService;
+    private CockpitService cockpitService;
 
     private final UserService userService;
 
@@ -58,13 +64,16 @@ public class MainLayout extends AppLayout {
     public static String userName;
 
     private boolean cronAutostart;
+    private boolean emailAlertingAutostart;
     private static int count = 0;
-    public MainLayout( @Value("${cron.autostart}") boolean cronAutostart, AuthenticatedUser authenticatedUser, UserService userService){
+    public MainLayout( @Value("${cron.autostart}") boolean cronAutostart, @Value("${email.alerting}") String emailAlertingAutostart, AuthenticatedUser authenticatedUser, UserService userService, ConfigurationService configurationService, CockpitService cockpitService){
 
 
         this.authenticatedUser = authenticatedUser;
         this.userService = userService;
         this.cronAutostart = cronAutostart;
+        this.configurationService = configurationService;
+        this.cockpitService = cockpitService;
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         // Get all roles assigned to the user
@@ -77,16 +86,81 @@ public class MainLayout extends AppLayout {
         userName = authentication.getName();
 
         System.out.println(count+"------------------------------------------");
-        System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
         if(cronAutostart && count == 0) {
             count = count + 1;
             allCronJobSart();
+        }
+        if("On".equals(emailAlertingAutostart) && count == 0) {
+            System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+            count = count + 1;
+            allMonitorCronStart();
         }
         createHeader();
         createDrawer();
 
     }
 
+    private void allMonitorCronStart() {
+        List<Configuration> configList = configurationService.findMessageConfigurations();
+        List<Configuration> monitoringConfigs = configList.stream()
+                .filter(config -> config.getIsMonitoring() != null && config.getIsMonitoring() == 1)
+                .collect(Collectors.toList());
+      //  for(Configuration configuration)
+        // Fetch email configurations
+        for(Configuration configuration : monitoringConfigs) {
+            try {
+                scheduleEmailMonitorJob(configuration);
+            } catch (Exception e) {
+                //        JobManagerView.allCronButton.setText("Cron Start");
+                Notification.show("Error executing job: " + configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+        }
+    }
+
+    public void scheduleEmailMonitorJob(Configuration configuration) throws SchedulerException {
+        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+        scheduler.start();
+        //  notifySubscribers(",,"+jobManager.getId());
+        JobDataMap jobDataMap = new JobDataMap();
+        try {
+            jobDataMap.put("configuration", JobDefinitionUtils.serializeJobDefinition(configuration));
+        } catch (JsonProcessingException e) {
+            Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        jobDataMap.put("startType", "cron");
+
+        JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
+                .withIdentity("job-cron-" + configuration.getId(), "group1")
+                .usingJobData(jobDataMap)
+                .build();
+
+
+        // Fetch monitorAlerting configuration to get the interval
+        MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
+        if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
+            System.out.println("No interval set for the configuration. Job will not be scheduled.");
+            return;
+        }
+
+        int interval = monitorAlerting.getIntervall(); // assuming this returns the interval in minutes
+        String cronExpression = createCronExpression(interval);
+
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("trigger-cron-" + configuration.getId(), "group1")
+                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                .forJob(jobDetail)
+                .build();
+
+        scheduler.scheduleJob(jobDetail, trigger);
+    }
+
+    private String createCronExpression(int interval) {
+        // Cron expression format for every N minutes
+        return "0 0/" + interval + " * * * ?";
+    }
     private void  allCronJobSart(){
         System.out.println("all cron start");
         jobDefinitionService = SpringContextHolder.getBean(JobDefinitionService.class);

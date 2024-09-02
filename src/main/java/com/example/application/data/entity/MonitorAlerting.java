@@ -17,6 +17,7 @@ public class MonitorAlerting {
     private String mailText;
     private Integer intervall;
     private LocalDateTime lastAlertTime;
+    private LocalDateTime lastALertCheckTime;
 
     // Default constructor
     public MonitorAlerting() {}

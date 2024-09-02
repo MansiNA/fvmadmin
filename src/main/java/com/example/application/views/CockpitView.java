@@ -4,10 +4,14 @@ import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
+import com.example.application.service.CockpitService;
 import com.example.application.service.EmailService;
+import com.example.application.utils.EmailMonitorJobExecutor;
+import com.example.application.utils.JobDefinitionUtils;
 import com.example.application.utils.SpringContextHolder;
 import com.example.application.utils.myCallback;
 import com.example.application.views.list.MonitoringForm;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -51,6 +55,8 @@ import jakarta.annotation.security.RolesAllowed;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.quartz.*;
+import org.quartz.impl.StdSchedulerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -208,14 +214,16 @@ public class CockpitView extends VerticalLayout{
     private UI ui ;
     Instant startTime;
     ConfigurationService service;
+    private CockpitService cockpitService;
     MonitoringForm form;
     private String alertingState;
     private LocalDateTime lastAlertTime = LocalDateTime.of(1970, 1, 1, 0, 0); // Initialize to epoch start
 
-    public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService) {
+    public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService, CockpitService cockpitService) {
         this.jdbcTemplate = jdbcTemplate;
         this.service = service;
         this.emailService = emailService;
+        this.cockpitService = cockpitService;
 
         addClassName("cockpit-view");
         setSizeFull();
@@ -298,17 +306,85 @@ public class CockpitView extends VerticalLayout{
 
     private void setAlerting(String status) {
         // Update checked state of menu items
-        menu.getItems().forEach(item -> item
-                .setChecked(item.getText().equals(status)));
+        menu.getItems().forEach(item -> item.setChecked(item.getText().equals(status)));
 
         alerting.setText(status);
         alertingState = status;
+
+
     }
 
-    @PostConstruct
-    public void init() {
-        setAlerting(alertingState);
-        checkForAlerts();
+    public void scheduleEmailMonitorJob(Configuration configuration) throws SchedulerException {
+        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+        scheduler.start();
+
+        JobDataMap jobDataMap = new JobDataMap();
+        try {
+            jobDataMap.put("configuration", JobDefinitionUtils.serializeJobDefinition(configuration));
+        } catch (JsonProcessingException e) {
+            Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        jobDataMap.put("startType", "cron");
+
+        JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
+                .withIdentity("job-cron-" + configuration.getId(), "group1")
+                .usingJobData(jobDataMap)
+                .build();
+
+        // Fetch monitorAlerting configuration to get the interval
+        MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
+        if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
+            System.out.println("No interval set for the configuration. Job will not be scheduled.");
+            return;
+        }
+
+        int interval = monitorAlerting.getIntervall(); // assuming this returns the interval in minutes
+        String cronExpression = createCronExpression(interval);
+
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("trigger-cron-" + configuration.getId(), "group1")
+                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                .forJob(jobDetail)
+                .build();
+
+        scheduler.scheduleJob(jobDetail, trigger);
+    }
+    private String createCronExpression(int interval) {
+        // Cron expression format for every N minutes
+        return "0 0/" + interval + " * * * ?";
+    }
+    private void stopAllScheduledJobs() {
+        try {
+            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+            scheduler.pauseAll();
+            Notification.show("stop job success! ", 5000, Notification.Position.MIDDLE);
+        } catch (SchedulerException e) {
+            Notification.show("Error stopping jobs: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
+    private void startMonitoringJob() {
+
+        // Start or resume the Quartz job
+        try {
+            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+            scheduler.start();
+            System.out.println("Monitoring job started.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopMonitoringJob() {
+        // Pause or stop the Quartz job
+        try {
+            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+            //   scheduler.pauseJob(new JobKey("monitoringJob"));
+            System.out.println("Monitoring job paused.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     private void saveMonitor() {
         System.out.println("Titel:" + akt_mon.getTitel());
@@ -385,12 +461,13 @@ public class CockpitView extends VerticalLayout{
         menu.setTarget(alerting);
         MenuItem menuItem = menu.addItem("on", event -> {
             setAlerting("On");
+            checkForAlert();
             System.out.println("Alerting Mail eingeschaltet");
         });
         menu.addItem("off", event -> {
             setAlerting("Off");
             System.out.println("Alerting eMail ausgeschaltet");
-
+            checkForAlert();
         });
         menu.addItem("E-Mail Konfiguration", event -> {
             System.out.println("Konfig-Dialog aufrufen");
@@ -553,8 +630,31 @@ public class CockpitView extends VerticalLayout{
 
     }
 
+    public void checkForAlert() {
+        // Only proceed if alerting is set to "On"
+        if ("On".equals(alertingState)) {
+//            List<Configuration> configList = configurationService.findMessageConfigurations();
+//
+//            // Filter configurations with isMonitoring == 1
+//            List<Configuration> monitoringConfigs = configList.stream()
+//                    .filter(config -> config.getIsMonitoring() != null && config.getIsMonitoring() == 1)
+//                    .collect(Collectors.toList());
+
+            //  for (Configuration configuration : monitoringConfigs) {
+            Configuration configuration = comboBox.getValue();
+            try {
+                scheduleEmailMonitorJob(configuration);
+            } catch (Exception e) {
+                Notification.show("Error executing job: " + configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+            //  }
+        } else {
+            // If alerting is "Off", stop all scheduled jobs
+            stopAllScheduledJobs();
+        }
+    }
     @Scheduled(fixedRateString = "#{fetchEmailConfiguration().getIntervall() * 1000}") // Schedule based on user-defined interval
-    public void checkForAlerts() {
+    public void checkForAlertsold() {
         if (!"On".equals(alertingState)) {
             return; // Exit if alerting is not "On"
         }
@@ -590,7 +690,7 @@ public class CockpitView extends VerticalLayout{
                 System.out.println("shouldSendEmail(monitorAlerting) = "+shouldSendEmail(monitorAlerting));
                 if (shouldSendEmail(monitorAlerting)) {
                     System.out.println("send email............. = "+shouldSendEmail(monitorAlerting));
-                    sendAlertEmail(monitorAlerting, monitoring);
+                  //  sendAlertEmail(monitorAlerting, monitoring);
                     lastAlertTime = LocalDateTime.now(); // Update last alert time
                     monitorAlerting.setLastAlertTime(lastAlertTime);
                     updateLastAlertTimeInDatabase(monitorAlerting); // Update the DB with the current time

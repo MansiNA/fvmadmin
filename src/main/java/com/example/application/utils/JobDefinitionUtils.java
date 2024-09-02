@@ -1,5 +1,6 @@
 package com.example.application.utils;
 
+import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.JobManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,4 +15,13 @@ public class JobDefinitionUtils {
     public static JobManager deserializeJobDefinition(String jobDefinitionString) throws JsonProcessingException {
         return objectMapper.readValue(jobDefinitionString, JobManager.class);
     }
+
+    public static String serializeJobDefinition(Configuration configuration) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(configuration);
+    }
+
+    public static Configuration deserializeJobConfDefinition(String jobDefinitionString) throws JsonProcessingException {
+        return objectMapper.readValue(jobDefinitionString, Configuration.class);
+    }
+
 }
