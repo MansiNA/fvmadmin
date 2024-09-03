@@ -92,6 +92,8 @@ public class CockpitService {
         } catch (Exception e) {
             Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             System.out.println("Exception: " + e.getMessage());
+        } finally {
+            // Ensure database connection is properly closed
             connectionClose();
         }
 
@@ -130,6 +132,8 @@ public class CockpitService {
         } catch (Exception e) {
             e.printStackTrace();
             Notification.show("Failed to load configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        } finally {
+            // Ensure database connection is properly closed
             connectionClose();
         }
         return monitorAlerting;
@@ -144,6 +148,8 @@ public class CockpitService {
         } catch (Exception e) {
             e.printStackTrace();
             Notification.show("Error while updating last alert in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        } finally {
+            // Ensure database connection is properly closed
             connectionClose();
         }
     }
@@ -158,7 +164,33 @@ public class CockpitService {
         } catch (Exception e) {
             e.printStackTrace();
             Notification.show("Error while updating last alert check time in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        } finally {
+            // Ensure database connection is properly closed
             connectionClose();
         }
     }
+
+    public void deleteLastAlertTimeInDatabase(Configuration configuration) {
+        try {
+            // Establish a connection to the database using the provided configuration
+            connectWithDatabase(configuration);
+
+            // SQL query to set LAST_ALERT_TIME to NULL, effectively deleting the timestamp
+            String deleteQuery = "UPDATE FVM_MONITOR_ALERTING SET LAST_ALERT_TIME = NULL";
+
+            // Execute the query to update the record for the given monitorAlerting ID
+            jdbcTemplate.update(deleteQuery);
+
+            // Log success message
+            System.out.println("Deleted last alert time in the database.");
+        } catch (Exception e) {
+            // Log and show error message in case of an exception
+            e.printStackTrace();
+            Notification.show("Error while deleting last alert in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        } finally {
+            // Ensure database connection is properly closed
+            connectionClose();
+        }
+    }
+
 }

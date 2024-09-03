@@ -6,10 +6,7 @@ import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.service.CockpitService;
 import com.example.application.service.EmailService;
-import com.example.application.utils.EmailMonitorJobExecutor;
-import com.example.application.utils.JobDefinitionUtils;
-import com.example.application.utils.SpringContextHolder;
-import com.example.application.utils.myCallback;
+import com.example.application.utils.*;
 import com.example.application.views.list.MonitoringForm;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.*;
@@ -329,7 +326,7 @@ public class CockpitView extends VerticalLayout{
         jobDataMap.put("startType", "cron");
 
         JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
-                .withIdentity("job-cron-" + configuration.getId(), "group1")
+                .withIdentity("job-alert-cron-" + configuration.getId(), "group1")
                 .usingJobData(jobDataMap)
                 .build();
 
@@ -340,11 +337,11 @@ public class CockpitView extends VerticalLayout{
             return;
         }
 
-        int interval = monitorAlerting.getIntervall(); // assuming this returns the interval in minutes
+        int interval = monitorAlerting.getIntervall(); // assuming this returns t  he interval in minutes
         String cronExpression = createCronExpression(interval);
 
         Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-cron-" + configuration.getId(), "group1")
+                .withIdentity("trigger-alert-cron-" + configuration.getId(), "group1")
                 .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                 .forJob(jobDetail)
                 .build();
@@ -355,12 +352,22 @@ public class CockpitView extends VerticalLayout{
         // Cron expression format for every N minutes
         return "0 0/" + interval + " * * * ?";
     }
-    private void stopAllScheduledJobs() {
+    private void stopAllScheduledJobs(Configuration configuration) {
+
         try {
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
-            scheduler.pauseAll();
-            Notification.show("stop job success! ", 5000, Notification.Position.MIDDLE);
-        } catch (SchedulerException e) {
+            JobKey cronJobKey = new JobKey("job-alert-cron-" + configuration.getId(), "group1");
+
+            // Try stopping cron job
+            if (scheduler.checkExists(cronJobKey)) {
+                if (scheduler.deleteJob(cronJobKey)) {
+                    System.out.println("stop alert job successful "+ configuration.getName());
+                    Notification.show("Cron job " + configuration.getName() + " stopped successfully,," + configuration.getId());
+                }
+            }
+
+
+        } catch (Exception e) {
             Notification.show("Error stopping jobs: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
@@ -461,6 +468,8 @@ public class CockpitView extends VerticalLayout{
         menu.setTarget(alerting);
         MenuItem menuItem = menu.addItem("on", event -> {
             setAlerting("On");
+            Configuration configuration = comboBox.getValue();
+            cockpitService.deleteLastAlertTimeInDatabase(configuration);
             checkForAlert();
             System.out.println("Alerting Mail eingeschaltet");
         });
@@ -631,26 +640,18 @@ public class CockpitView extends VerticalLayout{
     }
 
     public void checkForAlert() {
+        Configuration configuration = comboBox.getValue();
         // Only proceed if alerting is set to "On"
         if ("On".equals(alertingState)) {
-//            List<Configuration> configList = configurationService.findMessageConfigurations();
-//
-//            // Filter configurations with isMonitoring == 1
-//            List<Configuration> monitoringConfigs = configList.stream()
-//                    .filter(config -> config.getIsMonitoring() != null && config.getIsMonitoring() == 1)
-//                    .collect(Collectors.toList());
-
-            //  for (Configuration configuration : monitoringConfigs) {
-            Configuration configuration = comboBox.getValue();
             try {
+                Notification.show("Starting Alert job executing.... " + configuration.getName(), 5000, Notification.Position.MIDDLE);
                 scheduleEmailMonitorJob(configuration);
             } catch (Exception e) {
                 Notification.show("Error executing job: " + configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             }
-            //  }
         } else {
             // If alerting is "Off", stop all scheduled jobs
-            stopAllScheduledJobs();
+            stopAllScheduledJobs(configuration);
         }
     }
     @Scheduled(fixedRateString = "#{fetchEmailConfiguration().getIntervall() * 1000}") // Schedule based on user-defined interval

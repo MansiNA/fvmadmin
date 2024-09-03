@@ -94,6 +94,7 @@ public class MainLayout extends AppLayout {
         if("On".equals(emailAlertingAutostart) && count == 0) {
             System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
             count = count + 1;
+
             allMonitorCronStart();
         }
         createHeader();
@@ -110,6 +111,7 @@ public class MainLayout extends AppLayout {
         // Fetch email configurations
         for(Configuration configuration : monitoringConfigs) {
             try {
+                cockpitService.deleteLastAlertTimeInDatabase(configuration);
                 scheduleEmailMonitorJob(configuration);
             } catch (Exception e) {
                 //        JobManagerView.allCronButton.setText("Cron Start");
@@ -133,7 +135,7 @@ public class MainLayout extends AppLayout {
         jobDataMap.put("startType", "cron");
 
         JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
-                .withIdentity("job-cron-" + configuration.getId(), "group1")
+                .withIdentity("job-alert-cron-" + configuration.getId(), "group1")
                 .usingJobData(jobDataMap)
                 .build();
 
@@ -149,7 +151,7 @@ public class MainLayout extends AppLayout {
         String cronExpression = createCronExpression(interval);
 
         Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-cron-" + configuration.getId(), "group1")
+                .withIdentity("trigger-alert-cron-" + configuration.getId(), "group1")
                 .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                 .forJob(jobDetail)
                 .build();
