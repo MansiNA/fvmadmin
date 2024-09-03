@@ -7,12 +7,14 @@ import com.example.application.service.CockpitService;
 import com.example.application.service.EmailService;
 import com.example.application.views.JobManagerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.vaadin.flow.component.notification.Notification;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -32,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class EmailMonitorJobExecutor implements Job {
 
 
+    @Autowired
     private JdbcTemplate jdbcTemplate;
     private EmailService emailService;
     private CockpitService cockpitService;
@@ -65,7 +68,7 @@ public class EmailMonitorJobExecutor implements Job {
             }
 
             // Update the LAST_ALERT_CHECKTIME column with the current datetime
-            //    updateLastAlertCheckTimeInDatabase(monitorAlerting);
+            cockpitService.updateLastAlertCheckTimeInDatabase(monitorAlerting, configuration);
 
             // Check the last alert time to ensure 60 minutes have passed
             LocalDateTime lastAlertTimeFromDB = cockpitService.fetchEmailConfiguration(configuration).getLastAlertTime();
@@ -85,14 +88,14 @@ public class EmailMonitorJobExecutor implements Job {
                 }
                 System.out.println(monitoring.getTitel() + "shouldSendAlert(monitoring) = " + shouldSendAlert(monitoring));
                 if (shouldSendAlert(monitoring)) {
-                    System.out.println("shouldSendEmail(monitorAlerting) = " + shouldSendEmail(monitorAlerting));
-                    if (shouldSendEmail(monitorAlerting)) {
-                        System.out.println("send email............. = " + shouldSendEmail(monitorAlerting));
+                 //   System.out.println("shouldSendEmail(monitorAlerting) = " + shouldSendEmail(monitorAlerting));
+                  //  if (shouldSendEmail(monitorAlerting)) {
+                    //    System.out.println("send email............. = " + shouldSendEmail(monitorAlerting));
                         sendAlertEmail(monitorAlerting, monitoring);
                         LocalDateTime lastAlertTime = LocalDateTime.now(); // Update last alert time
                         monitorAlerting.setLastAlertTime(lastAlertTime);
-                        updateLastAlertTimeInDatabase(monitorAlerting); // Update the DB with the current time
-                    }
+                        cockpitService.updateLastAlertTimeInDatabase(monitorAlerting, configuration); // Update the DB with the current time
+                 //   }
                 }
             }
     }
@@ -116,15 +119,6 @@ public class EmailMonitorJobExecutor implements Job {
         }
     }
 
-    private void updateLastAlertTimeInDatabase(MonitorAlerting monitorAlerting) {
-        try {
-            String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET LAST_ALERT_TIME = ? WHERE ID = ?";
-            jdbcTemplate.update(updateQuery, LocalDateTime.now(), monitorAlerting.getId());
-            System.out.println("Updated last alert time in database.");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
 }
 

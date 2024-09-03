@@ -14,6 +14,7 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -134,4 +135,30 @@ public class CockpitService {
         return monitorAlerting;
     }
 
+    public void updateLastAlertTimeInDatabase(MonitorAlerting monitorAlerting, Configuration configuration) {
+        try {
+            connectWithDatabase(configuration);
+            String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET LAST_ALERT_TIME = ?";
+            jdbcTemplate.update(updateQuery, LocalDateTime.now());
+            System.out.println("Updated last alert time in database.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Error while updating last alert in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            connectionClose();
+        }
+    }
+
+    public void updateLastAlertCheckTimeInDatabase(MonitorAlerting monitorAlerting, Configuration configuration) {
+        try {
+            connectWithDatabase(configuration);
+            String updateQuery = "UPDATE ekp.FVM_MONITOR_ALERTING SET LAST_ALERT_CHECKTIME = ?";
+            jdbcTemplate.update(updateQuery, LocalDateTime.now());
+
+            System.out.println("Updated last alert check time in database for ID: " + monitorAlerting.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Error while updating last alert check time in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            connectionClose();
+        }
+    }
 }
