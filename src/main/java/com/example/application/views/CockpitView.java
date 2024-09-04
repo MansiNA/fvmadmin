@@ -41,13 +41,11 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.wontlost.ckeditor.Config;
 import com.wontlost.ckeditor.Constants;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.security.RolesAllowed;
 
 import org.json.JSONArray;
@@ -55,13 +53,11 @@ import org.json.JSONObject;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -332,6 +328,7 @@ public class CockpitView extends VerticalLayout{
 
         // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
+        System.out.println("---------------------------------------"+monitorAlerting.getMailEmpfaenger()+"--------------------------------------");
         if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
             System.out.println("No interval set for the configuration. Job will not be scheduled.");
             return;
@@ -1471,7 +1468,7 @@ public class CockpitView extends VerticalLayout{
         dialog.open(); // Open the dialog
     }
 
-    private void saveEmailConfiguration(MonitorAlerting monitorAlerting) {
+    private void saveEmailConfigurationOld(MonitorAlerting monitorAlerting) {
         try {
 //            DriverManagerDataSource ds = new DriverManagerDataSource();
 //            com.example.application.data.entity.Configuration conf;
@@ -1496,6 +1493,50 @@ public class CockpitView extends VerticalLayout{
             e.getMessage();
             e.printStackTrace();
             Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
+
+    private void saveEmailConfiguration(MonitorAlerting monitorAlerting) {
+        try {
+            String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET " +
+                    "MAIL_EMPFAENGER = ?, " +
+                    "MAIL_CC_EMPFAENGER = ?, " +
+                    "MAIL_BETREFF = ?, " +
+                    "MAIL_TEXT = ?, " +
+                    "CHECK_INTERVALL = ?";
+
+            // Update the database with the new configuration
+            int rowsAffected = jdbcTemplate.update(updateQuery,
+                    monitorAlerting.getMailEmpfaenger(),
+                    monitorAlerting.getMailCCEmpfaenger(),
+                    monitorAlerting.getMailBetreff(),
+                    monitorAlerting.getMailText(),
+                    monitorAlerting.getIntervall()
+            );
+
+            // Check if the update was successful
+            if (rowsAffected > 0) {
+                // Restart the cron job with the new configuration
+                restartAlertCron(monitorAlerting);
+            //    Notification.show("Configuration updated successfully.");
+            } else {
+                Notification.show("No configuration was updated.", 5000, Notification.Position.MIDDLE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Failed to update configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
+
+    private void restartAlertCron(MonitorAlerting monitorAlerting) {
+        try {
+            Configuration configuration = comboBox.getValue();
+            stopAllScheduledJobs(configuration);
+            scheduleEmailMonitorJob(configuration);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Failed to restart alert job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
 
