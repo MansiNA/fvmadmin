@@ -531,9 +531,47 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         return dialogLayout;
 
     }
-    public JobManager saveSqlDefinition(JobManager jobManager) {
-        logPannel.logMessage(Constants.INFO,  jobManager.getName() +" save in DB");
-        return jobDefinitionService.save(jobManager);
+
+    public void saveSqlDefinition(JobManager jobManager) {
+        logPannel.logMessage(Constants.INFO, jobManager.getName() + " save in DB");
+
+        //return jobDefinitionService.save(jobManager);
+
+        try {
+            jobDefinitionService.save(jobManager);
+
+            // Try restart cron job
+            restartEditedJob(jobManager);
+        } catch (Exception e) {
+            logPannel.logMessage(Constants.ERROR, "Error while saving or restarting job for " + jobManager.getName() + ": " + e.getMessage());
+            Notification.show("Error while saving or restarting job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+
+        }
+    }
+
+    private void restartEditedJob(JobManager jobManager) {
+
+        try {
+            JobKey cronJobKey = new JobKey("job-cron-" + jobManager.getId(), "group1");
+            String typ = jobManager.getTyp();
+            // Try stopping cron job
+            if (scheduler.checkExists(cronJobKey)) {
+                if (scheduler.deleteJob(cronJobKey)) {
+                    if (typ.equals("Shell")) {
+                        JobExecutor.stopProcess(jobManager.getId());
+                    } else if (typ.equals("sql_procedure")) {
+                        JobExecutor.stopSQLProcedure(jobManager.getId());
+                    }
+                    scheduleJob(jobManager);
+                    logPannel.logMessage(Constants.INFO, "restart job for " + jobManager.getName());
+                }
+            }
+
+        } catch (SchedulerException e) {
+            // Handle the exception and add an error message
+            logPannel.logMessage(Constants.ERROR, "error while restart job for " + jobManager.getName());
+            notifySubscribers("Error restart job: " + jobManager.getName() + " - " + e.getMessage() + ",," + jobManager.getId());
+        }
     }
 
     private Component editJobDefinition(JobManager jobManager, boolean isNew) {
