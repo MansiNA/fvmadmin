@@ -32,6 +32,7 @@ public class JobManager implements Serializable {
     private String mailBetreff;
     @Column(name = "mail_text")
     private String mailText;
+    private Integer aktiv;
 
     @Transient  // Indicates that this field is not persistent
     private Integer exitCode;
@@ -48,6 +49,7 @@ public class JobManager implements Serializable {
                 ", command='" + command + '\'' +
                 ", cron='" + cron + '\'' +
                 ", typ='" + typ + '\'' +
+                ", aktiv='" + aktiv + '\'' +
                 ", mailBetreff='" + mailBetreff + '\'' +
                 ", mailText='" + mailText + '\'' +
                 ", scriptpath='" + scriptpath + '\'' +

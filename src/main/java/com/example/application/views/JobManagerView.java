@@ -13,6 +13,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.contextmenu.MenuItem;
@@ -185,6 +186,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         treeGrid.addColumn(JobManager::getCron).setHeader("Cron").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(JobManager::getTyp).setHeader("Typ").setAutoWidth(true).setResizable(true);
         treeGrid.addColumn(JobManager::getParameter).setHeader("Parameter").setWidth("100px").setResizable(true);
+        treeGrid.addColumn(JobManager::getAktiv).setHeader("Aktiv").setAutoWidth(true).setResizable(true);
 //        treeGrid.addColumn(JobManager::getScriptpath).setHeader("ScriptPath").setAutoWidth(true).setResizable(true);
 //        treeGrid.addColumn(JobManager::getMailBetreff).setHeader("MailBetreff").setAutoWidth(true).setResizable(true);
 //        treeGrid.addColumn(JobManager::getMailText).setHeader("MailText").setAutoWidth(true).setResizable(true);
@@ -620,6 +622,11 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         pid.setValue(jobManager.getPid() != null ? jobManager.getPid() : 0);
         pid.setWidth("50px");
 
+        Checkbox aktiv = new Checkbox("aktiv");
+        aktiv.setTooltipText("aktiv");
+        aktiv.setValue(jobManager.getAktiv() != 0 ? true : false);
+        aktiv.setWidth("50px");
+
         TextField scriptpath = new TextField("SCRIPTPATH");
         scriptpath.setValue(isNew ? "" : (jobManager.getScriptpath() != null ? jobManager.getScriptpath() : ""));
         scriptpath.setTooltipText("Verzeichnis, in dem das Script abgelegt ist");
@@ -731,12 +738,16 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 Notification.show("Invalid PID format", 5000, Notification.Position.MIDDLE);
             }
         });
+        aktiv.addValueChangeListener(event -> {
+           jobManager.setAktiv(event.getValue() ? 1 : 0);
+        });
 
         hl1.add(id,pid, name, namespace);
         hl1.setWidthFull();
         hl2.setWidthFull();
-        hl2.add(command, scriptpath );
-        hl3.add(cron, typComboBox, verbindungComboBox);
+        hl2.add(command, scriptpath  );
+        hl3.add(cron, typComboBox, verbindungComboBox, aktiv);
+        hl3.setAlignItems(Alignment.BASELINE);
         mailEmpfaenger.setWidthFull();
         mailCcEmpfaenger.setWidthFull();
         hl4.add(mailEmpfaenger, mailCcEmpfaenger);
