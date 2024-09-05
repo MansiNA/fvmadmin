@@ -41,6 +41,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -173,9 +174,17 @@ public class MainLayout extends AppLayout {
         JobManagerView.notifySubscribers("start running all...");
         for (JobManager jobManager : jobManagerList) {
             try {
-                String type = jobManager.getTyp();
-                if(jobManager.getCron() != null && !type.equals("Node") && !type.equals("Jobchain")) {
-                  scheduleJob(jobManager);
+                if(jobManager.getAktiv() == 1) {
+                    String type = jobManager.getTyp();
+                    if (jobManager.getCron() != null && !type.equals("Node") && !type.equals("Jobchain")) {
+                        scheduleJob(jobManager);
+                    } else if (type.equals("Jobchain")) {
+                        JobManagerView.jobChainId = jobManager.getId();
+                        JobManagerView.isJobChainRunning = true;
+                        JobManagerView.isContinueChildJob = true;
+                        JobManagerView.chainCount = countJobChainChildren(jobManager.getId());
+                        scheduleJob(jobManager);
+                    }
                 }
             } catch (Exception e) {
         //        JobManagerView.allCronButton.setText("Cron Start");
@@ -183,7 +192,16 @@ public class MainLayout extends AppLayout {
             }
         }
     }
-
+    public int countJobChainChildren(int jobId) {
+        Map<Integer, JobManager> jobManagerMap = jobDefinitionService.getJobManagerMap();
+        JobManager jobManager = jobManagerMap.get(jobId);
+        List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
+        int count = childJobs.size();
+        for (JobManager child :childJobs) {
+            count += countJobChainChildren(child.getId());
+        }
+        return count;
+    }
     public void scheduleJob(JobManager jobManager) throws SchedulerException {
         Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
         scheduler.start();

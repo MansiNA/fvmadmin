@@ -80,10 +80,10 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     Map<Integer, Button> stopButtons = new HashMap<>();
     List<JobManager> listOfJobManager;
     List<JobManager> listOfGridItem;
-    boolean isContinueChildJob = false;
-    boolean isJobChainRunning = false;
-    private int jobChainId;
-    private int chainCount = 0;
+    static boolean isContinueChildJob = false;
+    static boolean isJobChainRunning = false;
+    static int jobChainId;
+    static int chainCount = 0;
     private LogPannel logPannel;
     private Boolean isLogsVisible = false;
     private Boolean isVisible = false;
