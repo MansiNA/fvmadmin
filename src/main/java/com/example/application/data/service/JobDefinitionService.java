@@ -72,6 +72,29 @@ public class JobDefinitionService {
         return childProjects;
     }
 
+    public List<JobManager> getJobchainList(JobManager parent) {
+        List<JobManager> jobchain = new ArrayList<>();
+        gatherChildJobsRecursively(parent, jobchain);
+        return jobchain;
+    }
+
+    // Helper method to gather child jobs recursively
+    private void gatherChildJobsRecursively(JobManager parent, List<JobManager> jobchain) {
+        List<JobManager> childJobs = getChildJobManager(parent); // Reuse the existing method to get direct children
+
+        // Add the direct child jobs to the jobchain list
+        jobchain.addAll(childJobs);
+
+        // Log child job information
+        childJobs.forEach(child -> System.out.println("+++++++++++++++++++++++Child of " + parent.getName() + ": " + child.getName()));
+
+        // Recursively gather children of each child job
+        for (JobManager childJob : childJobs) {
+            gatherChildJobsRecursively(childJob, jobchain);
+        }
+    }
+
+
     private boolean hasAccess(String projectRoles) {
         if (projectRoles != null) {
             String[] roleList = projectRoles.split(",");

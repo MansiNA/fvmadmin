@@ -813,9 +813,17 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         notifySubscribers("start running all...");
         for (JobManager jobManager : jobManagerList) {
             try {
-                String type = jobManager.getTyp();
-                if(jobManager.getCron() != null && !type.equals("Node") && !type.equals("Jobchain")) {
-                    scheduleJob(jobManager);
+                if(jobManager.getAktiv() == 1) {
+                    String type = jobManager.getTyp();
+                    if (jobManager.getCron() != null && !type.equals("Node") && !type.equals("Jobchain")) {
+                        scheduleJob(jobManager);
+                    } else if (type.equals("Jobchain")) {
+                        jobChainId = jobManager.getId();
+                        isJobChainRunning = true;
+                        isContinueChildJob = true;
+                        chainCount = countJobChainChildren(jobManager.getId());
+                        scheduleJob(jobManager);
+                    }
                 }
             } catch (Exception e) {
                 allCronButton.setText("Cron Start");
@@ -899,7 +907,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     public void stopJob(JobManager jobManager) {
         logPannel.logMessage(Constants.INFO, "Starting stopJob for " + jobManager.getName());
-        System.out.println("thisssssss....................stop................................");
        // JobKey jobKey = new JobKey("job-" + jobManager.getId(), "group1");
         try {
             JobKey cronJobKey = new JobKey("job-cron-" + jobManager.getId(), "group1");
@@ -1034,7 +1041,12 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 updateJobButtonsState(ui, jobId, false, true);
             } else if (displayMessage.contains("executed successfully") || displayMessage.contains("Error while Job")) {
                 if (isCron) {
+                    chainCount = chainCount -1;
                     updateJobButtonsState(ui, jobId, true, false);
+//                    JobManager jobManager = jobDefinitionService.getJobManagerMap().get(jobId);
+//                    if(jobManager.getTyp().equals("Jobchain")) {
+                        triggerChildJobs(jobId);
+                //    }
                 } else {
                     chainCount = chainCount -1;
                     updateJobButtonsState(ui, jobId, true, false);
@@ -1092,6 +1104,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
                 for (JobManager childJob : childJobs) {
                     try {
+                        System.out.println("jobchain.........+++++++++"+childJob.getName());
                         scheduleJobWithoutCorn(childJob);
                         notifySubscribers(",," + childJob.getId());
                     } catch (SchedulerException e) {

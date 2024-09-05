@@ -155,6 +155,11 @@ public class JobExecutor implements Job {
                     executeSQLProcedure(jobManager);
                     updateJobHistory();
                     break;
+                case "Jobchain":
+                    System.out.println("jobchain start...");
+                   // executeJobChain(jobManager);
+//                    updateJobHistory();
+                    break;
                 case "sql_statement":
                     executeSQLStatement(jobManager);
                     updateJobHistory();
@@ -189,6 +194,10 @@ public class JobExecutor implements Job {
             }
           //  MessageService.addMessage("Error while Job " + jobManager.getName() + " executed.");
         }
+    }
+
+    private void executeJobChain(JobManager jobManager) {
+
     }
 
     private void executeSQLJobold(JobManager jobManager) throws Exception {
