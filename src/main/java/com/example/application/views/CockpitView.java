@@ -53,6 +53,7 @@ import org.json.JSONObject;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -210,13 +211,15 @@ public class CockpitView extends VerticalLayout{
     private CockpitService cockpitService;
     MonitoringForm form;
     private String alertingState;
+    private String emailAlertingAutostart;
     private LocalDateTime lastAlertTime = LocalDateTime.of(1970, 1, 1, 0, 0); // Initialize to epoch start
 
-    public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService, CockpitService cockpitService) {
+    public CockpitView(@Value("${email.alerting}") String emailAlertingAutostart, JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService, CockpitService cockpitService) {
         this.jdbcTemplate = jdbcTemplate;
         this.service = service;
         this.emailService = emailService;
         this.cockpitService = cockpitService;
+        this.emailAlertingAutostart = emailAlertingAutostart;
 
         addClassName("cockpit-view");
         setSizeFull();
@@ -399,7 +402,7 @@ public class CockpitView extends VerticalLayout{
     private Component getToolbar() {
 
         Button refreshBtn = new Button("refresh");
-        refreshBtn.getElement().setProperty("title","Daten neu einlesen");
+        refreshBtn.getElement().setProperty("title", "Daten neu einlesen");
         refreshBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         refreshBtn.addClickListener(clickEvent -> {
 
@@ -434,20 +437,19 @@ public class CockpitView extends VerticalLayout{
 
         autorefresh.setLabel("Autorefresh");
 
-        autorefresh.addDoubleClickListener(e->{
+        autorefresh.addDoubleClickListener(e -> {
 
             System.out.println("Dialog aufrufen!");
 
         });
 
-        autorefresh.addClickListener(e->{
+        autorefresh.addClickListener(e -> {
 
-            if (autorefresh.getValue()){
+            if (autorefresh.getValue()) {
                 System.out.println("Autorefresh wird eingeschaltet.");
                 startCountdown(Duration.ofSeconds(60));
                 countdownLabel.setVisible(true);
-            }
-            else{
+            } else {
                 System.out.println("Autorefresh wird ausgeschaltet.");
                 stopCountdown();
                 countdownLabel.setVisible(false);
@@ -463,27 +465,36 @@ public class CockpitView extends VerticalLayout{
         //  add(xmlBt);
         menu = new ContextMenu();
         menu.setTarget(alerting);
-        MenuItem menuItem = menu.addItem("on", event -> {
+
+// Add "On" menu item and mark it checkable
+        MenuItem onMenuItem = menu.addItem("On", event -> {
             setAlerting("On");
             Configuration configuration = comboBox.getValue();
             cockpitService.deleteLastAlertTimeInDatabase(configuration);
             checkForAlert();
             System.out.println("Alerting Mail eingeschaltet");
         });
-        menu.addItem("off", event -> {
+        onMenuItem.setCheckable(true); // Ensure the "On" item is checkable
+
+// Add "Off" menu item and mark it checkable
+        MenuItem offMenuItem = menu.addItem("Off", event -> {
             setAlerting("Off");
             System.out.println("Alerting eMail ausgeschaltet");
             checkForAlert();
         });
+        offMenuItem.setCheckable(true); // Ensure the "Off" item is checkable
+
+// Add "E-Mail Konfiguration" menu item without checkable option (no need)
         menu.addItem("E-Mail Konfiguration", event -> {
             System.out.println("Konfig-Dialog aufrufen");
             emailConfigurationDialog();
         });
 
-        menuItem.setCheckable(true);
-
-        setAlerting("On");
-
+        if (emailAlertingAutostart.equals("On")) {
+            setAlerting("On");
+        } else {
+            setAlerting("Off");
+        }
         Div assigneeInfo = new Div(new Span("eMail-Alerting: "), alerting);
         alerting.getStyle().set("font-weight", "bold");
 
