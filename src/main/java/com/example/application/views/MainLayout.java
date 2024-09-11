@@ -176,13 +176,7 @@ public class MainLayout extends AppLayout {
             try {
                 if(jobManager.getAktiv() == 1) {
                     String type = jobManager.getTyp();
-                    if (jobManager.getCron() != null && !type.equals("Node") && !type.equals("Jobchain")) {
-                        scheduleJob(jobManager);
-                    } else if (type.equals("Jobchain")) {
-                        JobManagerView.jobChainId = jobManager.getId();
-                        JobManagerView.isJobChainRunning = true;
-                        JobManagerView.isContinueChildJob = true;
-                        JobManagerView.chainCount = countJobChainChildren(jobManager.getId());
+                    if (jobManager.getCron() != null && !type.equals("Node") ) {
                         scheduleJob(jobManager);
                     }
                 }

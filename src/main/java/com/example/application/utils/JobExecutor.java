@@ -6,6 +6,7 @@ import com.example.application.data.entity.JobManager;
 import com.example.application.data.service.JobDefinitionService;
 import com.example.application.data.service.JobHistoryService;
 import com.example.application.service.EmailService;
+import com.example.application.service.JobSchedulerService;
 import com.example.application.views.JobManagerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.UI;
@@ -38,6 +39,7 @@ public class JobExecutor implements Job {
 
     private JobDefinitionService jobDefinitionService;
     private JobHistoryService jobHistoryService;
+    private JobSchedulerService jobSchedulerService;
     private static final ConcurrentHashMap<Integer, Process> runningProcesses = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Integer, CallableStatement> runningStatements = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Integer, AtomicBoolean> stopFlags = new ConcurrentHashMap<>();
@@ -50,6 +52,7 @@ public class JobExecutor implements Job {
     private StringBuilder output;
     private String returnValue;
     private JobManager jobManager;
+    private boolean isJobchain = false;
 
     Map<Integer, Long> jobIdwithProcessIDMap = new HashMap<>();
     @Override
@@ -58,7 +61,7 @@ public class JobExecutor implements Job {
 
         jobHistoryService = SpringContextHolder.getBean(JobHistoryService.class);
         jobDefinitionService = SpringContextHolder.getBean(JobDefinitionService.class);
-
+        jobSchedulerService = SpringContextHolder.getBean(JobSchedulerService.class);
         String jobDefinitionString = context.getMergedJobDataMap().getString("jobManager");
 
         try {
@@ -154,35 +157,67 @@ public class JobExecutor implements Job {
                 case "sql_procedure":
                     executeSQLProcedure(jobManager);
                     updateJobHistory();
+                    JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
+                    if(jobSchedulerService.isContinueChildJob()) {
+                        jobSchedulerService.setChainCount(jobSchedulerService.getChainCount() - 1);
+                        jobSchedulerService.triggerChildJobs(jobManager.getId());
+                    }
                     break;
                 case "Jobchain":
                     System.out.println("jobchain start...");
-                   // executeJobChain(jobManager);
-//                    updateJobHistory();
+                    jobHistory = createJobHistory(jobManager);
+                    jobHistoryService.createOrUpdateJobHistory(jobHistory);
+                    updateJobHistory();
+                    JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
+                    jobSchedulerService.setJobChainId(jobManager.getId());
+                    isJobchain = true;
+                    jobSchedulerService.setJobChainRunning(true);
+                    jobSchedulerService.setContinueChildJob(true);
+                    jobSchedulerService.setChainCount(jobSchedulerService.countJobChainChildren(jobManager.getId()));
+                    jobSchedulerService.triggerChildJobs(jobManager.getId());
+                 //   executeJobChain(jobManager);
                     break;
                 case "sql_statement":
                     executeSQLStatement(jobManager);
                     updateJobHistory();
+                    JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
+                    if(jobSchedulerService.isContinueChildJob()) {
+                        jobSchedulerService.setChainCount(jobSchedulerService.getChainCount() - 1);
+                        jobSchedulerService.triggerChildJobs(jobManager.getId());
+                    }
                     break;
                 case "Command":
                     executeCommandJob(jobManager);
+                    JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
+                    if(jobSchedulerService.isContinueChildJob()) {
+                        jobSchedulerService.setChainCount(jobSchedulerService.getChainCount() - 1);
+                        jobSchedulerService.triggerChildJobs(jobManager.getId());
+                    }
                     break;
                 case "Shell":
                     executeShellJob(jobManager);
                     updateJobHistory();
+                    JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
+                    if(jobSchedulerService.isContinueChildJob()) {
+                        jobSchedulerService.setChainCount(jobSchedulerService.getChainCount() - 1);
+                        jobSchedulerService.triggerChildJobs(jobManager.getId());
+                    }
                     break;
                 case "sql_report":
                     if ("EXCEL_EXPORT".equals(jobManager.getCommand()) || "EXCEL_REPORT".equals(jobManager.getCommand())) {
                         generateAndSendExcelReport(jobManager);
                         updateJobHistory();
+                        JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
+                        if(jobSchedulerService.isContinueChildJob()) {
+                            jobSchedulerService.setChainCount(jobSchedulerService.getChainCount() - 1);
+                            jobSchedulerService.triggerChildJobs(jobManager.getId());
+                        }
                     }
                     break;
                 default:
                     throw new Exception("Unsupported job type: " + jobManager.getTyp());
             }
 
-            JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
-         //   MessageService.addMessage("Job " + jobManager.getName() + " executed successfully.");
         } catch (Exception e) {
             e.getMessage();
             updateJobHistory();
@@ -192,12 +227,24 @@ public class JobExecutor implements Job {
             } else if (!stopFlags.get(jobManager.getId()).get()) {
                 JobManagerView.notifySubscribers("Error while Job " + jobManager.getName() + " executed,,"+jobManager.getId());
             }
-          //  MessageService.addMessage("Error while Job " + jobManager.getName() + " executed.");
+
         }
     }
 
     private void executeJobChain(JobManager jobManager) {
+        jobSchedulerService.triggerChildJobs(jobManager.getId());
 
+        //  List<JobManager> childJobs = jobDefinitionService.getJobchainList(jobManager);
+//        for (JobManager childJob : childJobs) {
+//            try {
+//                System.out.println("jobchain.........+++++++++"+childJob.getName());
+//              //  JobManagerView.scheduleJobWithoutCorn(childJob);
+//              //  JobManagerView.triggerChildJobs(childJob.getId(), jobDefinitionService);
+//               executeJob(childJob);
+//            } catch (Exception e) {
+//                System.out.println("Error scheduling (Jobchain): " + childJob.getName() + " - " + e.getMessage());
+//            }
+//        }
     }
 
     private void executeSQLJobold(JobManager jobManager) throws Exception {

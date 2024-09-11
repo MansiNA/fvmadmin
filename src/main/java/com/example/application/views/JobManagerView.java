@@ -5,6 +5,7 @@ import com.example.application.data.entity.JobManager;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.JobDefinitionService;
 import com.example.application.service.EmailService;
+import com.example.application.service.JobSchedulerService;
 import com.example.application.utils.Constants;
 import com.example.application.utils.JobDefinitionUtils;
 import com.example.application.utils.JobExecutor;
@@ -60,6 +61,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     private JobDefinitionService jobDefinitionService;
     private ConfigurationService configurationService;
+    private JobSchedulerService jobSchedulerService;
     private Crud<JobManager> crud;
     private Grid<JobManager> jobDefinitionGrid;
     private Dialog dialog;
@@ -90,11 +92,13 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private final EmailService emailService;
     Button menuButton = new Button("Show/Hide Columns");
 
-    public JobManagerView(EmailService emailService, JobDefinitionService jobDefinitionService, ConfigurationService configurationService) {
+    public JobManagerView(EmailService emailService, JobDefinitionService jobDefinitionService, ConfigurationService configurationService,  JobSchedulerService jobSchedulerService) {
 
         this.emailService = emailService;
         this.jobDefinitionService = jobDefinitionService;
         this.configurationService = configurationService;
+        this.jobSchedulerService = jobSchedulerService;
+
         allCronButton.setVisible(false);
 
         logPannel = new LogPannel();
@@ -285,12 +289,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                         if (hasChildren) {
                             expandChild(jobManager);
                             if (jobManager.getTyp().equals("Jobchain")) {
-                                jobChainId = jobManager.getId();
-                                isJobChainRunning = true;
-                                isContinueChildJob = true;
-                                chainCount = countJobChainChildren(jobManager.getId());
-                                triggerChildJobs(jobManager.getId());
-                                notifySubscribers(",," + jobManager.getId());
+                                executeJob(jobManager);
                             } else {
                                 showJobDialog(jobManager);
                             }
@@ -445,7 +444,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         dialog.add(new Text(" Do you want to execute only this job or the entire job chain?"));
 
         Button onlyThisJobButton = new Button("Only this job", event -> {
-            isContinueChildJob = false;
+           // isContinueChildJob = false;
+            jobSchedulerService.setContinueChildJob(false);
             executeJob(jobManager);
             dialog.close();
         });
@@ -474,7 +474,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     private void executeJobChain(JobManager jobManager) {
         Notification.show("Executing job chain starting with: " + jobManager.getName());
-        isContinueChildJob = true;
+     //   isContinueChildJob = true;
+        jobSchedulerService.setContinueChildJob(true);
         executeJob(jobManager);
 
 //        int exitCode = jobManager.getExitCode();
@@ -815,13 +816,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             try {
                 if(jobManager.getAktiv() == 1) {
                     String type = jobManager.getTyp();
-                    if (jobManager.getCron() != null && !type.equals("Node") && !type.equals("Jobchain")) {
-                        scheduleJob(jobManager);
-                    } else if (type.equals("Jobchain")) {
-                        jobChainId = jobManager.getId();
-                        isJobChainRunning = true;
-                        isContinueChildJob = true;
-                        chainCount = countJobChainChildren(jobManager.getId());
+                    if (jobManager.getCron() != null && !type.equals("Node")) {
                         scheduleJob(jobManager);
                     }
                 }
@@ -1014,6 +1009,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         }
         if (displayMessage != null && !displayMessage.isEmpty()) {
             System.out.println(displayMessage);
+         //   JobManager jobManager = jobDefinitionService.getJobManagerMap().get(jobId);
             if(!isCron) {
                 Notification.show(displayMessage, 5000, Notification.Position.MIDDLE);
             }
@@ -1041,16 +1037,16 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 updateJobButtonsState(ui, jobId, false, true);
             } else if (displayMessage.contains("executed successfully") || displayMessage.contains("Error while Job")) {
                 if (isCron) {
-                    chainCount = chainCount -1;
+             //       chainCount = chainCount -1;
                     updateJobButtonsState(ui, jobId, true, false);
 //                    JobManager jobManager = jobDefinitionService.getJobManagerMap().get(jobId);
 //                    if(jobManager.getTyp().equals("Jobchain")) {
-                        triggerChildJobs(jobId);
+               //         jobSchedulerService.triggerChildJobs(jobId);
                 //    }
                 } else {
-                    chainCount = chainCount -1;
+              //      chainCount = chainCount -1;
                     updateJobButtonsState(ui, jobId, true, false);
-                    triggerChildJobs(jobId);
+             //       jobSchedulerService.triggerChildJobs(jobId);
                 }
             } else  if (displayMessage.contains("Jobchain execution done")) {
                 updateJobButtonsState(ui, jobId, true, false);
@@ -1090,7 +1086,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         });
     }
 
-    private void triggerChildJobs(int jobId) {
+    private void triggerChildJobsold(int jobId) {
         Map<Integer, JobManager> jobManagerMap = jobDefinitionService.getJobManagerMap();
         JobManager jobManager = jobManagerMap.get(jobId);
         logPannel.logMessage(Constants.INFO, "Starting stopJob for " + jobManager.getName());
