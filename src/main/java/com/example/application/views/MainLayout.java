@@ -28,10 +28,6 @@ import com.vaadin.flow.router.RouterLink;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -39,7 +35,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -86,14 +81,14 @@ public class MainLayout extends AppLayout {
         isAdmin = checkAdminRole();
         userName = authentication.getName();
 
-        System.out.println(count+"------------------------------------------");
+    //    System.out.println(count+"------------------------------------------");
 
         if(cronAutostart && count == 0) {
             count = count + 1;
             allCronJobSart();
         }
         if("On".equals(emailAlertingAutostart) && count == 0) {
-            System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+    //        System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
             count = count + 1;
 
             allMonitorCronStart();
@@ -167,17 +162,18 @@ public class MainLayout extends AppLayout {
     private void  allCronJobSart(){
         System.out.println("all cron start");
         jobDefinitionService = SpringContextHolder.getBean(JobDefinitionService.class);
-      //  JobManagerView jobManagerView = SpringContextHolder.getBean(JobManagerView.class);
-        List<JobManager> jobManagerList = jobDefinitionService.findAll();
 
-     //   JobManagerView.allCronButton.setText("Cron Stop");
+      //  List<JobManager> jobManagerList = jobDefinitionService.findAll();
+        List<JobManager> filterJobsList = jobDefinitionService.getFilteredJobManagers();
         JobManagerView.notifySubscribers("start running all...");
-        for (JobManager jobManager : jobManagerList) {
+        for (JobManager jobManager : filterJobsList) {
             try {
+                System.out.println(jobManager.getName()+"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm");
                 if(jobManager.getAktiv() == 1) {
                     String type = jobManager.getTyp();
                     if (jobManager.getCron() != null && !type.equals("Node") ) {
-                        scheduleJob(jobManager);
+                        System.out.println(jobManager.getName()+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+                        scheduleJob(jobManager,  Constants.CRON);
                     }
                 }
             } catch (Exception e) {
@@ -196,7 +192,7 @@ public class MainLayout extends AppLayout {
         }
         return count;
     }
-    public void scheduleJob(JobManager jobManager) throws SchedulerException {
+    public void scheduleJob(JobManager jobManager, String startType) throws SchedulerException {
         Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
         scheduler.start();
         //  notifySubscribers(",,"+jobManager.getId());
@@ -208,7 +204,7 @@ public class MainLayout extends AppLayout {
             return;
         }
 
-        jobDataMap.put("startType", "cron");
+        jobDataMap.put("startType", startType);
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
                 .withIdentity("job-cron-" + jobManager.getId(), "group1")
@@ -486,9 +482,9 @@ public class MainLayout extends AppLayout {
         boolean isFVM = userRoles.contains("ROLE_FVM");
         boolean isCOKPIT = userRoles.contains("ROLE_COKPIT");
         boolean isTVM = userRoles.contains("ROLE_TVM");
-        System.out.println("isFVM "+isFVM);
-        System.out.println("isCOKPIT "+isCOKPIT);
-        System.out.println("isTVM "+isTVM);
+//        System.out.println("isFVM "+isFVM);
+//        System.out.println("isCOKPIT "+isCOKPIT);
+//        System.out.println("isTVM "+isTVM);
 
         VerticalLayout drawerLayout = new VerticalLayout();
 

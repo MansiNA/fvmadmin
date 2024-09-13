@@ -362,10 +362,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             //   if (listOfJobManager != null && !listOfJobManager.isEmpty()) {
 
             contextMenu.addItem("Edit", event -> {
-                System.out.println("edityyyyyyyyyy......."+listOfGridItem);
                 Optional<JobManager> selectedItem = event.getItem();
                 if (selectedItem.isPresent() && listOfGridItem != null && !listOfGridItem.isEmpty()) {
-                    System.out.println("edityyyyyyyyyy......."+listOfGridItem);
                     showEditAndNewDialog(event.getItem().get(), "Edit");
                 }
                 else {
@@ -376,7 +374,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             contextMenu.addItem("Delete", event -> {
                 Optional<JobManager> selectedItem = event.getItem();
                 if (selectedItem.isPresent() && listOfGridItem != null && !listOfGridItem.isEmpty()) {
-                    System.out.println("deleteyyyyyyyyyy......."+listOfGridItem);
                     deleteTreeGridItem(event.getItem().get());
                 }
                 else {
@@ -386,13 +383,12 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
             // "New" option is always available
             contextMenu.addItem("New", event -> {
-                System.out.println("newyyyyyyyyyy......."+listOfGridItem);
                 Optional<JobManager> selectedItem = event.getItem();
                 if (selectedItem.isPresent() && listOfGridItem != null && !listOfGridItem.isEmpty()) {
-                    System.out.println("------------with parent");
+               //     System.out.println("------------with parent");
                     showEditAndNewDialog(event.getItem().get(), "New");
                 } else {
-                    System.out.println("------------no parent");
+                //    System.out.println("------------no parent");
                     JobManager jobManager = new JobManager();
                     jobManager.setId(0);
                     showEditAndNewDialog(jobManager, "New");
@@ -463,7 +459,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     private void executeJob(JobManager jobManager) {
         try {
-            scheduleJobWithoutCorn(jobManager);
+            scheduleJobWithoutCorn(jobManager, Constants.MANUAL);
 
             notifySubscribers(",," + jobManager.getId());
 
@@ -497,7 +493,6 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         JobManager newJobDefination = new JobManager();
 
         if(context.equals("New")){
-            System.out.println("##########"+jobManager);
             newJobDefination.setPid(jobManager.getId());
             dialog.add(editJobDefinition(newJobDefination, true)); // For adding new entry
         } else {
@@ -557,6 +552,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         try {
             JobKey cronJobKey = new JobKey("job-cron-" + jobManager.getId(), "group1");
             String typ = jobManager.getTyp();
+
             // Try stopping cron job
             if (scheduler.checkExists(cronJobKey)) {
                 if (scheduler.deleteJob(cronJobKey)) {
@@ -565,9 +561,11 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                     } else if (typ.equals("sql_procedure")) {
                         JobExecutor.stopSQLProcedure(jobManager.getId());
                     }
-                    scheduleJob(jobManager);
+                    scheduleJob(jobManager, Constants.CRON);
                     logPannel.logMessage(Constants.INFO, "restart job for " + jobManager.getName());
                 }
+            } else if(jobManager.getAktiv() == 1 && jobManager.getCron() != null){
+                scheduleJob(jobManager,  Constants.CRON);
             }
 
         } catch (SchedulerException e) {
@@ -808,16 +806,17 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     }
 
     private void  allCronJobSart(){
-        List<JobManager> jobManagerList = jobDefinitionService.findAll();
-
+     //   List<JobManager> jobManagerList = jobDefinitionService.findAll();
+        List<JobManager> filterJobsList = jobDefinitionService.getFilteredJobManagers();
         allCronButton.setText("Cron Stop");
+
         notifySubscribers("start running all...");
-        for (JobManager jobManager : jobManagerList) {
+        for (JobManager jobManager : filterJobsList) {
             try {
                 if(jobManager.getAktiv() == 1) {
                     String type = jobManager.getTyp();
                     if (jobManager.getCron() != null && !type.equals("Node")) {
-                        scheduleJob(jobManager);
+                        scheduleJob(jobManager,  Constants.CRON);
                     }
                 }
             } catch (Exception e) {
@@ -826,7 +825,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             }
         }
     }
-    public void scheduleJob(JobManager jobManager) throws SchedulerException {
+    public void scheduleJob(JobManager jobManager, String startType) throws SchedulerException {
         logPannel.logMessage(Constants.INFO, "Starting scheduleJob with cron for " + jobManager.getName());
         getDefaultScheduler();
         scheduler.start();
@@ -839,7 +838,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             return;
         }
 
-        jobDataMap.put("startType", "cron");
+        jobDataMap.put("startType", startType);
 
        JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
                 .withIdentity("job-cron-" + jobManager.getId(), "group1")
@@ -857,7 +856,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
         logPannel.logMessage(Constants.INFO, "Ending scheduleJob with cron for " + jobManager.getName());
     }
 
-    private void scheduleJobWithoutCorn(JobManager jobManager) throws SchedulerException {
+    private void scheduleJobWithoutCorn(JobManager jobManager, String startType) throws SchedulerException {
         logPannel.logMessage(Constants.INFO, "Starting scheduleJob manualy for " + jobManager.getName());
         getDefaultScheduler();
         scheduler.start();
@@ -870,7 +869,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
             return;
         }
 
-        jobDataMap.put("startType", "manual");
+        jobDataMap.put("startType", startType);
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
                 .withIdentity("job-manual-" + jobManager.getId(), "group1")
@@ -995,7 +994,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
     private void handleIncomingMessage(UI ui, String message) {
         String[] parts = message.split(",,");
-        System.out.println(message);
+    //    System.out.println(message);
         String displayMessage = parts[0].trim();
         int jobId;
         boolean isCron = false;
@@ -1081,12 +1080,12 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 stopBtn.setEnabled(stopEnabled);
                 ui.getSession().setAttribute("startBtnEnabled_" + jobId, startEnabled);
                 ui.getSession().setAttribute("stopBtnEnabled_" + jobId, stopEnabled);
-                System.out.println("Job id = " + jobId + " startBtn = " + startEnabled + " stopBtn = " + stopEnabled);
+            //    System.out.println("Job id = " + jobId + " startBtn = " + startEnabled + " stopBtn = " + stopEnabled);
             }
         });
     }
 
-    private void triggerChildJobsold(int jobId) {
+    private void triggerChildJobsold(int jobId, String startType) {
         Map<Integer, JobManager> jobManagerMap = jobDefinitionService.getJobManagerMap();
         JobManager jobManager = jobManagerMap.get(jobId);
         logPannel.logMessage(Constants.INFO, "Starting stopJob for " + jobManager.getName());
@@ -1100,8 +1099,8 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
                 List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
                 for (JobManager childJob : childJobs) {
                     try {
-                        System.out.println("jobchain.........+++++++++"+childJob.getName());
-                        scheduleJobWithoutCorn(childJob);
+                    //    System.out.println("jobchain.........+++++++++"+childJob.getName());
+                        scheduleJobWithoutCorn(childJob, startType);
                         notifySubscribers(",," + childJob.getId());
                     } catch (SchedulerException e) {
                         System.out.println("Error scheduling child job (Jobchain): " + childJob.getName() + " - " + e.getMessage());
@@ -1114,7 +1113,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
                 for (JobManager childJob : childJobs) {
                     try {
-                        scheduleJobWithoutCorn(childJob);
+                        scheduleJobWithoutCorn(childJob, startType);
                         notifySubscribers(",," + childJob.getId());
                     } catch (SchedulerException e) {
                         System.out.println("Error scheduling child job: " + childJob.getName() + " - " + e.getMessage());

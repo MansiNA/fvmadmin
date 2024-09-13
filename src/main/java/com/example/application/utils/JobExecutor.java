@@ -9,19 +9,12 @@ import com.example.application.service.EmailService;
 import com.example.application.service.JobSchedulerService;
 import com.example.application.views.JobManagerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.server.VaadinService;
-import com.vaadin.flow.server.VaadinSession;
-import lombok.Getter;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 
@@ -81,7 +74,7 @@ public class JobExecutor implements Job {
 
         if(!jobManager.getTyp().equals("Shell")) {
             processID = generateUniqueProcessId();
-            System.out.println(processID+"######################################");
+        //    System.out.println(processID+"######################################");
             jobHistory.setProcessId(processID);
         } else {
             jobHistory.setProcessId(processID);
@@ -123,7 +116,7 @@ public class JobExecutor implements Job {
 
     private void updateJobHistory() {
         processID = jobIdwithProcessIDMap.get(jobManager.getId());
-        System.out.println("after update processID "+processID);
+    //    System.out.println("after update processID "+processID);
         jobHistory.setEndTime(new Date());
 
         if ("Shell".equalsIgnoreCase(jobManager.getTyp())) {
@@ -160,11 +153,11 @@ public class JobExecutor implements Job {
                     JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
                     if(jobSchedulerService.isContinueChildJob()) {
                         jobSchedulerService.setChainCount(jobSchedulerService.getChainCount() - 1);
-                        jobSchedulerService.triggerChildJobs(jobManager.getId());
+                        jobSchedulerService.triggerChildJobs(jobManager.getId(), startType);
                     }
                     break;
                 case "Jobchain":
-                    System.out.println("jobchain start...");
+                //    System.out.println("jobchain start...");
                     jobHistory = createJobHistory(jobManager);
                     jobHistoryService.createOrUpdateJobHistory(jobHistory);
                     updateJobHistory();
@@ -174,7 +167,7 @@ public class JobExecutor implements Job {
                     jobSchedulerService.setJobChainRunning(true);
                     jobSchedulerService.setContinueChildJob(true);
                     jobSchedulerService.setChainCount(jobSchedulerService.countJobChainChildren(jobManager.getId()));
-                    jobSchedulerService.triggerChildJobs(jobManager.getId());
+                    jobSchedulerService.triggerChildJobs(jobManager.getId(), startType);
                  //   executeJobChain(jobManager);
                     break;
                 case "sql_statement":
@@ -183,7 +176,7 @@ public class JobExecutor implements Job {
                     JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
                     if(jobSchedulerService.isContinueChildJob()) {
                         jobSchedulerService.setChainCount(jobSchedulerService.getChainCount() - 1);
-                        jobSchedulerService.triggerChildJobs(jobManager.getId());
+                        jobSchedulerService.triggerChildJobs(jobManager.getId(), startType);
                     }
                     break;
                 case "Command":
@@ -191,7 +184,7 @@ public class JobExecutor implements Job {
                     JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
                     if(jobSchedulerService.isContinueChildJob()) {
                         jobSchedulerService.setChainCount(jobSchedulerService.getChainCount() - 1);
-                        jobSchedulerService.triggerChildJobs(jobManager.getId());
+                        jobSchedulerService.triggerChildJobs(jobManager.getId(), startType);
                     }
                     break;
                 case "Shell":
@@ -200,7 +193,7 @@ public class JobExecutor implements Job {
                     JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
                     if(jobSchedulerService.isContinueChildJob()) {
                         jobSchedulerService.setChainCount(jobSchedulerService.getChainCount() - 1);
-                        jobSchedulerService.triggerChildJobs(jobManager.getId());
+                        jobSchedulerService.triggerChildJobs(jobManager.getId(), startType);
                     }
                     break;
                 case "sql_report":
@@ -210,7 +203,7 @@ public class JobExecutor implements Job {
                         JobManagerView.notifySubscribers("Job " + jobManager.getName() + " executed successfully,,"+jobManager.getId()+",,"+startType);
                         if(jobSchedulerService.isContinueChildJob()) {
                             jobSchedulerService.setChainCount(jobSchedulerService.getChainCount() - 1);
-                            jobSchedulerService.triggerChildJobs(jobManager.getId());
+                            jobSchedulerService.triggerChildJobs(jobManager.getId(), startType);
                         }
                     }
                     break;
@@ -232,7 +225,7 @@ public class JobExecutor implements Job {
     }
 
     private void executeJobChain(JobManager jobManager) {
-        jobSchedulerService.triggerChildJobs(jobManager.getId());
+        jobSchedulerService.triggerChildJobs(jobManager.getId(), startType);
 
         //  List<JobManager> childJobs = jobDefinitionService.getJobchainList(jobManager);
 //        for (JobManager childJob : childJobs) {

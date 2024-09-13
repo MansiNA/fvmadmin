@@ -2,16 +2,11 @@ package com.example.application.service;
 
 import com.example.application.data.entity.JobManager;
 import com.example.application.data.service.JobDefinitionService;
-import com.example.application.utils.Constants;
 import com.example.application.utils.JobDefinitionUtils;
 import com.example.application.utils.JobExecutor;
-import com.example.application.utils.LogPannel;
 import com.example.application.views.JobManagerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.function.SerializableConsumer;
 import lombok.Getter;
 import lombok.Setter;
 import org.quartz.*;
@@ -19,8 +14,6 @@ import org.quartz.impl.StdSchedulerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Getter
@@ -52,7 +45,7 @@ public class JobSchedulerService {
         }
     }
 
-    public void scheduleJobWithoutCorn(JobManager jobManager) throws SchedulerException {
+    public void scheduleJobWithoutCorn(JobManager jobManager, String startType) throws SchedulerException {
    //     logPannel.logMessage(Constants.INFO, "Starting scheduleJob manualy for " + jobManager.getName());
         getDefaultScheduler();
         scheduler.start();
@@ -65,7 +58,7 @@ public class JobSchedulerService {
             return;
         }
 
-        jobDataMap.put("startType", "manual");
+        jobDataMap.put("startType", startType);
 
         JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
                 .withIdentity("job-manual-" + jobManager.getId(), "group1")
@@ -95,7 +88,7 @@ public class JobSchedulerService {
         return false;
     }
 
-    public void triggerChildJobs(int jobId) {
+    public void triggerChildJobs(int jobId, String startType) {
         Map<Integer, JobManager> jobManagerMap = jobDefinitionService.getJobManagerMap();
         JobManager jobManager = jobManagerMap.get(jobId);
     //    logPannel.logMessage(Constants.INFO, "Starting stopJob for " + jobManager.getName());
@@ -109,9 +102,20 @@ public class JobSchedulerService {
                 List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
                 for (JobManager childJob : childJobs) {
                     try {
-                        System.out.println("jobchain.........+++++++++"+childJob.getName());
-                        scheduleJobWithoutCorn(childJob);
-                        JobManagerView.notifySubscribers(",," + childJob.getId());
+                //        System.out.println("jobchain.........+++++++++"+childJob.getName());
+                        if ("cron".equals(startType)) {
+                            System.out.println("job>>>>>>>> "+childJob.getName()+"<<<<<<<<<"+childJob.getAktiv());
+                            if (childJob.getAktiv() == 1) {
+                                scheduleJobWithoutCorn(childJob, startType);
+                                JobManagerView.notifySubscribers(",," + childJob.getId());
+                            } else {
+                                System.out.println("Job " + childJob.getName() + " is not active, skipping.");
+                            }
+                        } else {
+                            // If not 'cron', schedule the job without checking the active status
+                            scheduleJobWithoutCorn(childJob, startType);
+                            JobManagerView.notifySubscribers(",," + childJob.getId());
+                        }
                     } catch (SchedulerException e) {
                         System.out.println("Error scheduling child job (Jobchain): " + childJob.getName() + " - " + e.getMessage());
                     }
@@ -123,8 +127,19 @@ public class JobSchedulerService {
 
                 for (JobManager childJob : childJobs) {
                     try {
-                        scheduleJobWithoutCorn(childJob);
-                        JobManagerView.notifySubscribers(",," + childJob.getId());
+                        if ("cron".equals(startType)) {
+                            System.out.println("job>>>>>>>> "+childJob.getName()+"<<<<<<<<<"+childJob.getAktiv());
+                            if (childJob.getAktiv() == 1) {
+                                scheduleJobWithoutCorn(childJob, startType);
+                                JobManagerView.notifySubscribers(",," + childJob.getId());
+                            } else {
+                                System.out.println("Job " + childJob.getName() + " is not active, skipping.");
+                            }
+                        } else {
+                            // If not 'cron', schedule the job without checking the active status
+                            scheduleJobWithoutCorn(childJob, startType);
+                            JobManagerView.notifySubscribers(",," + childJob.getId());
+                        }
                     } catch (SchedulerException e) {
                         System.out.println("Error scheduling child job: " + childJob.getName() + " - " + e.getMessage());
                     }

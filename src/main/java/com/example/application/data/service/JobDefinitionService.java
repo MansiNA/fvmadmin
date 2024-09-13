@@ -54,7 +54,7 @@ public class JobDefinitionService {
                 .collect(Collectors.toList());
 
         // Log the names of root projects
-        rootProjects.forEach(project -> System.out.println("Root Project: " + project.toString()));
+    //    rootProjects.forEach(project -> System.out.println("Root Project: " + project.toString()));
 
         return rootProjects;
     }
@@ -67,9 +67,77 @@ public class JobDefinitionService {
                 .collect(Collectors.toList());
 
         // Log the names of child projects
-        childProjects.forEach(project -> System.out.println("Child Project of " + parent.getName() + ": " + project.getName()));
+    //    childProjects.forEach(project -> System.out.println("Child Project of " + parent.getName() + ": " + project.getName()));
 
         return childProjects;
+    }
+
+    public JobManager getParentJobManager(JobManager child) {
+        if (child.getPid() != null && child.getPid() > 0) {
+            Optional<JobManager> parent = jobDefinitionRepository.findById(child.getPid());
+            return parent.orElse(null);  // Return the parent if found, or null if not
+        } else {
+            return null;
+        }
+    }
+
+    public List<JobManager> getFilteredJobManagers() {
+        List<JobManager> listOfJobmanager = new ArrayList<>();
+        listOfJobmanager.addAll(jobManagerList);
+        List<JobManager> filteredJobManagers = new ArrayList<>();
+        // Collect nodes and job chains separately
+        List<JobManager> nodeList = listOfJobmanager.stream()
+                .filter(jobManager -> "Node".equals(jobManager.getTyp()))
+                .collect(Collectors.toList());
+
+        for (JobManager jobManager : nodeList) {
+            listOfJobmanager.remove(jobManager);
+            listOfJobmanager.removeAll(getJobchainList(jobManager));
+        }
+        nodeList = filterActiveJobManagers(nodeList);
+        for (JobManager jobManager : nodeList) {
+            filteredJobManagers.addAll(getJobchainList(jobManager));
+        }
+
+        // get all active   children for each jobchain
+        List<JobManager> jobChainList = listOfJobmanager.stream()
+                  .filter(jobManager -> "Jobchain".equals(jobManager.getTyp()))
+                .collect(Collectors.toList());
+        for(JobManager jobManager : jobChainList) {
+            listOfJobmanager.removeAll(getJobchainList(jobManager));
+        }
+        filteredJobManagers.addAll(filterActiveJobManagers(jobChainList));
+
+        listOfJobmanager.removeAll(filteredJobManagers);
+        for (JobManager jobManager : listOfJobmanager) {
+            // For all other job types, collect if aktiv == 1
+            if (jobManager.getAktiv() == 1) {
+                filteredJobManagers.add(jobManager);
+            }
+        }
+
+//        filteredJobManagers = filteredJobManagers.stream()
+//                .distinct()  // Removes duplicates
+//                .collect(Collectors.toList());
+
+        return filteredJobManagers;
+    }
+
+    public List<JobManager> filterActiveJobManagers(List<JobManager> jobManagers) {
+        return jobManagers.stream()
+                .filter(jobManager -> jobManager.getAktiv() == 1)
+                .collect(Collectors.toList());
+    }
+
+    // Recursively collect active child jobs for a given parent JobManager
+    private List<JobManager> getActiveChildJobManagers(JobManager parent, List<JobManager> listOfJobmanager) {
+        return listOfJobmanager.stream()
+                .filter(job -> Objects.equals(job.getPid(), parent.getId()) && job.getAktiv() == 1)
+                .collect(Collectors.toList());
+    }
+
+    private void deleteJobChainChildren(JobManager jobChain, List<JobManager> listOfJobmanager) {
+        listOfJobmanager.removeAll(getJobchainList(jobChain));
     }
 
     public List<JobManager> getJobchainList(JobManager parent) {
