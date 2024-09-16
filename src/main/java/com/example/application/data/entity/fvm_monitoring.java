@@ -61,7 +61,8 @@ public class fvm_monitoring {
         Titel = titel;
     }
     public Integer getAktueller_Wert() {
-        return Aktueller_Wert;
+       // return Aktueller_Wert;
+        return (Aktueller_Wert != null) ? Aktueller_Wert : 0;
     }
 
     public void setAktueller_Wert(Integer aktueller_Wert) {
