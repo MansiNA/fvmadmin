@@ -550,24 +550,46 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     private void restartEditedJob(JobManager jobManager) {
 
         try {
-            JobKey cronJobKey = new JobKey("job-cron-" + jobManager.getId(), "group1");
+         //   JobKey cronJobKey = new JobKey("job-cron-" + jobManager.getId(), "group1");
             String typ = jobManager.getTyp();
-
-            // Try stopping cron job
-            if (scheduler.checkExists(cronJobKey)) {
-                if (scheduler.deleteJob(cronJobKey)) {
-                    if (typ.equals("Shell")) {
-                        JobExecutor.stopProcess(jobManager.getId());
-                    } else if (typ.equals("sql_procedure")) {
-                        JobExecutor.stopSQLProcedure(jobManager.getId());
+            if (jobManager.getAktiv() == 1) {
+                if (typ.equals("Node")) {
+                    List<JobManager> nodeAKtiveChildList = jobDefinitionService.filterActiveJobManagers(jobDefinitionService.getJobchainList(jobManager));
+                    for (JobManager childJob : nodeAKtiveChildList) {
+                        stopJob(childJob);
+                        if(childJob.getCron() != null) {
+                            scheduleJob(childJob, Constants.CRON);
+                            logPannel.logMessage(Constants.INFO, "restart job for " + jobManager.getName());
+                        }
                     }
-                    scheduleJob(jobManager, Constants.CRON);
+                } else if(jobManager.getCron() != null) {
+                    JobManager parentJob = jobDefinitionService.findParentJob( jobManager);
+                    System.out.println(parentJob+"###############################");
+                    if(parentJob != null) {
+                        if(parentJob.getAktiv() == 1) {
+                            stopJob(jobManager);
+                            scheduleJob(jobManager, Constants.CRON);
+                        }
+                    } else {
+                        stopJob(jobManager);
+                        scheduleJob(jobManager, Constants.CRON);
+                    }
+
                     logPannel.logMessage(Constants.INFO, "restart job for " + jobManager.getName());
                 }
-            } else if(jobManager.getAktiv() == 1 && jobManager.getCron() != null){
-                scheduleJob(jobManager,  Constants.CRON);
+            } else {
+                if (typ.equals("Node") || typ.equals("Jobchain")) {
+                    List<JobManager> nodeAktiveChildList = jobDefinitionService.filterActiveJobManagers(jobDefinitionService.getJobchainList(jobManager));
+                    if(typ.equals("Jobchain")) {
+                        stopJob(jobManager);
+                    }
+                    for (JobManager childJob : nodeAktiveChildList) {
+                        stopJob(childJob);
+                    }
+                } else {
+                    stopJob(jobManager);
+                }
             }
-
         } catch (SchedulerException e) {
             // Handle the exception and add an error message
             logPannel.logMessage(Constants.ERROR, "error while restart job for " + jobManager.getName());

@@ -197,4 +197,35 @@ public class JobDefinitionService {
         uniqueTyps.add("Node");
         return uniqueTyps;
     }
+
+    public JobManager findParentJob(JobManager targetJob) {
+        List<JobManager> parentList = jobManagerList.stream()
+                .filter(jobManager -> "Node".equals(jobManager.getTyp()) || "Jobchain".equals(jobManager.getTyp()))
+                .collect(Collectors.toList());
+
+        for (JobManager job : parentList) {
+            if (isChildOf(job, targetJob)) {
+                return job;
+            }
+        }
+        return null;
+    }
+
+    private boolean isChildOf(JobManager parent, JobManager targetJob) {
+        List<JobManager> childList = getChildJobManager(parent);
+        System.out.println("-----"+childList);
+        System.out.println("......"+targetJob);
+//        if (childList.contains(targetJob)) {
+//            return true;
+//        }
+        for (JobManager child : childList) {
+            if (child.getId() == targetJob.getId()) {
+                return true;
+            }
+            if (isChildOf(child, targetJob)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
