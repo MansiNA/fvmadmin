@@ -504,8 +504,8 @@ public class MainLayout extends AppLayout {
         RouterLink userConfigView = new RouterLink("User Configuration", UserConfigurationView.class);
         RouterLink serverConfigView = new RouterLink("Server Configuration", ServerConfigurationView.class);
         RouterLink jobManagerView = new RouterLink("Job Manager", JobManagerView.class);
+        RouterLink cronInfoView = new RouterLink("Cron Infoview", CronInfoView.class);
         listView.setHighlightCondition(HighlightConditions.sameLocation());
-
 
         RouterLink link = new RouterLink("Login", LoginView.class);
 
@@ -527,7 +527,8 @@ public class MainLayout extends AppLayout {
                     dashboardView,
                     jobManagerView,
                     userConfigView,
-                    serverConfigView
+                    serverConfigView,
+                    cronInfoView
             );
         }
 
@@ -548,7 +549,8 @@ public class MainLayout extends AppLayout {
                     fileBrowserView,
                     jobManagerView,
                     hangingMessagesView,
-                    quarantaeneView
+                    quarantaeneView,
+                    cronInfoView
             );
         }
 
@@ -569,7 +571,4 @@ public class MainLayout extends AppLayout {
         addToDrawer(drawerLayout);
 
     }
-
-
-
 }
