@@ -157,7 +157,7 @@ public class CockpitService {
     public void updateLastAlertCheckTimeInDatabase(MonitorAlerting monitorAlerting, Configuration configuration) {
         try {
             connectWithDatabase(configuration);
-            String updateQuery = "UPDATE ekp.FVM_MONITOR_ALERTING SET LAST_ALERT_CHECKTIME = ?";
+            String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET LAST_ALERT_CHECKTIME = ?";
             jdbcTemplate.update(updateQuery, LocalDateTime.now());
 
             System.out.println("Updated last alert check time in database for ID: " + monitorAlerting.getId());
