@@ -1,10 +1,12 @@
 package com.example.application;
 
+import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.JobManager;
+import com.example.application.data.entity.MonitorAlerting;
+import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.JobDefinitionService;
-import com.example.application.utils.JobDefinitionUtils;
-import com.example.application.utils.JobExecutor;
-import com.example.application.utils.SpringContextHolder;
+import com.example.application.service.CockpitService;
+import com.example.application.utils.*;
 import com.example.application.views.JobManagerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.dependency.NpmPackage;
@@ -15,6 +17,7 @@ import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.theme.Theme;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -23,6 +26,8 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.event.EventListener;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * The entry point of the Spring Boot application.
@@ -41,9 +46,160 @@ public class Application implements AppShellConfigurator {
 
     @Value("${cron.autostart}")
     private boolean cronAutostart;
+
+    @Value("${email.alerting}")
+    private String emailAlertingAutostart;
+
+    @Autowired
+    private JobDefinitionService jobDefinitionService;
+
+    @Autowired
+    private ConfigurationService configurationService;
+
+    @Autowired
+    private CockpitService cockpitService;
+
+
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
 
+    }
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        System.out.println("abc----------------------cbbbbbbbbbbbbb------------");
+        if (cronAutostart) {
+            System.out.println("---------------xxxxxxxxxxxxxxxxxxxxxxxx-------------------");
+            System.out.println("");
+            allCronJobStart();
+        }
+
+        if ("On".equals(emailAlertingAutostart)) {
+            System.out.println("---------------yyyyyyyyyyyyyyyy-------------------");
+            allMonitorCronStart();
+        }
+    }
+
+    private void allMonitorCronStart() {
+        List<Configuration> configList = configurationService.findMessageConfigurations();
+        List<Configuration> monitoringConfigs = configList.stream()
+                .filter(config -> config.getIsMonitoring() != null && config.getIsMonitoring() == 1)
+                .collect(Collectors.toList());
+        //  for(Configuration configuration)
+        // Fetch email configurations
+        for(Configuration configuration : monitoringConfigs) {
+            try {
+                cockpitService.deleteLastAlertTimeInDatabase(configuration);
+                scheduleEmailMonitorJob(configuration);
+            } catch (Exception e) {
+                //        JobManagerView.allCronButton.setText("Cron Start");
+                Notification.show("Error executing job: " + configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+        }
+    }
+
+    public void scheduleEmailMonitorJob(Configuration configuration) throws SchedulerException {
+        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+        scheduler.start();
+        //  notifySubscribers(",,"+jobManager.getId());
+        JobDataMap jobDataMap = new JobDataMap();
+        try {
+            jobDataMap.put("configuration", JobDefinitionUtils.serializeJobDefinition(configuration));
+        } catch (JsonProcessingException e) {
+            Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        jobDataMap.put("startType", "cron");
+
+        JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
+                .withIdentity("job-alert-cron-" + configuration.getId(), "group2")
+                .usingJobData(jobDataMap)
+                .build();
+
+
+        // Fetch monitorAlerting configuration to get the interval
+        MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
+        if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
+            System.out.println("No interval set for the configuration. Job will not be scheduled.");
+            return;
+        }
+
+        int interval = monitorAlerting.getIntervall(); // assuming this returns the interval in minutes
+        String cronExpression = createCronExpression(interval);
+
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("trigger-alert-cron-" + configuration.getId(), "group2")
+                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                .forJob(jobDetail)
+                .build();
+
+        scheduler.scheduleJob(jobDetail, trigger);
+    }
+
+    private String createCronExpression(int interval) {
+        // Cron expression format for every N minutes
+        return "0 0/" + interval + " * * * ?";
+    }
+    private void  allCronJobStart(){
+        System.out.println("all cron start");
+        jobDefinitionService = SpringContextHolder.getBean(JobDefinitionService.class);
+
+        //  List<JobManager> jobManagerList = jobDefinitionService.findAll();
+        List<JobManager> filterJobsList = jobDefinitionService.getFilteredJobManagers();
+        JobManagerView.notifySubscribers("start running all...");
+        for (JobManager jobManager : filterJobsList) {
+            try {
+                System.out.println(jobManager.getName()+"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm");
+                if(jobManager.getAktiv() == 1) {
+                    String type = jobManager.getTyp();
+                    if (jobManager.getCron() != null && !type.equals("Node") ) {
+                        System.out.println(jobManager.getName()+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+                        scheduleJob(jobManager,  Constants.CRON);
+                    }
+                }
+            } catch (Exception e) {
+                //        JobManagerView.allCronButton.setText("Cron Start");
+                Notification.show("Error executing job: " + jobManager.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+        }
+    }
+    public int countJobChainChildren(int jobId) {
+        Map<Integer, JobManager> jobManagerMap = jobDefinitionService.getJobManagerMap();
+        JobManager jobManager = jobManagerMap.get(jobId);
+        List<JobManager> childJobs = jobDefinitionService.getChildJobManager(jobManager);
+        int count = childJobs.size();
+        for (JobManager child :childJobs) {
+            count += countJobChainChildren(child.getId());
+        }
+        return count;
+    }
+    public void scheduleJob(JobManager jobManager, String startType) throws SchedulerException {
+        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+        scheduler.start();
+        //  notifySubscribers(",,"+jobManager.getId());
+        JobDataMap jobDataMap = new JobDataMap();
+        try {
+            jobDataMap.put("jobManager", JobDefinitionUtils.serializeJobDefinition(jobManager));
+        } catch (JsonProcessingException e) {
+            Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        jobDataMap.put("startType", startType);
+
+        JobDetail jobDetail = JobBuilder.newJob(JobExecutor.class)
+                .withIdentity("job-cron-" + jobManager.getId(), "group1")
+                .usingJobData(jobDataMap)
+                .build();
+
+        // Using the cron expression from the JobManager
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("trigger-cron-" + jobManager.getId(), "group1")
+                .withSchedule(CronScheduleBuilder.cronSchedule(jobManager.getCron()))
+                .forJob(jobDetail)
+                .build();
+
+        scheduler.scheduleJob(jobDetail, trigger);
     }
 
 }

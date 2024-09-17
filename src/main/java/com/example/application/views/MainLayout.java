@@ -81,17 +81,17 @@ public class MainLayout extends AppLayout {
         isAdmin = checkAdminRole();
         userName = authentication.getName();
 
-        if (count == 0) {
-            count++; // Increment count only once
-
-            if (cronAutostart) {
-                allCronJobSart();
-            }
-
-            if ("On".equals(emailAlertingAutostart)) {
-                allMonitorCronStart();
-            }
-        }
+//        if (count == 0) {
+//            count++; // Increment count only once
+//
+//            if (cronAutostart) {
+//                allCronJobSart();
+//            }
+//
+//            if ("On".equals(emailAlertingAutostart)) {
+//                allMonitorCronStart();
+//            }
+//        }
 
         createHeader();
         createDrawer();
