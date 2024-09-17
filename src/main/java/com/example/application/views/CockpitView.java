@@ -325,7 +325,7 @@ public class CockpitView extends VerticalLayout{
         jobDataMap.put("startType", "cron");
 
         JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
-                .withIdentity("job-alert-cron-" + configuration.getId(), "group1")
+                .withIdentity("job-alert-cron-" + configuration.getId(), "group2")
                 .usingJobData(jobDataMap)
                 .build();
 
@@ -337,11 +337,11 @@ public class CockpitView extends VerticalLayout{
             return;
         }
 
-        int interval = monitorAlerting.getIntervall(); // assuming this returns t  he interval in minutes
+        int interval = monitorAlerting.getIntervall(); // assuming this returns the interval in minutes
         String cronExpression = createCronExpression(interval);
 
         Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-alert-cron-" + configuration.getId(), "group1")
+                .withIdentity("trigger-alert-cron-" + configuration.getId(), "group2")
                 .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                 .forJob(jobDetail)
                 .build();
@@ -356,7 +356,7 @@ public class CockpitView extends VerticalLayout{
 
         try {
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
-            JobKey cronJobKey = new JobKey("job-alert-cron-" + configuration.getId(), "group1");
+            JobKey cronJobKey = new JobKey("job-alert-cron-" + configuration.getId(), "group2");
 
             // Try stopping cron job
             if (scheduler.checkExists(cronJobKey)) {
@@ -492,6 +492,7 @@ public class CockpitView extends VerticalLayout{
 
         if (emailAlertingAutostart.equals("On")) {
             setAlerting("On");
+         //   checkForAlert();
         } else {
             setAlerting("Off");
         }

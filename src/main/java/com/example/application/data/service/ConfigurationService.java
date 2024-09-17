@@ -26,6 +26,13 @@ public class ConfigurationService {
     //   public List<Configuration> findMessageConfigurations(){
     //       return configurationRepository.findByName();
     //   };
+    public Configuration findByIdConfiguration(Long id) {
+        if (id == null) {
+            System.err.println("ID is null!");
+            return null;
+        }
+        return configurationRepository.findById(id).get();
+    }
 
     public List<Configuration> findMessageConfigurations(){
         return configurationRepository.findAll();

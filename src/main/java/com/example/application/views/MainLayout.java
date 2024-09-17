@@ -81,18 +81,18 @@ public class MainLayout extends AppLayout {
         isAdmin = checkAdminRole();
         userName = authentication.getName();
 
-    //    System.out.println(count+"------------------------------------------");
+        if (count == 0) {
+            count++; // Increment count only once
 
-        if(cronAutostart && count == 0) {
-            count = count + 1;
-            allCronJobSart();
-        }
-        if("On".equals(emailAlertingAutostart) && count == 0) {
-    //        System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-            count = count + 1;
+            if (cronAutostart) {
+                allCronJobSart();
+            }
 
-            allMonitorCronStart();
+            if ("On".equals(emailAlertingAutostart)) {
+                allMonitorCronStart();
+            }
         }
+
         createHeader();
         createDrawer();
 
@@ -131,7 +131,7 @@ public class MainLayout extends AppLayout {
         jobDataMap.put("startType", "cron");
 
         JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
-                .withIdentity("job-alert-cron-" + configuration.getId(), "group1")
+                .withIdentity("job-alert-cron-" + configuration.getId(), "group2")
                 .usingJobData(jobDataMap)
                 .build();
 
@@ -147,7 +147,7 @@ public class MainLayout extends AppLayout {
         String cronExpression = createCronExpression(interval);
 
         Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-alert-cron-" + configuration.getId(), "group1")
+                .withIdentity("trigger-alert-cron-" + configuration.getId(), "group2")
                 .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                 .forJob(jobDetail)
                 .build();
