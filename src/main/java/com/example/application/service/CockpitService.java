@@ -114,7 +114,7 @@ public class CockpitService {
             connectWithDatabase(configuration);
 
             // Query to get the existing configuration
-            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CHECK_INTERVALL, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME FROM FVM_MONITOR_ALERTING";
+            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CHECK_INTERVALL, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE FROM FVM_MONITOR_ALERTING";
 
             // Use jdbcTemplate to query and map results to MonitorAlerting object
             jdbcTemplate.query(sql, rs -> {
@@ -134,6 +134,7 @@ public class CockpitService {
                 if (lastAlertCheckTimeStamp != null) {
                     monitorAlerting.setLastALertCheckTime(lastAlertCheckTimeStamp.toLocalDateTime());
                 }
+                monitorAlerting.setIsActive(rs.getInt("IS_ACTIVE"));
             });
 
         } catch (Exception e) {
@@ -144,6 +145,59 @@ public class CockpitService {
             connectionClose();
         }
         return monitorAlerting;
+    }
+    public boolean saveEmailConfiguration(MonitorAlerting monitorAlerting, Configuration configuration) {
+        try {
+            connectWithDatabase(configuration);
+            String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET " +
+                    "MAIL_EMPFAENGER = ?, " +
+                    "MAIL_CC_EMPFAENGER = ?, " +
+                    "MAIL_BETREFF = ?, " +
+                    "MAIL_TEXT = ?, " +
+                    "CHECK_INTERVALL = ?, " +
+                    "IS_ACTIVE = ?";
+
+            // Update the database with the new configuration
+            int rowsAffected = jdbcTemplate.update(updateQuery,
+                    monitorAlerting.getMailEmpfaenger(),
+                    monitorAlerting.getMailCCEmpfaenger(),
+                    monitorAlerting.getMailBetreff(),
+                    monitorAlerting.getMailText(),
+                    monitorAlerting.getIntervall(),
+                    monitorAlerting.getIsActive()
+            );
+
+            // Check if the update was successful
+            if (rowsAffected > 0) {
+                return true;
+            } else {
+                Notification.show("No configuration was updated.", 5000, Notification.Position.MIDDLE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Failed to update configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        } finally {
+            // Ensure database connection is properly closed
+            connectionClose();
+        }
+        return false;
+    }
+    public boolean updateIsActive(int isActive, Configuration configuration) {
+        try {
+            connectWithDatabase(configuration);
+            String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET IS_ACTIVE = ?";
+
+            // Update the database with the new configuration
+            int rowsAffected = jdbcTemplate.update(updateQuery, isActive);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Failed to update configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        } finally {
+            // Ensure database connection is properly closed
+            connectionClose();
+        }
+        return false;
     }
 
     public void updateLastAlertTimeInDatabase(MonitorAlerting monitorAlerting, Configuration configuration) {

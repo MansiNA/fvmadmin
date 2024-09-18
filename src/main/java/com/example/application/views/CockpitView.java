@@ -211,15 +211,14 @@ public class CockpitView extends VerticalLayout{
     private CockpitService cockpitService;
     MonitoringForm form;
     private String alertingState;
-    private String emailAlertingAutostart;
+   // private String emailAlertingAutostart;
     private LocalDateTime lastAlertTime = LocalDateTime.of(1970, 1, 1, 0, 0); // Initialize to epoch start
 
-    public CockpitView(@Value("${email.alerting}") String emailAlertingAutostart, JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService, CockpitService cockpitService) {
+    public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService, CockpitService cockpitService) {
         this.jdbcTemplate = jdbcTemplate;
         this.service = service;
         this.emailService = emailService;
         this.cockpitService = cockpitService;
-        this.emailAlertingAutostart = emailAlertingAutostart;
 
         addClassName("cockpit-view");
         setSizeFull();
@@ -433,7 +432,15 @@ public class CockpitView extends VerticalLayout{
             Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
 
-        comboBox.addValueChangeListener(event -> updateGrid());
+        comboBox.addValueChangeListener(event -> {
+            updateGrid();
+            MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(event.getValue());
+            if(monitorAlerting.getIsActive() == 1) {
+                setAlerting("On");
+            } else {
+                setAlerting("Off");
+            }
+        });
 
         autorefresh.setLabel("Autorefresh");
 
@@ -470,6 +477,7 @@ public class CockpitView extends VerticalLayout{
         MenuItem onMenuItem = menu.addItem("On", event -> {
             setAlerting("On");
             Configuration configuration = comboBox.getValue();
+            cockpitService.updateIsActive(1, configuration);
             cockpitService.deleteLastAlertTimeInDatabase(configuration);
             checkForAlert();
             System.out.println("Alerting Mail eingeschaltet");
@@ -479,6 +487,7 @@ public class CockpitView extends VerticalLayout{
 // Add "Off" menu item and mark it checkable
         MenuItem offMenuItem = menu.addItem("Off", event -> {
             setAlerting("Off");
+            cockpitService.updateIsActive(0, comboBox.getValue());
             System.out.println("Alerting eMail ausgeschaltet");
             checkForAlert();
         });
@@ -490,9 +499,10 @@ public class CockpitView extends VerticalLayout{
             emailConfigurationDialog();
         });
 
-        if (emailAlertingAutostart.equals("On")) {
+        MonitorAlerting  monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
+        boolean isActive = monitorAlerting.getIsActive() != 0 ? true : false;
+        if (isActive) {
             setAlerting("On");
-         //   checkForAlert();
         } else {
             setAlerting("Off");
         }
@@ -670,7 +680,7 @@ public class CockpitView extends VerticalLayout{
         }
 
         // Fetch email configurations
-        MonitorAlerting monitorAlerting = fetchEmailConfiguration();
+        MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
 
         if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
             return; // Exit if no configuration or interval is set
@@ -680,7 +690,7 @@ public class CockpitView extends VerticalLayout{
         updateLastAlertCheckTimeInDatabase(monitorAlerting);
 
         // Check the last alert time to ensure 60 minutes have passed
-        LocalDateTime lastAlertTimeFromDB = fetchEmailConfiguration().getLastAlertTime();
+        LocalDateTime lastAlertTimeFromDB = cockpitService.fetchEmailConfiguration(comboBox.getValue()).getLastAlertTime();
         if (lastAlertTimeFromDB != null && lastAlertTimeFromDB.plusMinutes(60).isAfter(LocalDateTime.now())) {
             System.out.println("60 minutes have not passed since the last alert. Skipping alert.");
             return;
@@ -1425,6 +1435,7 @@ public class CockpitView extends VerticalLayout{
         TextField mailBetreffField = new TextField("MAIL_BETREFF");
         TextArea mailTextArea = new TextArea("MAIL_TEXT");
         IntegerField intervalField = new IntegerField("Intervall (in minutes)");
+        Checkbox aktiv = new Checkbox("aktiv");
 
         // Set widths for fields
         mailEmpfaengerField.setWidth("100%");
@@ -1433,14 +1444,16 @@ public class CockpitView extends VerticalLayout{
         mailTextArea.setWidth("100%");
         mailTextArea.setHeight("150px"); // Adjust height as needed
         intervalField.setWidth("100%");
+        aktiv.setWidth("100%");
 
-        MonitorAlerting monitorAlerting = fetchEmailConfiguration();
+        MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
 
         Optional.ofNullable(monitorAlerting.getMailEmpfaenger()).ifPresent(mailEmpfaengerField::setValue);
         Optional.ofNullable(monitorAlerting.getMailCCEmpfaenger()).ifPresent(mailCCEmpfaengerField::setValue);
         Optional.ofNullable(monitorAlerting.getMailBetreff()).ifPresent(mailBetreffField::setValue);
         Optional.ofNullable(monitorAlerting.getMailText()).ifPresent(mailTextArea::setValue);
         Optional.ofNullable(monitorAlerting.getIntervall()).ifPresent(intervalField::setValue);
+        aktiv.setValue(monitorAlerting.getIsActive() != 0 ? true : false);
 
         Button saveButton = new Button("Save", event -> {
             // Update the monitorAlerting object with values from the input fields
@@ -1449,9 +1462,13 @@ public class CockpitView extends VerticalLayout{
             monitorAlerting.setMailBetreff(mailBetreffField.getValue());
             monitorAlerting.setMailText(mailTextArea.getValue());
             monitorAlerting.setIntervall(intervalField.getValue());
+            monitorAlerting.setIsActive(aktiv.getValue() ? 1: 0);
 
             // Call the save method to persist the configuration
-            saveEmailConfiguration(monitorAlerting);
+            boolean isSuccess = cockpitService.saveEmailConfiguration(monitorAlerting, comboBox.getValue());
+            if(isSuccess) {
+                restartAlertCron(monitorAlerting);
+            }
 
             dialog.close(); // Close the dialog after saving
         });
@@ -1467,6 +1484,7 @@ public class CockpitView extends VerticalLayout{
                 mailBetreffField,
                 mailTextArea,
                 intervalField,
+                aktiv,
                 new HorizontalLayout(saveButton, cancelButton) // Align buttons horizontally
         );
         layout.setSpacing(true); // Add spacing between components
@@ -1505,38 +1523,6 @@ public class CockpitView extends VerticalLayout{
             e.getMessage();
             e.printStackTrace();
             Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-        }
-    }
-
-    private void saveEmailConfiguration(MonitorAlerting monitorAlerting) {
-        try {
-            String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET " +
-                    "MAIL_EMPFAENGER = ?, " +
-                    "MAIL_CC_EMPFAENGER = ?, " +
-                    "MAIL_BETREFF = ?, " +
-                    "MAIL_TEXT = ?, " +
-                    "CHECK_INTERVALL = ?";
-
-            // Update the database with the new configuration
-            int rowsAffected = jdbcTemplate.update(updateQuery,
-                    monitorAlerting.getMailEmpfaenger(),
-                    monitorAlerting.getMailCCEmpfaenger(),
-                    monitorAlerting.getMailBetreff(),
-                    monitorAlerting.getMailText(),
-                    monitorAlerting.getIntervall()
-            );
-
-            // Check if the update was successful
-            if (rowsAffected > 0) {
-                // Restart the cron job with the new configuration
-                restartAlertCron(monitorAlerting);
-            //    Notification.show("Configuration updated successfully.");
-            } else {
-                Notification.show("No configuration was updated.", 5000, Notification.Position.MIDDLE);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            Notification.show("Failed to update configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
 

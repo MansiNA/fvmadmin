@@ -60,9 +60,8 @@ public class MainLayout extends AppLayout {
     public static String userName;
 
     private boolean cronAutostart;
-    private boolean emailAlertingAutostart;
     private static int count = 0;
-    public MainLayout( @Value("${cron.autostart}") boolean cronAutostart, @Value("${email.alerting}") String emailAlertingAutostart, AuthenticatedUser authenticatedUser, UserService userService, ConfigurationService configurationService, CockpitService cockpitService){
+    public MainLayout( @Value("${cron.autostart}") boolean cronAutostart, AuthenticatedUser authenticatedUser, UserService userService, ConfigurationService configurationService, CockpitService cockpitService){
 
 
         this.authenticatedUser = authenticatedUser;

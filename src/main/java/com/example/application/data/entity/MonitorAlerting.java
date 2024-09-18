@@ -16,6 +16,7 @@ public class MonitorAlerting {
     private String mailBetreff;
     private String mailText;
     private Integer intervall;
+    private Integer isActive;
     private LocalDateTime lastAlertTime;
     private LocalDateTime lastALertCheckTime;
 

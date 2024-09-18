@@ -47,8 +47,8 @@ public class Application implements AppShellConfigurator {
     @Value("${cron.autostart}")
     private boolean cronAutostart;
 
-    @Value("${email.alerting}")
-    private String emailAlertingAutostart;
+//    @Value("${email.alerting}")
+//    private String emailAlertingAutostart;
 
     @Autowired
     private JobDefinitionService jobDefinitionService;
@@ -66,17 +66,17 @@ public class Application implements AppShellConfigurator {
     }
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
-        System.out.println("abc----------------------cbbbbbbbbbbbbb------------");
+
         if (cronAutostart) {
-            System.out.println("---------------xxxxxxxxxxxxxxxxxxxxxxxx-------------------");
             System.out.println("");
             allCronJobStart();
         }
 
-        if ("On".equals(emailAlertingAutostart)) {
-            System.out.println("---------------yyyyyyyyyyyyyyyy-------------------");
-            allMonitorCronStart();
-        }
+        allMonitorCronStart();
+//        if ("On".equals(emailAlertingAutostart)) {
+//            System.out.println("---------------yyyyyyyyyyyyyyyy-------------------");
+//            allMonitorCronStart();
+//        }
     }
 
     private void allMonitorCronStart() {
@@ -98,42 +98,45 @@ public class Application implements AppShellConfigurator {
     }
 
     public void scheduleEmailMonitorJob(Configuration configuration) throws SchedulerException {
-        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
-        scheduler.start();
-        //  notifySubscribers(",,"+jobManager.getId());
-        JobDataMap jobDataMap = new JobDataMap();
-        try {
-            jobDataMap.put("configuration", JobDefinitionUtils.serializeJobDefinition(configuration));
-        } catch (JsonProcessingException e) {
-            Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-            return;
-        }
-
-        jobDataMap.put("startType", "cron");
-
-        JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
-                .withIdentity("job-alert-cron-" + configuration.getId(), "group2")
-                .usingJobData(jobDataMap)
-                .build();
-
-
         // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
-        if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
-            System.out.println("No interval set for the configuration. Job will not be scheduled.");
-            return;
+        if(monitorAlerting.getIsActive() == 1) {
+            System.out.println("configuration......"+configuration.getName());
+            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+            scheduler.start();
+            //  notifySubscribers(",,"+jobManager.getId());
+            JobDataMap jobDataMap = new JobDataMap();
+            try {
+                jobDataMap.put("configuration", JobDefinitionUtils.serializeJobDefinition(configuration));
+            } catch (JsonProcessingException e) {
+                Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                return;
+            }
+
+            jobDataMap.put("startType", "cron");
+
+            JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
+                    .withIdentity("job-alert-cron-" + configuration.getId(), "group2")
+                    .usingJobData(jobDataMap)
+                    .build();
+
+
+            if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
+                System.out.println("No interval set for the configuration. Job will not be scheduled.");
+                return;
+            }
+
+            int interval = monitorAlerting.getIntervall(); // assuming this returns the interval in minutes
+            String cronExpression = createCronExpression(interval);
+
+            Trigger trigger = TriggerBuilder.newTrigger()
+                    .withIdentity("trigger-alert-cron-" + configuration.getId(), "group2")
+                    .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                    .forJob(jobDetail)
+                    .build();
+
+            scheduler.scheduleJob(jobDetail, trigger);
         }
-
-        int interval = monitorAlerting.getIntervall(); // assuming this returns the interval in minutes
-        String cronExpression = createCronExpression(interval);
-
-        Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-alert-cron-" + configuration.getId(), "group2")
-                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
-                .forJob(jobDetail)
-                .build();
-
-        scheduler.scheduleJob(jobDetail, trigger);
     }
 
     private String createCronExpression(int interval) {
