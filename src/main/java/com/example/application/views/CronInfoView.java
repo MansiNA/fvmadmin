@@ -10,6 +10,8 @@ import com.example.application.utils.LogPannel;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.KeyModifier;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.H2;
@@ -22,6 +24,7 @@ import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.quartz.impl.matchers.GroupMatcher;
 
+import java.time.Duration;
 import java.util.*;
 
 @PageTitle("Cron Infoview")
@@ -52,7 +55,13 @@ public class CronInfoView extends VerticalLayout {
             throw new RuntimeException(e);
         }
 
-        HorizontalLayout hl = new HorizontalLayout(new H2("Cron Infoview"));
+        Button refreshBtn = new Button("refresh");
+        refreshBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+        refreshBtn.addClickListener(clickEvent -> {
+            updateGrid();
+        });
+
+        HorizontalLayout hl = new HorizontalLayout(new H2("Cron Infoview"), refreshBtn);
         hl.setAlignItems(Alignment.BASELINE);
         add(hl);
 
