@@ -434,6 +434,7 @@ public class CockpitView extends VerticalLayout{
 
         comboBox.addValueChangeListener(event -> {
             updateGrid();
+            cockpitService.createFvmMonitorAlertingTable(comboBox.getValue());
             MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(event.getValue());
             if(monitorAlerting.getIsActive() == 1) {
                 setAlerting("On");

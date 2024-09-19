@@ -225,39 +225,66 @@ public class CockpitService {
     public boolean saveEmailConfiguration(MonitorAlerting monitorAlerting, Configuration configuration) {
         try {
             connectWithDatabase(configuration);
-            String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET " +
-                    "MAIL_EMPFAENGER = ?, " +
-                    "MAIL_CC_EMPFAENGER = ?, " +
-                    "MAIL_BETREFF = ?, " +
-                    "MAIL_TEXT = ?, " +
-                    "CHECK_INTERVALL = ?, " +
-                    "IS_ACTIVE = ?";
 
-            // Update the database with the new configuration
-            int rowsAffected = jdbcTemplate.update(updateQuery,
-                    monitorAlerting.getMailEmpfaenger(),
-                    monitorAlerting.getMailCCEmpfaenger(),
-                    monitorAlerting.getMailBetreff(),
-                    monitorAlerting.getMailText(),
-                    monitorAlerting.getIntervall(),
-                    monitorAlerting.getIsActive()
-            );
+            // Check if there is any existing data in the table
+            String checkQuery = "SELECT COUNT(*) FROM FVM_MONITOR_ALERTING";
+            Integer count = jdbcTemplate.queryForObject(checkQuery, Integer.class);
 
-            // Check if the update was successful
-            if (rowsAffected > 0) {
-                return true;
+            if (count != null && count > 0) {
+                // If record exists, update the configuration
+                String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET " +
+                        "MAIL_EMPFAENGER = ?, " +
+                        "MAIL_CC_EMPFAENGER = ?, " +
+                        "MAIL_BETREFF = ?, " +
+                        "MAIL_TEXT = ?, " +
+                        "CHECK_INTERVALL = ?, " +
+                        "IS_ACTIVE = ?";
+
+                int rowsAffected = jdbcTemplate.update(updateQuery,
+                        monitorAlerting.getMailEmpfaenger(),
+                        monitorAlerting.getMailCCEmpfaenger(),
+                        monitorAlerting.getMailBetreff(),
+                        monitorAlerting.getMailText(),
+                        monitorAlerting.getIntervall(),
+                        monitorAlerting.getIsActive()
+                );
+
+                if (rowsAffected > 0) {
+                    return true;
+                } else {
+                    Notification.show("No configuration was updated.", 5000, Notification.Position.MIDDLE);
+                }
             } else {
-                Notification.show("No configuration was updated.", 5000, Notification.Position.MIDDLE);
+                // If no record exists, insert a new configuration
+                String insertQuery = "INSERT INTO FVM_MONITOR_ALERTING " +
+                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CHECK_INTERVALL, IS_ACTIVE) " +
+                        "VALUES (?, ?, ?, ?, ?, ?)";
+
+                int rowsAffected = jdbcTemplate.update(insertQuery,
+                        monitorAlerting.getMailEmpfaenger(),
+                        monitorAlerting.getMailCCEmpfaenger(),
+                        monitorAlerting.getMailBetreff(),
+                        monitorAlerting.getMailText(),
+                        monitorAlerting.getIntervall(),
+                        monitorAlerting.getIsActive()
+                );
+
+                if (rowsAffected > 0) {
+                    return true;
+                } else {
+                    Notification.show("Failed to insert new configuration.", 5000, Notification.Position.MIDDLE);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
-            Notification.show("Failed to update configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed
             connectionClose();
         }
         return false;
     }
+
     public boolean updateIsActive(int isActive, Configuration configuration) {
         try {
             connectWithDatabase(configuration);
