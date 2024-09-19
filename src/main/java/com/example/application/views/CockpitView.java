@@ -498,9 +498,9 @@ public class CockpitView extends VerticalLayout{
             System.out.println("Konfig-Dialog aufrufen");
             emailConfigurationDialog();
         });
-
+        cockpitService.createFvmMonitorAlertingTable(comboBox.getValue());
         MonitorAlerting  monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
-        boolean isActive = monitorAlerting.getIsActive() != 0 ? true : false;
+        boolean isActive = monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() != 0;
         if (isActive) {
             setAlerting("On");
         } else {
@@ -1453,7 +1453,7 @@ public class CockpitView extends VerticalLayout{
         Optional.ofNullable(monitorAlerting.getMailBetreff()).ifPresent(mailBetreffField::setValue);
         Optional.ofNullable(monitorAlerting.getMailText()).ifPresent(mailTextArea::setValue);
         Optional.ofNullable(monitorAlerting.getIntervall()).ifPresent(intervalField::setValue);
-        aktiv.setValue(monitorAlerting.getIsActive() != 0 ? true : false);
+        aktiv.setValue(monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() != 0);
 
         Button saveButton = new Button("Save", event -> {
             // Update the monitorAlerting object with values from the input fields

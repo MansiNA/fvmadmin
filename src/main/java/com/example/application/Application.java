@@ -88,11 +88,13 @@ public class Application implements AppShellConfigurator {
         // Fetch email configurations
         for(Configuration configuration : monitoringConfigs) {
             try {
+                cockpitService.createFvmMonitorAlertingTable(configuration);
                 cockpitService.deleteLastAlertTimeInDatabase(configuration);
                 scheduleEmailMonitorJob(configuration);
             } catch (Exception e) {
                 //        JobManagerView.allCronButton.setText("Cron Start");
-                Notification.show("Error executing job: " + configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                e.printStackTrace();
+             //   Notification.show("Error executing job: " + configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             }
         }
     }
@@ -100,7 +102,7 @@ public class Application implements AppShellConfigurator {
     public void scheduleEmailMonitorJob(Configuration configuration) throws SchedulerException {
         // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
-        if(monitorAlerting.getIsActive() == 1) {
+        if(monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() == 1) {
             System.out.println("configuration......"+configuration.getName());
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
             scheduler.start();
@@ -161,8 +163,9 @@ public class Application implements AppShellConfigurator {
                     }
                 }
             } catch (Exception e) {
+                e.printStackTrace();
                 //        JobManagerView.allCronButton.setText("Cron Start");
-                Notification.show("Error executing job: " + jobManager.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            //    Notification.show("Error executing job: " + jobManager.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             }
         }
     }

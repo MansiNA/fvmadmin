@@ -106,6 +106,81 @@ public class CockpitService {
 
         return monitore;
     }
+    private boolean tableExistsold(String tableName) {
+        try {
+            String checkTableSql = "SELECT COUNT(*) FROM ALL_TABLES WHERE table_name = ?";
+            int tableCount = jdbcTemplate.queryForObject(checkTableSql, Integer.class, tableName);
+
+            return tableCount > 0;
+        } catch (Exception e) {
+            System.out.println("Exception while checking table existence: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private boolean tableExists(String tableName, String databaseType) {
+        try {
+            String checkTableSql;
+            // Switch based on the database type
+            switch (databaseType.toLowerCase()) {
+                case "oracle":
+                    checkTableSql = "SELECT COUNT(*) FROM ALL_TABLES WHERE table_name = ?";
+                    break;
+                case "sqlserver":
+                    checkTableSql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?";
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported database type: " + databaseType);
+            }
+
+            // Execute the query to check if the table exists
+            int tableCount = jdbcTemplate.queryForObject(checkTableSql, Integer.class, tableName.toUpperCase());
+
+            return tableCount > 0;
+        } catch (Exception e) {
+            System.out.println("Exception while checking table existence: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public void createFvmMonitorAlertingTable(Configuration configuration) {
+
+        String tableName = "FVM_MONITOR_ALERTING";
+        try {
+            connectWithDatabase(configuration);
+            String dbType = "oracle";
+            if(configuration.getName().contains("SQLServer")) {
+                dbType = "sqlserver";
+            }
+            if (!tableExists(tableName, dbType)) {
+                System.out.println("Creating table: " + tableName);
+
+                String createTableSQL = "CREATE TABLE FVM_MONITOR_ALERTING ("
+                        + "MAIL_EMPFAENGER VARCHAR(255), "
+                        + "MAIL_CC_EMPFAENGER VARCHAR(255), "
+                        + "MAIL_BETREFF VARCHAR(255), "
+                        + "MAIL_TEXT VARCHAR(255), "
+                        + "CHECK_INTERVALL INT, "
+                        + "LAST_ALERT_TIME DATE, "
+                        + "LAST_ALERT_CHECKTIME TIMESTAMP, "
+                        + "IS_ACTIVE INT"
+                        + ")";
+
+                jdbcTemplate.execute(createTableSQL);
+
+                System.out.println("Table created successfully.");
+            } else {
+                System.out.println("Table already exists: " + tableName);
+            }
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            connectionClose();
+        }
+    }
 
     public MonitorAlerting fetchEmailConfiguration(Configuration configuration) {
         MonitorAlerting monitorAlerting = new MonitorAlerting();
@@ -137,6 +212,7 @@ public class CockpitService {
                 monitorAlerting.setIsActive(rs.getInt("IS_ACTIVE"));
             });
 
+            return monitorAlerting;
         } catch (Exception e) {
             e.printStackTrace();
             Notification.show("Failed to load configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
@@ -144,7 +220,7 @@ public class CockpitService {
             // Ensure database connection is properly closed
             connectionClose();
         }
-        return monitorAlerting;
+        return null;
     }
     public boolean saveEmailConfiguration(MonitorAlerting monitorAlerting, Configuration configuration) {
         try {
