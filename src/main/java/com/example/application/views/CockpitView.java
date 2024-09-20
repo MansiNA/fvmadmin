@@ -1530,9 +1530,10 @@ public class CockpitView extends VerticalLayout{
     private void restartAlertCron(MonitorAlerting monitorAlerting) {
         try {
             Configuration configuration = comboBox.getValue();
-            stopAllScheduledJobs(configuration);
-            scheduleEmailMonitorJob(configuration);
-
+            if(alertingState.equals("On")) {
+                stopAllScheduledJobs(configuration);
+                scheduleEmailMonitorJob(configuration);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             Notification.show("Failed to restart alert job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
