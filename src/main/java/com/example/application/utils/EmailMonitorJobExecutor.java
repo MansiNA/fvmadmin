@@ -1,13 +1,10 @@
 package com.example.application.utils;
 
 import com.example.application.data.entity.*;
-import com.example.application.data.service.JobDefinitionService;
-import com.example.application.data.service.JobHistoryService;
 import com.example.application.service.CockpitService;
 import com.example.application.service.EmailService;
-import com.example.application.views.JobManagerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.vaadin.flow.component.notification.Notification;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -20,15 +17,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
-import java.sql.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.*;
 
 @Component
 public class EmailMonitorJobExecutor implements Job {
@@ -61,47 +53,102 @@ public class EmailMonitorJobExecutor implements Job {
     }
 
     private void executeJob(Configuration configuration) {
-            MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
+        MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
 
-            if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
-                return; // Exit if no configuration or interval is set
+        if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
+            return; // Exit if no configuration or interval is set
+        }
+
+        // Update the LAST_ALERT_CHECKTIME column with the current datetime
+        cockpitService.updateLastAlertCheckTimeInDatabase(monitorAlerting, configuration);
+
+        // Check the last alert time to ensure 60 minutes have passed
+        LocalDateTime lastAlertTimeFromDB = cockpitService.fetchEmailConfiguration(configuration).getLastAlertTime();
+        if (lastAlertTimeFromDB != null && lastAlertTimeFromDB.plusMinutes(60).isAfter(LocalDateTime.now())) {
+            System.out.println("60 minutes have not passed since the last alert. Skipping alert.");
+            return;
+        }
+
+        // Check all monitoring entries
+        List<fvm_monitoring> monitorings = cockpitService.getMonitoring(configuration);
+        List<fvm_monitoring> exceededEntries = new ArrayList<>(); // List to store entries exceeding the threshold
+
+        // Check each monitoring entry
+        for (fvm_monitoring monitoring : monitorings) {
+            if (!monitoring.getIS_ACTIVE().equals("1")) {
+                System.out.println(monitoring.getTitel() + "------------skip-----------" + monitoring.getIS_ACTIVE());
+                continue; // Skip non-active entries
             }
 
-            // Update the LAST_ALERT_CHECKTIME column with the current datetime
-            cockpitService.updateLastAlertCheckTimeInDatabase(monitorAlerting, configuration);
-
-            // Check the last alert time to ensure 60 minutes have passed
-            LocalDateTime lastAlertTimeFromDB = cockpitService.fetchEmailConfiguration(configuration).getLastAlertTime();
-            if (lastAlertTimeFromDB != null && lastAlertTimeFromDB.plusMinutes(60).isAfter(LocalDateTime.now())) {
-                System.out.println("60 minutes have not passed since the last alert. Skipping alert.");
-                return;
+            if (shouldSendAlert(monitoring)) {
+                exceededEntries.add(monitoring); // Add entry to the list if it exceeds the threshold
             }
+        }
 
-            // Check all monitoring entries
-            List<fvm_monitoring> monitorings = cockpitService.getMonitoring(configuration);
+        // If any entry exceeds the threshold, send an email with an Excel attachment
+        if (!exceededEntries.isEmpty()) {
+            // Generate the Excel file with exceeded entries
+            ByteArrayResource xlsxAttachment = generateExcelAttachment(exceededEntries);
 
-            for (fvm_monitoring monitoring : monitorings) {
+            // Send the email with the attachment
+            sendAlertEmail(monitorAlerting, xlsxAttachment);
+            LocalDateTime lastAlertTime = LocalDateTime.now(); // Update last alert time
+            monitorAlerting.setLastAlertTime(lastAlertTime);
+            cockpitService.updateLastAlertTimeInDatabase(monitorAlerting, configuration);
+        } else {
+            System.out.println("No entries exceeded the threshold.");
+        }
 
-                if (!monitoring.getIS_ACTIVE().equals("1")) {
-                    System.out.println(monitoring.getTitel() + "------------skip-----------" + monitoring.getIS_ACTIVE());
-                    continue; // Skip non-active entries
-                }
-                System.out.println(monitoring.getTitel() + "shouldSendAlert(monitoring) = " + shouldSendAlert(monitoring));
-                if (shouldSendAlert(monitoring)) {
-                 //   System.out.println("shouldSendEmail(monitorAlerting) = " + shouldSendEmail(monitorAlerting));
-                  //  if (shouldSendEmail(monitorAlerting)) {
-                    //    System.out.println("send email............. = " + shouldSendEmail(monitorAlerting));
-                        sendAlertEmail(monitorAlerting, monitoring);
-                        LocalDateTime lastAlertTime = LocalDateTime.now(); // Update last alert time
-                        monitorAlerting.setLastAlertTime(lastAlertTime);
-                        cockpitService.updateLastAlertTimeInDatabase(monitorAlerting, configuration); // Update the DB with the current time
-                 //   }
-                }
-            }
     }
 
     private boolean shouldSendAlert(fvm_monitoring monitoring) {
-        return monitoring.getAktueller_Wert() > monitoring.getError_Schwellwert();
+        return monitoring.getAktueller_Wert() >= monitoring.getError_Schwellwert();
+    }
+
+    private ByteArrayResource generateExcelAttachment(List<fvm_monitoring> exceededEntries) {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Exceeded Threshold Entries");
+
+            // Create header row
+            Row headerRow = sheet.createRow(0);
+            headerRow.createCell(0).setCellValue("ID");
+            headerRow.createCell(1).setCellValue("Title");
+            headerRow.createCell(2).setCellValue("Aktuell");
+            headerRow.createCell(3).setCellValue("Error Schwellwert");
+
+            // Populate rows with data
+            int rowIndex = 1;
+            for (fvm_monitoring entry : exceededEntries) {
+                Row row = sheet.createRow(rowIndex++);
+                row.createCell(0).setCellValue(entry.getID());
+                row.createCell(1).setCellValue(entry.getTitel());
+                row.createCell(2).setCellValue(entry.getAktueller_Wert());
+                row.createCell(3).setCellValue(entry.getError_Schwellwert());
+            }
+
+            // Write the workbook to a byte array output stream
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+
+            Path projectDir = Paths.get("").toAbsolutePath();
+
+            String fileName = "ExceedEntries.xlsx";
+            // Define the file path relative to the project root directory
+            Path filePath = projectDir.resolve(fileName);
+
+            // Save the workbook to the file
+            try (FileOutputStream fileOut = new FileOutputStream(filePath.toFile())) {
+                workbook.write(fileOut);
+                System.out.println("File saved to project directory: " + filePath.toAbsolutePath());
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new IOException("Failed to save Excel file to project directory.", e);
+            }
+            return new ByteArrayResource(outputStream.toByteArray());
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to generate Excel file.", e);
+        }
     }
 
     private boolean shouldSendEmail(MonitorAlerting monitorAlerting) {
@@ -110,9 +157,11 @@ public class EmailMonitorJobExecutor implements Job {
         return LocalDateTime.now().isAfter(nextValidTime);
     }
 
-    private void sendAlertEmail(MonitorAlerting config, fvm_monitoring monitoring) {
+    private void sendAlertEmail(MonitorAlerting config, ByteArrayResource resource) {
         try {
-            emailService.sendAttachMessage(config.getMailEmpfaenger(), config.getMailCCEmpfaenger(), config.getMailBetreff(), config.getMailText());
+            String fileName = "ExceedEntries.xlsx";
+            emailService.sendAttachMessage(config.getMailEmpfaenger(), config.getMailCCEmpfaenger(), config.getMailBetreff(), config.getMailText(), fileName, resource);
+         //   emailService.sendAttachMessage(config.getMailEmpfaenger(), config.getMailCCEmpfaenger(), config.getMailBetreff(), config.getMailText());
             System.out.println("Email sent successfully!");
         } catch (Exception e) {
             e.printStackTrace();

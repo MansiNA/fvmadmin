@@ -1,6 +1,7 @@
 package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.Mailbox;
 import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
@@ -203,7 +204,7 @@ public class CockpitView extends VerticalLayout{
 
     private ContextMenu menu;
     private Span alerting;
-
+    Button menuButton = new Button("Show/Hide Columns");
 
     private UI ui ;
     Instant startTime;
@@ -258,8 +259,10 @@ public class CockpitView extends VerticalLayout{
                     .join();
         });
 
+        HorizontalLayout hl = new HorizontalLayout();
         H2 h2 = new H2("ekP / EGVP-E Monitoring");
-        add(h2);
+        hl.add(h2,menuButton);
+        add(hl);
 
         //editor.setVisible(false);
 
@@ -511,7 +514,7 @@ public class CockpitView extends VerticalLayout{
         alerting.getStyle().set("font-weight", "bold");
 
 
-        HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn,lastRefreshLabel, autorefresh, countdownLabel, assigneeInfo);
+        HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn, lastRefreshLabel, autorefresh, countdownLabel, assigneeInfo);
         layout.setPadding(false);
         layout.setAlignItems(Alignment.BASELINE);
 
@@ -527,7 +530,7 @@ public class CockpitView extends VerticalLayout{
     }
 
     private void updateGrid() {
-        param_Liste = getMonitoring();
+        param_Liste = cockpitService.getMonitoring(comboBox.getValue());
         if(param_Liste != null) {
             grid.setItems(param_Liste);
         }
@@ -536,12 +539,16 @@ public class CockpitView extends VerticalLayout{
     private void configureGrid() {
         /*grid.addColumn(fvm_monitoring::getID).setHeader("ID")
                 .setAutoWidth(true).setResizable(true).setSortable(true);*/
+        Grid.Column<fvm_monitoring> idColumn = grid.addColumn((fvm_monitoring::getID)).setHeader("ID")
+                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
         grid.addColumn(fvm_monitoring::getTitel).setHeader("Titel")
                 .setAutoWidth(true).setResizable(true).setSortable(true);
       /*  grid.addColumn(fvm_monitoring::getCheck_Intervall).setHeader("Intervall")
                 .setAutoWidth(true).setResizable(true).setSortable(true); */
-        grid.addColumn(fvm_monitoring::getWarning_Schwellwert).setHeader("Warning Schwellwert")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+//        grid.addColumn(fvm_monitoring::getWarning_Schwellwert).setHeader("Warning Schwellwert")
+//                .setAutoWidth(true).setResizable(true).setSortable(true);
+        Grid.Column<fvm_monitoring> warnSchwellwerkColumn = grid.addColumn((fvm_monitoring::getWarning_Schwellwert)).setHeader("Warning Schwellwert")
+                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
         grid.addColumn(fvm_monitoring::getError_Schwellwert ).setHeader("Error Schwellwert")
                 .setAutoWidth(true).setResizable(true).setSortable(true);
         grid.addColumn(fvm_monitoring::getAktueller_Wert).setHeader("Aktuell")
@@ -656,7 +663,13 @@ public class CockpitView extends VerticalLayout{
             return menuBar;
         }).setWidth("120px").setFlexGrow(0);*/
 
+        menuButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
+        idColumn.setVisible(false);
+        warnSchwellwerkColumn.setVisible(false);
+        ColumnToggleContextMenu columnToggleContextMenu = new ColumnToggleContextMenu(menuButton);
+        columnToggleContextMenu.addColumnToggleItem("ID", idColumn);
+        columnToggleContextMenu.addColumnToggleItem("Warning Schwellwert", warnSchwellwerkColumn);
     }
 
     public void checkForAlert() {
@@ -1767,5 +1780,18 @@ public class CockpitView extends VerticalLayout{
     }
 
 
+    private static class ColumnToggleContextMenu extends ContextMenu {
+        public ColumnToggleContextMenu(Component target) {
+            super(target);
+            setOpenOnClick(true);
+        }
 
+        void addColumnToggleItem(String label, Grid.Column<fvm_monitoring> column) {
+            MenuItem menuItem = this.addItem(label, e -> {
+                column.setVisible(e.getSource().isChecked());
+            });
+            menuItem.setCheckable(true);
+            menuItem.setChecked(column.isVisible());
+        }
+    }
 }
