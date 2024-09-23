@@ -645,7 +645,14 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
 
         Checkbox aktiv = new Checkbox("aktiv");
         aktiv.setTooltipText("aktiv");
-        aktiv.setValue(jobManager.getAktiv() != 0 ? true : false);
+        // aktiv.setValue(jobManager.getAktiv() != 0 ? true : false);
+        if (isNew) {
+            jobManager.setAktiv(0);
+        } else {
+            aktiv.setValue(jobManager.getAktiv() != null && jobManager.getAktiv() != 0);
+        }
+
+        aktiv.setValue(jobManager.getAktiv() != null && jobManager.getAktiv() != 0);
         aktiv.setWidth("50px");
 
         TextField scriptpath = new TextField("SCRIPTPATH");
