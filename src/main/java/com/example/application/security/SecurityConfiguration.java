@@ -24,6 +24,8 @@ import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 import javax.naming.directory.InitialDirContext;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.Hashtable;
 
 @EnableWebSecurity
@@ -35,14 +37,17 @@ public class SecurityConfiguration extends VaadinWebSecurity {
     private final String ldapUrl;
     private final String p_ldapUserPrefix;
     private final String p_ldapUserPostfix;
+   // @Value("${ad.check.program}")
+    private final String adCheckProgram;
 
-    public SecurityConfiguration(@Value("${ldap.url}") String p_ldapUrl, @Value("${ldap.user.prefix}") String p_ldapUserPrefix, @Value("${ldap.user.postfix}") String p_ldapUserPostfix, UserDetailsService userDetailsService, UserService userService) {
+    public SecurityConfiguration(@Value("${ad.check.program}") String adCheckProgram, @Value("${ldap.url}") String p_ldapUrl, @Value("${ldap.user.prefix}") String p_ldapUserPrefix, @Value("${ldap.user.postfix}") String p_ldapUserPostfix, UserDetailsService userDetailsService, UserService userService) {
         this.userDetailsService = userDetailsService;
         this.userService = userService;
 
         this.ldapUrl = p_ldapUrl;
         this.p_ldapUserPrefix=p_ldapUserPrefix;
         this.p_ldapUserPostfix=p_ldapUserPostfix;
+        this.adCheckProgram = adCheckProgram;
     }
 
 
@@ -51,6 +56,10 @@ public class SecurityConfiguration extends VaadinWebSecurity {
         return new BCryptPasswordEncoder();
     }
 
+//    @Bean
+//    public String adCheckProgram(@Value("${ad.check.program}") String adCheckProgram) {
+//        return adCheckProgram;
+//    }
 
     @Component
     public class CustomAuthenticationProvider implements AuthenticationProvider {
@@ -77,8 +86,11 @@ public class SecurityConfiguration extends VaadinWebSecurity {
 
                 System.out.println(user.getName() + " ist Active Directory User...");
 
-                boolean isLoginSuccessful = false;
-                isLoginSuccessful = connectToLdap(username, password);
+//                boolean isLoginSuccessful = false;
+//                isLoginSuccessful = connectToLdap(username, password);
+
+            //     Use the script to check the AD user
+                boolean isLoginSuccessful = checkUserWithScript(username, password);
 
                 if (isLoginSuccessful) {
                     System.out.println("AD says successfully login...");
@@ -178,6 +190,31 @@ public class SecurityConfiguration extends VaadinWebSecurity {
     }
 
     //@Override
+    private boolean checkUserWithScript(String username, String password) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(adCheckProgram, username, password);
+            Process process = pb.start();
+            int exitCode = process.waitFor();  // Wait for the script to finish
+
+            // Read the script's output (if needed)
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);  // Print the script's output
+            }
+
+            if (exitCode == 0) {
+                System.out.println("Login successful via script.");
+                return true;  // Script returned 0, login is successful
+            } else {
+                System.out.println("Login failed via script.");
+                return false;  // Script returned non-zero, login failed
+            }
+        } catch (Exception e) {
+            System.out.println("Error running AD check script: " + e.getMessage());
+            return false;
+        }
+    }
 
 
     @Override
