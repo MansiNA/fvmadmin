@@ -1392,11 +1392,11 @@ public class CockpitView extends VerticalLayout{
 
     private Component getSqlAbfrage(fvm_monitoring monitor) {
         VerticalLayout content = new VerticalLayout();
-        TextField abfrage = new TextField("SQL-Abfrage");
+        TextArea abfrage = new TextArea("SQL-Abfrage");
         abfrage.setValue(monitor.getSQL());
         abfrage.setWidthFull();
 
-        TextField detailabfrage = new TextField("SQL-Detail Abfrage");
+        TextArea detailabfrage = new TextArea("SQL-Detail Abfrage");
         detailabfrage.setValue(monitor.getSQL_Detail());
         detailabfrage.setWidthFull();
 
@@ -1408,6 +1408,10 @@ public class CockpitView extends VerticalLayout{
 
     private Component getGeneral(fvm_monitoring monitor) {
         VerticalLayout content = new VerticalLayout();
+
+        IntegerField id = new IntegerField("Id");
+        id.setValue(monitor.getID());
+        id.setReadOnly(true);
 
         TextField titel = new TextField("Titel");
         titel.setValue(monitor.getTitel());
@@ -1434,7 +1438,7 @@ public class CockpitView extends VerticalLayout{
         HorizontalLayout hr = new HorizontalLayout(intervall,infoSchwellwert,errorSchwellwert, checkbox);
         hr.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
         System.out.println(monitor + "... 3");
-        content.add(titel, hr);
+        content.add(id, titel, hr);
         return content;
     }
 
