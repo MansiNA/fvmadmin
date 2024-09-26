@@ -29,6 +29,7 @@ import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
@@ -73,11 +74,14 @@ public class FileBrowserView extends VerticalLayout {
     Button grepButton;
     Checkbox lineNumbersCheckbox;
     private StringBuilder tailTextAreaContent = new StringBuilder();
+    IntegerField countPreLinesField = new IntegerField("CountPreLines");
+    IntegerField countPostLinesField = new IntegerField("CountPostLines");
 
     public FileBrowserView (ConfigurationService service, ServerConfigurationService serverConfigurationService) throws JSchException, SftpException {
 
         this.serverConfigurationService = serverConfigurationService;
         EndTaskBtn = new Button("Tail beenden");
+
         try {
             List<ServerConfiguration> serverConfigList = serverConfigurationService.findAllConfigurations();
             if (serverConfigList != null && !serverConfigList.isEmpty()) {
@@ -181,16 +185,23 @@ public class FileBrowserView extends VerticalLayout {
             boolean showLineNumbers = event.getValue(); // Get whether the checkbox is checked or not
             toggleLineNumbers(showLineNumbers, tailTextArea); // Call the method to show or hide line numbers
         });
-
+        countPreLinesField.setValue(0);
+        countPostLinesField.setValue(0);
+        countPreLinesField.setReadOnly(true);
+        countPostLinesField.setReadOnly(true);
         HorizontalLayout hl = new HorizontalLayout();
 
         Label label=new Label("File: ");
-        hl.add(label, Filelabel, filterTextField, grepButton, lineNumbersCheckbox, EndTaskBtn);
+        hl.add(label, Filelabel, filterTextField, grepButton, lineNumbersCheckbox,countPreLinesField, countPostLinesField, EndTaskBtn);
         hl.setAlignItems(Alignment.BASELINE);
+
+        HorizontalLayout hl3 = new HorizontalLayout();
+        hl3.add(countPreLinesField, countPostLinesField);
+        hl3.setAlignItems(Alignment.BASELINE);
 
         EndTaskBtn.setVisible(false);
 
-        add(hl1,hl2,crud,hl,tailTextArea);
+        add(hl1,hl2,crud,hl, hl3, tailTextArea);
 
         stat.setActive(false);
 
@@ -265,6 +276,9 @@ public class FileBrowserView extends VerticalLayout {
                 EndTaskBtn.setVisible(true);
                 grepButton.setEnabled(false);
                 filterTextField.setEnabled(false);
+                countPreLinesField.setVisible(false);
+                countPostLinesField.setVisible(false);
+
                 //Welche Threads sind aktuell ongoing?
                 ThreadUtils.dumpThreads();
 
@@ -291,6 +305,8 @@ public class FileBrowserView extends VerticalLayout {
                 try {
                     grepButton.setEnabled(true);
                     filterTextField.setEnabled(true);
+                    countPreLinesField.setVisible(true);
+                    countPostLinesField.setVisible(true);
                     handleEndTaskButtonClick();
                     showFile(selectedPath + "/" + file.getName());
                 } catch (JSchException ex) {
@@ -376,6 +392,7 @@ public class FileBrowserView extends VerticalLayout {
 
         // Split the file content into lines
         String[] lines = fileContent.split("\n");
+        countPreLinesField.setValue(lines.length);
 
         // Create a StringBuilder to collect matching lines
         StringBuilder filteredContent = new StringBuilder();
@@ -395,6 +412,8 @@ public class FileBrowserView extends VerticalLayout {
             lineNumber++;
         }
 
+        String [] filterlines = filteredContent.toString().split("\n");
+        countPostLinesField.setValue(filterlines.length);
         // Set the filtered content to the tailTextArea
         tailTextArea.setValue(filteredContent.toString());
     }
