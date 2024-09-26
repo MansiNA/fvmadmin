@@ -238,7 +238,7 @@ public final class SftpClient {
     }
 
 
-    public void TailRemoteLogFile(TextArea logTextArea, String FileName, TaskStatus stat  ) throws JSchException, IOException, SftpException {
+    public void TailRemoteLogFile(StringBuilder logTextArea, String FileName, TaskStatus stat, TextArea tailTextArea) throws JSchException, IOException, SftpException {
 
         VaadinSession vaadinSession = VaadinSession.getCurrent();
         VaadinService vaadinService = VaadinService.getCurrent();
@@ -292,6 +292,9 @@ public final class SftpClient {
             }
             //  System.out.println(line);
             updateLog(line,logTextArea);
+            UI.getCurrent().access(() -> {
+                tailTextArea.setValue(logTextArea.toString());  // Update the UI with new log content
+            });
         }
 
         sftpChannel.exit();
@@ -351,7 +354,7 @@ public final class SftpClient {
     }*/
 
 
-    public void ReadRemoteLogFile(UI ui, TextArea logTextArea, String FileName) throws JSchException, IOException, SftpException {
+    public void ReadRemoteLogFile(UI ui, StringBuilder logTextArea, String FileName) throws JSchException, IOException, SftpException {
 
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
@@ -444,24 +447,30 @@ public final class SftpClient {
     }
 
 
-    private void updateLog(String line, TextArea tailTextArea) {
-        VaadinSession.getCurrent().lock();
-
-        tailTextArea.getElement().executeJs(
-                "this.inputElement.value += $0; this._updateHeight(); this._inputField.scrollTop = this._inputField.scrollHeight - this._inputField.clientHeight;",
-                "\n" + line
-        );
-        VaadinSession.getCurrent().unlock();
+    private void updateLog(String line, StringBuilder tailTextArea) {
+        if(tailTextArea.isEmpty()) {
+            tailTextArea.append("").append(line);
+        } else {
+            tailTextArea.append("\n").append(line);
+        }
+//        VaadinSession.getCurrent().lock();
+//
+//        tailTextArea.getElement().executeJs(
+//                "this.inputElement.value += $0; this._updateHeight(); this._inputField.scrollTop = this._inputField.scrollHeight - this._inputField.clientHeight;",
+//                "\n" + line
+//        );
+//        VaadinSession.getCurrent().unlock();
     }
 
-    private void clearLog(TextArea tailTextArea) {
-        VaadinSession.getCurrent().lock();
-
-        tailTextArea.getElement().executeJs(
-                "this.inputElement.value = $0; this._updateHeight(); this._inputField.scrollTop = this._inputField.scrollHeight - this._inputField.clientHeight;",
-                ""
-        );
-        VaadinSession.getCurrent().unlock();
+    private void clearLog(StringBuilder tailTextArea) {
+        tailTextArea.setLength(0);
+//        VaadinSession.getCurrent().lock();
+//
+//        tailTextArea.getElement().executeJs(
+//                "this.inputElement.value = $0; this._updateHeight(); this._inputField.scrollTop = this._inputField.scrollHeight - this._inputField.clientHeight;",
+//                ""
+//        );
+//        VaadinSession.getCurrent().unlock();
     }
 
 

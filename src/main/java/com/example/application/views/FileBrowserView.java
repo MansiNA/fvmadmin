@@ -1,7 +1,9 @@
 package com.example.application.views;
 
+import com.example.application.data.GenericDataProvider;
 import com.example.application.data.entity.FTPFile;
 import com.example.application.data.entity.ServerConfiguration;
+import com.example.application.data.entity.User;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.ServerConfigurationService;
 import com.example.application.utils.TaskStatus;
@@ -11,8 +13,13 @@ import com.jcraft.jsch.SftpException;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.crud.BinderCrudEditor;
+import com.vaadin.flow.component.crud.Crud;
+import com.vaadin.flow.component.crud.CrudEditor;
 import com.vaadin.flow.component.datetimepicker.DateTimePicker;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.grid.GridVariant;
@@ -23,11 +30,14 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.InputStreamFactory;
 import com.vaadin.flow.server.StreamResource;
+import com.vaadin.flow.server.VaadinSession;
 import jakarta.annotation.security.RolesAllowed;
 
 import java.io.ByteArrayInputStream;
@@ -44,7 +54,7 @@ import java.util.Map;
 public class FileBrowserView extends VerticalLayout {
 
     private final ServerConfigurationService serverConfigurationService;
-
+    private Crud<FTPFile> crud;
     Grid<FTPFile> grid;
     SftpClient cl;
     Long von;
@@ -58,11 +68,16 @@ public class FileBrowserView extends VerticalLayout {
     UI ui=UI.getCurrent();
     private String selectedPath;
     private ServerConfiguration selectedServerConfig;
+    Button EndTaskBtn;
+    TextField filterTextField;
+    Button grepButton;
+    Checkbox lineNumbersCheckbox;
+    private StringBuilder tailTextAreaContent = new StringBuilder();
 
     public FileBrowserView (ConfigurationService service, ServerConfigurationService serverConfigurationService) throws JSchException, SftpException {
-        String sshDownloadPath= "downloads/";
-        this.serverConfigurationService = serverConfigurationService;
 
+        this.serverConfigurationService = serverConfigurationService;
+        EndTaskBtn = new Button("Tail beenden");
         try {
             List<ServerConfiguration> serverConfigList = serverConfigurationService.findAllConfigurations();
             if (serverConfigList != null && !serverConfigList.isEmpty()) {
@@ -91,29 +106,9 @@ public class FileBrowserView extends VerticalLayout {
         add(new H3("Logfile-Browser"));
 
 
-        Button EndTaskBtn = new Button("Tail beenden");
+
         EndTaskBtn.addClickListener(e-> {
-                    stat.setActive(false);
-                    EndTaskBtn.setVisible(false);
-
-//            ThreadUtils.dumpThreads();
-
-
-                    ThreadGroup group = Thread.currentThread().getThreadGroup();
-                    Thread[] threads = new Thread[group.activeCount()];
-                    group.enumerate(threads);
-
-                    Thread tailThread = new Thread();
-
-                    for (Thread thread : threads) {
-                        if (thread != null && thread.getName().equals("Tail-Thread")) {
-                            tailThread = thread;
-                            thread.interrupt();
-                        }
-
-                    }
-            System.out.println("Tail Thread-Status: " + tailThread.getState());
-
+            handleEndTaskButtonClick();
         });
 
 
@@ -140,123 +135,9 @@ public class FileBrowserView extends VerticalLayout {
         startDateTimePicker.addValueChangeListener(
                 e -> endDateTimePicker.setMin(e.getValue()));
 
-
+        setUpGrid();
         //cl.listFiles("/tmp");
 
-        grid = new Grid<>(FTPFile.class, false);
-        grid.addColumn(FTPFile::getName).setHeader("Name").setSortable(true).setWidth("300px").setFlexGrow(0).setResizable(true);
-        grid.addColumn(FTPFile::getSize).setHeader("Größe").setSortable(true).setWidth("80px").setFlexGrow(0).setResizable(true);
-        Grid.Column<FTPFile> erstellungszeitColumn = grid.addColumn(FTPFile::getErstellungszeit).setHeader("Letzte Bearbeitung").setWidth("150px").setFlexGrow(0).setSortable(true).setResizable(true);
-
-        /*Grid.Column<FTPFile> editColumn = grid.addComponentColumn(file -> {
-            Button downloadButton = new Button("Copy");
-            downloadButton.addClickListener(e -> {
-
-                Notification notification = Notification
-                        .show("Download " + file.getName());
-                try {
-                    //getFile("/tmp/" + file.getName(),"c:\\tmp\\mq.txt");
-                    //refresh(verzeichnisComboBox.getValue(), umgebungComboBox.getValue(), startDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC), endDateTimePicker.getValue().toEpochSecond(ZoneOffset.UTC));
-                    getPlainFile(umgebungComboBox.getValue(), verzeichnisComboBox.getValue() + "/" + file.getName(),file.getName(),downloadPath);
-
-
-                } catch (SftpException ex) {
-                    throw new RuntimeException(ex);
-                } catch (JSchException ex) {
-                    throw new RuntimeException(ex);
-                }
-
-                Runtime rs = Runtime.getRuntime();
-                try {
-                    rs.exec("C:\\Program Files (x86)\\Notepad++\\notepad++.exe c:\\tmp\\mq.txt");
-
-                }
-                catch (IOException ex) {
-                    System.out.println(ex);
-                }
-
-
-            });
-            return downloadButton;
-        }).setWidth("150px").setFlexGrow(0);
-*/
-
-        grid.addComponentColumn(file -> {
-            Button button = new Button("Download");
-            Anchor anchor = new Anchor(new StreamResource(file.getName(), new InputStreamFactory() {
-                @Override
-                public InputStream createInputStream(){
-                    try {
-                        System.out.println("download-Button gedrückt für: " + selectedPath + "/" + file.getName());
-                        return new ByteArrayInputStream(getByteFile(selectedServerConfig.getHostName(), selectedPath ,file.getName(), sshDownloadPath));
-                    } catch (JSchException e) {
-                        throw new RuntimeException(e);
-                    } catch (SftpException e) {
-                        throw new RuntimeException(e);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-
-            } ),"");
-
-           anchor.getElement().setAttribute("download",true);
-           anchor.getElement().appendChild(button.getElement());
-           return anchor;
-        }).setFlexGrow(0).setResizable(true);
-
-        grid.addComponentColumn(file -> {
-            Button editButton = new Button("Tail -f");
-            editButton.addClickListener(e -> {
-                System.out.println("Tail-Button gedrückt für: " + selectedPath + "/" + file.getName());
-                stat.setActive(false);
-                EndTaskBtn.setVisible(true);
-
-                //Welche Threads sind aktuell ongoing?
-                ThreadUtils.dumpThreads();
-
-
-
-
-                try {
-                    tail(selectedPath+ "/" + file.getName());
-                } catch (JSchException ex) {
-                    throw new RuntimeException(ex);
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                } catch (SftpException ex) {
-                    throw new RuntimeException(ex);
-                }
-            });
-            return editButton;
-        }).setWidth("100px").setFlexGrow(0).setResizable(true);
-
-        grid.addComponentColumn(file -> {
-            Button editButton = new Button("Show");
-            editButton.addClickListener(e -> {
-                System.out.println("Show-Button gedrückt für: " + selectedPath + "/" + file.getName());
-                try {
-                    showFile(selectedPath + "/" + file.getName());
-                } catch (JSchException ex) {
-                    throw new RuntimeException(ex);
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                } catch (SftpException ex) {
-                    throw new RuntimeException(ex);
-                }
-            });
-            return editButton;
-        }).setWidth("100px").setFlexGrow(0).setResizable(true);
-
-        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
-        grid.setHeight("600px");
-        grid.setWidthFull();
-        grid.getStyle().set("resize", "vertical");
-        grid.getStyle().set("overflow", "auto");
-
-        GridSortOrder<FTPFile> order = new GridSortOrder<>(erstellungszeitColumn, SortDirection.DESCENDING);
-
-        grid.sort(Arrays.asList(order));
 
         Button button = new Button("Refresh");
         button.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
@@ -287,18 +168,235 @@ public class FileBrowserView extends VerticalLayout {
         hl2.add(startDateTimePicker, endDateTimePicker,button);
         hl2.setAlignItems(Alignment.BASELINE);
 
+        // Add the filter TextField after the Filelabel
+        filterTextField = new TextField();
+        filterTextField.setPlaceholder("Enter search text");
+        filterTextField.setEnabled(false);
+        grepButton = new Button("Grep");
+        grepButton.setEnabled(false);
+        grepButton.addClickListener(e -> applyGrepFilter());
+        lineNumbersCheckbox = new Checkbox("Zeilennummern"); // Checkbox for line numbers
+        lineNumbersCheckbox.setValue(false);
+        lineNumbersCheckbox.addValueChangeListener(event -> {
+            boolean showLineNumbers = event.getValue(); // Get whether the checkbox is checked or not
+            toggleLineNumbers(showLineNumbers, tailTextArea); // Call the method to show or hide line numbers
+        });
 
         HorizontalLayout hl = new HorizontalLayout();
 
         Label label=new Label("File: ");
-        hl.add(label,Filelabel,EndTaskBtn);
+        hl.add(label, Filelabel, filterTextField, grepButton, lineNumbersCheckbox, EndTaskBtn);
+        hl.setAlignItems(Alignment.BASELINE);
 
         EndTaskBtn.setVisible(false);
 
-        add(hl1,hl2,grid,hl,tailTextArea);
+        add(hl1,hl2,crud,hl,tailTextArea);
 
         stat.setActive(false);
 
+    }
+
+    private void handleEndTaskButtonClick() {
+        stat.setActive(false);
+        EndTaskBtn.setVisible(false);
+
+//            ThreadUtils.dumpThreads();
+
+
+        ThreadGroup group = Thread.currentThread().getThreadGroup();
+        Thread[] threads = new Thread[group.activeCount()];
+        group.enumerate(threads);
+
+        Thread tailThread = new Thread();
+
+        for (Thread thread : threads) {
+            if (thread != null && thread.getName().equals("Tail-Thread")) {
+                tailThread = thread;
+                thread.interrupt();
+            }
+
+        }
+        System.out.println("Tail Thread-Status: " + tailThread.getState());
+    }
+
+    private void setUpGrid() {
+        crud = new Crud<>(FTPFile.class, createEditor());
+        grid = crud.getGrid();
+      //  grid = new Grid<>(FTPFile.class, false);
+        String NAME = "name";
+        String SIZE = "size";
+        String ERSTELLUNGSZEIT = "erstellungszeit";
+        String EDIT_COLUMN = "vaadin-crud-edit-column";
+
+        grid.getColumnByKey(NAME).setHeader("Name").setSortable(true).setWidth("300px").setFlexGrow(0).setResizable(true);
+        grid.getColumnByKey(SIZE).setHeader("Größe").setSortable(true).setWidth("80px").setFlexGrow(0).setResizable(true);
+        Grid.Column<FTPFile> erstellungszeitColumn = grid.getColumnByKey(ERSTELLUNGSZEIT).setHeader("Letzte Bearbeitung").setWidth("150px").setFlexGrow(0).setSortable(true).setResizable(true);
+
+        grid.addComponentColumn(file -> {
+            Button button = new Button("Download");
+            Anchor anchor = new Anchor(new StreamResource(file.getName(), new InputStreamFactory() {
+                @Override
+                public InputStream createInputStream(){
+                    try {
+                        String sshDownloadPath= "downloads/";
+                        System.out.println("download-Button gedrückt für: " + selectedPath + "/" + file.getName());
+                        return new ByteArrayInputStream(getByteFile(selectedServerConfig.getHostName(), selectedPath ,file.getName(), sshDownloadPath));
+                    } catch (JSchException e) {
+                        throw new RuntimeException(e);
+                    } catch (SftpException e) {
+                        throw new RuntimeException(e);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+            } ),"");
+
+            anchor.getElement().setAttribute("download",true);
+            anchor.getElement().appendChild(button.getElement());
+            return anchor;
+        }).setFlexGrow(0).setResizable(true);
+
+        grid.addComponentColumn(file -> {
+            Button editButton = new Button("Tail -f");
+            editButton.addClickListener(e -> {
+                System.out.println("Tail-Button gedrückt für: " + selectedPath + "/" + file.getName());
+                stat.setActive(false);
+                EndTaskBtn.setVisible(true);
+                grepButton.setEnabled(false);
+                filterTextField.setEnabled(false);
+                //Welche Threads sind aktuell ongoing?
+                ThreadUtils.dumpThreads();
+
+
+
+
+                try {
+                    tail(selectedPath+ "/" + file.getName());
+                } catch (JSchException ex) {
+                    throw new RuntimeException(ex);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                } catch (SftpException ex) {
+                    throw new RuntimeException(ex);
+                }
+            });
+            return editButton;
+        }).setWidth("100px").setFlexGrow(0).setResizable(true);
+
+        grid.addComponentColumn(file -> {
+            Button editButton = new Button("Show");
+            editButton.addClickListener(e -> {
+                System.out.println("Show-Button gedrückt für: " + selectedPath + "/" + file.getName());
+                try {
+                    grepButton.setEnabled(true);
+                    filterTextField.setEnabled(true);
+                    handleEndTaskButtonClick();
+                    showFile(selectedPath + "/" + file.getName());
+                } catch (JSchException ex) {
+                    throw new RuntimeException(ex);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                } catch (SftpException ex) {
+                    throw new RuntimeException(ex);
+                }
+            });
+            return editButton;
+        }).setWidth("100px").setFlexGrow(0).setResizable(true);
+
+        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+        grid.setHeight("600px");
+        grid.setWidthFull();
+        grid.getStyle().set("resize", "vertical");
+        grid.getStyle().set("overflow", "auto");
+
+        grid.removeColumn(grid.getColumnByKey(EDIT_COLUMN));
+        grid.getColumns().forEach(col -> col.setAutoWidth(true));
+        crud.setToolbarVisible(false);
+
+        GridSortOrder<FTPFile> order = new GridSortOrder<>(erstellungszeitColumn, SortDirection.DESCENDING);
+
+        grid.sort(Arrays.asList(order));
+    }
+    private void fetchAndProcessContent() {
+        VaadinSession.getCurrent().lock(); // Lock the session
+        try {
+            // Fetch the current content of the TextArea
+            tailTextArea.getElement().executeJs("return this.inputElement.value")
+                    .then(String.class, value -> {
+                        // Now 'value' will contain the actual current value of the text area, including updates
+                        System.out.println("Fetched content: " + value);
+
+                        Notification.show("Current TextArea content: " + value);
+                    });
+        } finally {
+            VaadinSession.getCurrent().unlock(); // Always unlock in a finally block
+        }
+    }
+
+    private void toggleLineNumbers(boolean showLineNumbers, TextArea tailTextArea) {
+        // Get the current content of tailTextArea
+        String textContent = tailTextArea.getValue();
+
+        if (showLineNumbers) {
+            // Add line numbers to the text
+            String[] lines = textContent.split("\n");
+            StringBuilder numberedText = new StringBuilder();
+
+            for (int i = 0; i < lines.length; i++) {
+                numberedText.append(i + 1).append(". ").append(lines[i]).append("\n");
+            }
+
+            tailTextArea.setValue(numberedText.toString());
+        } else {
+            // Remove line numbers
+            String[] lines = textContent.split("\n");
+            StringBuilder plainText = new StringBuilder();
+
+            for (String line : lines) {
+                // Remove any leading line numbers (digits followed by ". ")
+                plainText.append(line.replaceFirst("^\\d+\\.\\s", "")).append("\n");
+            }
+
+            tailTextArea.setValue(plainText.toString());
+        }
+    }
+
+    private void applyGrepFilter() {
+        String filterText = filterTextField.getValue().trim();
+        if (filterText.isEmpty()) {
+            Notification.show("Please enter text to search");
+            tailTextArea.setValue(tailTextAreaContent.toString());
+            toggleLineNumbers(lineNumbersCheckbox.getValue(), tailTextArea);
+            return;
+        }
+
+
+        String fileContent = tailTextArea.getValue();
+
+        // Split the file content into lines
+        String[] lines = fileContent.split("\n");
+
+        // Create a StringBuilder to collect matching lines
+        StringBuilder filteredContent = new StringBuilder();
+
+        // Track line numbers if the checkbox is checked
+        boolean showLineNumbers = lineNumbersCheckbox.getValue();
+
+        int lineNumber = 1; // Line number starts from 1
+        for (String line : lines) {
+            if (line.contains(filterText)) {
+                if (showLineNumbers) {
+                    filteredContent.append(lineNumber).append(": ").append(line).append("\n");
+                } else {
+                    filteredContent.append(line).append("\n");
+                }
+            }
+            lineNumber++;
+        }
+
+        // Set the filtered content to the tailTextArea
+        tailTextArea.setValue(filteredContent.toString());
     }
 
     private void tail(String file) throws JSchException, IOException, SftpException {
@@ -324,8 +422,17 @@ public class FileBrowserView extends VerticalLayout {
 
         //cl.authPassword("7x24!admin4me");
         cl.authKey(selectedServerConfig.getSshKey(),"");
-        cl.TailRemoteLogFile(tailTextArea, file, stat);
+        cl.TailRemoteLogFile(tailTextAreaContent, file, stat, tailTextArea);
+        // cl.TailRemoteLogFile(tailTextArea, file, stat);
         Filelabel.setText(stat.getLogfile());
+    }
+
+    private CrudEditor<FTPFile> createEditor() {
+        FormLayout editForm = new FormLayout();
+
+        Binder<FTPFile> binder = new Binder<>(FTPFile.class);
+
+        return new BinderCrudEditor<>(binder, editForm);
     }
 
     private void populatePathCombobox(ServerConfiguration config) {
@@ -348,7 +455,8 @@ public class FileBrowserView extends VerticalLayout {
 
         //cl.authPassword("7x24!admin4me");
         cl.authKey(selectedServerConfig.getSshKey(),"");
-        cl.ReadRemoteLogFile(ui, tailTextArea, file);
+        cl.ReadRemoteLogFile(ui, tailTextAreaContent, file);
+        tailTextArea.setValue(tailTextAreaContent.toString());
         Filelabel.setText(stat.getLogfile());
     }
 
@@ -382,8 +490,11 @@ public class FileBrowserView extends VerticalLayout {
 
         //List<FTPFile> files = cl.getFiles(ftp_Path, von.toEpochSecond() * 1_000_000_000L,bis.toEpochSecond() * 1_000_000_000L);
         List<FTPFile> files = cl.getFiles(ftp_Path, von.toEpochSecond() ,bis.toEpochSecond());
-        grid.setItems(files);
-
+        if(files != null && !files.isEmpty()) {
+            GenericDataProvider dataProvider = new GenericDataProvider(files);
+            grid.setDataProvider(dataProvider);
+        }
+        //  grid.setItems(files);
         cl.close();
     }
     private void getPlainFile(String sSHHost, String SourceFile, String TargetFile, String Downloadpath) throws JSchException, SftpException {

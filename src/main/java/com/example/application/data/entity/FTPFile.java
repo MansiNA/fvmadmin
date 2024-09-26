@@ -1,33 +1,15 @@
 package com.example.application.data.entity;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
 public class FTPFile {
-    String Name;
-    Long Size;
-    LocalDateTime Erstellungszeit;
+    String name;
+    Long size;
+    LocalDateTime erstellungszeit;
 
-    public String getName() {
-        return Name;
-    }
-
-    public void setName(String name) {
-        Name = name;
-    }
-
-    public Long getSize() {
-        return Size;
-    }
-
-    public void setSize(Long size) {
-        Size = size;
-    }
-
-    public LocalDateTime getErstellungszeit() {
-        return Erstellungszeit;
-    }
-
-    public void setErstellungszeit(LocalDateTime erstellungszeit) {
-        Erstellungszeit = erstellungszeit;
-    }
 }
