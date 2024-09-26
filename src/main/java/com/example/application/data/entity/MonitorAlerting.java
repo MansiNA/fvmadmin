@@ -15,7 +15,8 @@ public class MonitorAlerting {
     private String mailCCEmpfaenger;
     private String mailBetreff;
     private String mailText;
-    private Integer intervall;
+  //  private Integer intervall;
+    private String cron;
     private Integer isActive;
     private LocalDateTime lastAlertTime;
     private LocalDateTime lastALertCheckTime;
@@ -42,7 +43,8 @@ public class MonitorAlerting {
                 ", mailCCEmpfaenger='" + mailCCEmpfaenger + '\'' +
                 ", mailBetreff='" + mailBetreff + '\'' +
                 ", mailText='" + mailText + '\'' +
-                ", intervall=" + intervall +
+                ", cron=" + cron +
+             //   ", intervall=" + intervall +
                 '}';
     }
 }

@@ -55,7 +55,7 @@ public class EmailMonitorJobExecutor implements Job {
     private void executeJob(Configuration configuration) {
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
 
-        if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
+        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
             return; // Exit if no configuration or interval is set
         }
 
@@ -151,11 +151,11 @@ public class EmailMonitorJobExecutor implements Job {
         }
     }
 
-    private boolean shouldSendEmail(MonitorAlerting monitorAlerting) {
-        // Calculate the next valid email sending time
-        LocalDateTime nextValidTime = monitorAlerting.getLastAlertTime().plusMinutes(monitorAlerting.getIntervall());
-        return LocalDateTime.now().isAfter(nextValidTime);
-    }
+//    private boolean shouldSendEmail(MonitorAlerting monitorAlerting) {
+//        // Calculate the next valid email sending time
+//        LocalDateTime nextValidTime = monitorAlerting.getLastAlertTime().plusMinutes(monitorAlerting.getIntervall());
+//        return LocalDateTime.now().isAfter(nextValidTime);
+//    }
 
     private void sendAlertEmail(MonitorAlerting config, ByteArrayResource resource) {
         try {

@@ -123,13 +123,13 @@ public class Application implements AppShellConfigurator {
                     .build();
 
 
-            if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
+            if (monitorAlerting == null || monitorAlerting.getCron() == null) {
                 System.out.println("No interval set for the configuration. Job will not be scheduled.");
                 return;
             }
 
-            int interval = monitorAlerting.getIntervall(); // assuming this returns the interval in minutes
-            String cronExpression = createCronExpression(interval);
+        //    int interval = monitorAlerting.getIntervall(); // assuming this returns the interval in minutes
+            String cronExpression = monitorAlerting.getCron();
 
             Trigger trigger = TriggerBuilder.newTrigger()
                     .withIdentity("trigger-alert-cron-" + configuration.getId(), "group2")

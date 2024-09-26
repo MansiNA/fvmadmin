@@ -334,13 +334,12 @@ public class CockpitView extends VerticalLayout{
         // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
         System.out.println("---------------------------------------"+monitorAlerting.getMailEmpfaenger()+"--------------------------------------");
-        if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
+        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
             System.out.println("No interval set for the configuration. Job will not be scheduled.");
             return;
         }
 
-        int interval = monitorAlerting.getIntervall(); // assuming this returns the interval in minutes
-        String cronExpression = createCronExpression(interval);
+        String cronExpression = monitorAlerting.getCron();
 
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("trigger-alert-cron-" + configuration.getId(), "group2")
@@ -696,7 +695,7 @@ public class CockpitView extends VerticalLayout{
         // Fetch email configurations
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
 
-        if (monitorAlerting == null || monitorAlerting.getIntervall() == null) {
+        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
             return; // Exit if no configuration or interval is set
         }
 
@@ -721,14 +720,12 @@ public class CockpitView extends VerticalLayout{
             }
             System.out.println(monitoring.getTitel() + "shouldSendAlert(monitoring) = "+shouldSendAlert(monitoring));
             if (shouldSendAlert(monitoring)) {
-                System.out.println("shouldSendEmail(monitorAlerting) = "+shouldSendEmail(monitorAlerting));
-                if (shouldSendEmail(monitorAlerting)) {
-                    System.out.println("send email............. = "+shouldSendEmail(monitorAlerting));
+           //     if (shouldSendEmail(monitorAlerting)) {
                   //  sendAlertEmail(monitorAlerting, monitoring);
                     lastAlertTime = LocalDateTime.now(); // Update last alert time
                     monitorAlerting.setLastAlertTime(lastAlertTime);
                     updateLastAlertTimeInDatabase(monitorAlerting); // Update the DB with the current time
-                }
+           //     }
             }
         }
     }
@@ -737,11 +734,11 @@ public class CockpitView extends VerticalLayout{
         return monitoring.getAktueller_Wert() > monitoring.getError_Schwellwert();
     }
 
-    private boolean shouldSendEmail(MonitorAlerting monitorAlerting) {
-        // Calculate the next valid email sending time
-        LocalDateTime nextValidTime = lastAlertTime.plusMinutes(monitorAlerting.getIntervall());
-        return LocalDateTime.now().isAfter(nextValidTime);
-    }
+//    private boolean shouldSendEmail(MonitorAlerting monitorAlerting) {
+//        // Calculate the next valid email sending time
+//        LocalDateTime nextValidTime = lastAlertTime.plusMinutes(monitorAlerting.getIntervall());
+//        return LocalDateTime.now().isAfter(nextValidTime);
+//    }
 
     private void sendAlertEmail(MonitorAlerting config, fvm_monitoring monitoring) {
 
@@ -1452,7 +1449,8 @@ public class CockpitView extends VerticalLayout{
         TextField mailCCEmpfaengerField = new TextField("MAIL_CC_EMPFAENGER");
         TextField mailBetreffField = new TextField("MAIL_BETREFF");
         TextArea mailTextArea = new TextArea("MAIL_TEXT");
-        IntegerField intervalField = new IntegerField("Intervall (in minutes)");
+        TextField cronField = new TextField("CRON_EXPRESSION");
+      //  IntegerField intervalField = new IntegerField("Intervall (in minutes)");
         Checkbox aktiv = new Checkbox("aktiv");
 
         // Set widths for fields
@@ -1461,7 +1459,7 @@ public class CockpitView extends VerticalLayout{
         mailBetreffField.setWidth("100%");
         mailTextArea.setWidth("100%");
         mailTextArea.setHeight("150px"); // Adjust height as needed
-        intervalField.setWidth("100%");
+        cronField.setWidth("100%");
         aktiv.setWidth("100%");
 
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
@@ -1470,7 +1468,7 @@ public class CockpitView extends VerticalLayout{
         Optional.ofNullable(monitorAlerting.getMailCCEmpfaenger()).ifPresent(mailCCEmpfaengerField::setValue);
         Optional.ofNullable(monitorAlerting.getMailBetreff()).ifPresent(mailBetreffField::setValue);
         Optional.ofNullable(monitorAlerting.getMailText()).ifPresent(mailTextArea::setValue);
-        Optional.ofNullable(monitorAlerting.getIntervall()).ifPresent(intervalField::setValue);
+        Optional.ofNullable(monitorAlerting.getCron()).ifPresent(cronField::setValue);
         aktiv.setValue(monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() != 0);
 
         Button saveButton = new Button("Save", event -> {
@@ -1479,7 +1477,7 @@ public class CockpitView extends VerticalLayout{
             monitorAlerting.setMailCCEmpfaenger(mailCCEmpfaengerField.getValue());
             monitorAlerting.setMailBetreff(mailBetreffField.getValue());
             monitorAlerting.setMailText(mailTextArea.getValue());
-            monitorAlerting.setIntervall(intervalField.getValue());
+            monitorAlerting.setCron(cronField.getValue());
             monitorAlerting.setIsActive(aktiv.getValue() ? 1: 0);
 
             // Call the save method to persist the configuration
@@ -1501,7 +1499,7 @@ public class CockpitView extends VerticalLayout{
                 mailCCEmpfaengerField,
                 mailBetreffField,
                 mailTextArea,
-                intervalField,
+                cronField,
                 aktiv,
                 new HorizontalLayout(saveButton, cancelButton) // Align buttons horizontally
         );
@@ -1529,12 +1527,12 @@ public class CockpitView extends VerticalLayout{
 //            jdbcTemplate.setDataSource(ds);
             jdbcTemplate.update("DELETE FROM FVM_MONITOR_ALERTING");
             jdbcTemplate.update(
-                    "INSERT INTO FVM_MONITOR_ALERTING (MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CHECK_INTERVALL) VALUES (?, ?, ?, ?, ?)",
+                    "INSERT INTO FVM_MONITOR_ALERTING (MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION) VALUES (?, ?, ?, ?, ?)",
                     monitorAlerting.getMailEmpfaenger(),
                     monitorAlerting.getMailCCEmpfaenger(),
                     monitorAlerting.getMailBetreff(),
                     monitorAlerting.getMailText(),
-                    monitorAlerting.getIntervall()
+                    monitorAlerting.getCron()
             );
             Notification.show("Configuration saved successfully.");
         } catch (Exception e) {
@@ -1572,7 +1570,7 @@ public class CockpitView extends VerticalLayout{
             jdbcTemplate.setDataSource(ds);
 
             // Query to get the existing configuration
-            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CHECK_INTERVALL FROM FVM_MONITOR_ALERTING";
+            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION FROM FVM_MONITOR_ALERTING";
 
             // Use jdbcTemplate to query and map results to MonitorAlerting object
             jdbcTemplate.query(sql, rs -> {
@@ -1581,7 +1579,7 @@ public class CockpitView extends VerticalLayout{
                 monitorAlerting.setMailCCEmpfaenger(rs.getString("MAIL_CC_EMPFAENGER"));
                 monitorAlerting.setMailBetreff(rs.getString("MAIL_BETREFF"));
                 monitorAlerting.setMailText(rs.getString("MAIL_TEXT"));
-                monitorAlerting.setIntervall(rs.getInt("CHECK_INTERVALL"));
+                monitorAlerting.setCron(rs.getString("CRON_EXPRESSION"));
             });
 
         } catch (Exception e) {
