@@ -44,9 +44,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @PageTitle("FileBrowser")
 @Route(value = "filebrowser", layout= MainLayout.class)
@@ -73,6 +71,8 @@ public class FileBrowserView extends VerticalLayout {
     Button grepButton;
     Checkbox lineNumbersCheckbox;
     private StringBuilder tailTextAreaContent = new StringBuilder();
+    private StringBuilder filteredContent = new StringBuilder();
+    private StringBuilder filteredContentNum = new StringBuilder();
     IntegerField countPreLinesField = new IntegerField("CountPreLines");
     IntegerField countPostLinesField = new IntegerField("CountPostLines");
 
@@ -180,9 +180,17 @@ public class FileBrowserView extends VerticalLayout {
         grepButton.addClickListener(e -> applyGrepFilter());
         lineNumbersCheckbox = new Checkbox("Zeilennummern"); // Checkbox for line numbers
         lineNumbersCheckbox.setValue(false);
+        lineNumbersCheckbox.setEnabled(false);
         lineNumbersCheckbox.addValueChangeListener(event -> {
-            boolean showLineNumbers = event.getValue();
-            toggleLineNumbers(showLineNumbers, tailTextArea.getValue());
+            if(filteredContent.isEmpty()) {
+                int lineNumber = 1;
+                for (String line : tailTextAreaContent.toString().split("\n")) {
+                    filteredContent.append(line).append("\n");
+                    filteredContentNum.append(lineNumber).append(": ").append(line).append("\n");
+                    lineNumber++;
+                }
+            }
+            toggleLineNumbers();
         });
         countPreLinesField.setValue(0);
         countPostLinesField.setValue(0);
@@ -287,6 +295,7 @@ public class FileBrowserView extends VerticalLayout {
                 EndTaskBtn.setVisible(true);
                 grepButton.setEnabled(false);
                 filterTextField.setEnabled(false);
+                lineNumbersCheckbox.setEnabled(false);
                 countPreLinesField.setVisible(false);
                 countPostLinesField.setVisible(false);
 
@@ -316,6 +325,8 @@ public class FileBrowserView extends VerticalLayout {
                 try {
                     grepButton.setEnabled(true);
                     filterTextField.setEnabled(true);
+                    lineNumbersCheckbox.setEnabled(true);
+                    lineNumbersCheckbox.setValue(false);
                     countPreLinesField.setVisible(true);
                     countPostLinesField.setVisible(true);
                     handleEndTaskButtonClick();
@@ -361,54 +372,60 @@ public class FileBrowserView extends VerticalLayout {
         }
     }
 
-    private void toggleLineNumbers(boolean showLineNumbers, String textContent) {
+    private void toggleLineNumbers() {
 
-        if (showLineNumbers) {
-            // Add line numbers to the text
-            String[] lines = textContent.split("\n");
-            StringBuilder numberedText = new StringBuilder();
+        if (lineNumbersCheckbox.getValue()) {
+//            String[] originalLines = tailTextAreaContent.toString().split("\n");
+//            String[] filteredLines = textContent.split("\n");
+//
+//            Set<String> filteredSet = new HashSet<>(Arrays.asList(filteredLines));
+//            StringBuilder numberedText = new StringBuilder();
+//
+//            int lineNumber = 1;
+//            for (String originalLine : originalLines) {
+//                if (filteredSet.contains(originalLine)) {
+//                    numberedText.append(lineNumber).append(". ").append(originalLine).append("\n");
+//                }
+//                lineNumber++;
+//            }
 
-            for (int i = 0; i < lines.length; i++) {
-                numberedText.append(i + 1).append(". ").append(lines[i]).append("\n");
-            }
-
-            tailTextArea.setValue(numberedText.toString());
+            tailTextArea.setValue(filteredContentNum.toString());
         } else {
-            // Remove line numbers
-            String[] lines = textContent.split("\n");
-            StringBuilder plainText = new StringBuilder();
+//            // Remove line numbers
+//            String[] lines = textContent.split("\n");
+//            StringBuilder plainText = new StringBuilder();
+//
+//            for (String line : lines) {
+//                // Remove any leading line numbers (digits followed by ". ")
+//                plainText.append(line.replaceFirst("^\\d+\\.\\s", "")).append("\n");
+//            }
 
-            for (String line : lines) {
-                // Remove any leading line numbers (digits followed by ". ")
-                plainText.append(line.replaceFirst("^\\d+\\.\\s", "")).append("\n");
-            }
-
-            tailTextArea.setValue(plainText.toString());
+            tailTextArea.setValue(filteredContent.toString());
         }
     }
 
     private void applyGrepFilter() {
         String filterText = filterTextField.getValue().trim();
-        if (filterText.isEmpty()) {
-            Notification.show("Please enter text to search");
-            tailTextArea.setValue(tailTextAreaContent.toString());
-            toggleLineNumbers(lineNumbersCheckbox.getValue(), tailTextArea.getValue());
-            return;
-        }
-
-
-        // String fileContent = tailTextArea.getValue();
-        String fileContent = tailTextAreaContent.toString();
-
-        // Split the file content into lines
-        String[] lines = fileContent.split("\n");
-
+        filteredContent.setLength(0);
+        filteredContentNum.setLength(0);
         // Get the user-defined number of lines before and after the match
         int countPreLines = countPreLinesField.getValue() != null ? countPreLinesField.getValue() : 0;
         int countPostLines = countPostLinesField.getValue() != null ? countPostLinesField.getValue() : 0;
 
-        // Create a StringBuilder to collect matching lines
-        StringBuilder filteredContent = new StringBuilder();
+        // Split the file content into lines
+        String[] lines = tailTextAreaContent.toString().split("\n");
+
+        if (filterText.isEmpty()) {
+            Notification.show("Please enter text to search");
+            int lineNumber = 1;
+            for (String line : lines) {
+                filteredContent.append(line).append("\n");
+                filteredContentNum.append(lineNumber).append(": ").append(line).append("\n");
+                lineNumber++;
+            }
+            toggleLineNumbers();
+            return;
+        }
 
 //        // Track line numbers if the checkbox is checked
         boolean showLineNumbers = lineNumbersCheckbox.getValue();
@@ -432,17 +449,15 @@ public class FileBrowserView extends VerticalLayout {
                 int endLine = Math.min(lines.length - 1, i + countPostLines);
 
                 for (int j = startLine; j <= endLine; j++) {
-//                    if (showLineNumbers) {
-//                        filteredContent.append(j + 1).append(": ").append(lines[j]).append("\n");
-//                    } else {
                     filteredContent.append(lines[j]).append("\n");
-                    //   }
+                    filteredContentNum.append(j + 1).append(": ").append(lines[j]).append("\n");
                 }
-                filteredContent.append("\n"); // Separate different match sections with an empty line
+                filteredContent.append("\n\n");// Separate different match sections with an empty line
+                filteredContentNum.append("\n\n");
             }
         }
 
-        toggleLineNumbers(showLineNumbers, filteredContent.toString());
+        toggleLineNumbers();
 
         // Set the filtered content to the tailTextArea
         //  tailTextArea.setValue(filteredContent.toString());
