@@ -3,7 +3,6 @@ package com.example.application.views;
 import com.example.application.data.GenericDataProvider;
 import com.example.application.data.entity.FTPFile;
 import com.example.application.data.entity.ServerConfiguration;
-import com.example.application.data.entity.User;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.ServerConfigurationService;
 import com.example.application.utils.TaskStatus;
@@ -182,13 +181,25 @@ public class FileBrowserView extends VerticalLayout {
         lineNumbersCheckbox = new Checkbox("Zeilennummern"); // Checkbox for line numbers
         lineNumbersCheckbox.setValue(false);
         lineNumbersCheckbox.addValueChangeListener(event -> {
-            boolean showLineNumbers = event.getValue(); // Get whether the checkbox is checked or not
-            toggleLineNumbers(showLineNumbers, tailTextArea); // Call the method to show or hide line numbers
+            boolean showLineNumbers = event.getValue();
+            toggleLineNumbers(showLineNumbers, tailTextArea.getValue());
         });
         countPreLinesField.setValue(0);
         countPostLinesField.setValue(0);
-        countPreLinesField.setReadOnly(true);
-        countPostLinesField.setReadOnly(true);
+        countPreLinesField.addValueChangeListener(e -> {
+            if (e.getValue() == null) {
+                countPreLinesField.setValue(0);
+            }
+            applyGrepFilter();
+        });
+
+        countPostLinesField.addValueChangeListener(e -> {
+            if (e.getValue() == null) {
+                countPostLinesField.setValue(0);
+            }
+            applyGrepFilter();
+        });
+
         HorizontalLayout hl = new HorizontalLayout();
 
         Label label=new Label("File: ");
@@ -350,9 +361,7 @@ public class FileBrowserView extends VerticalLayout {
         }
     }
 
-    private void toggleLineNumbers(boolean showLineNumbers, TextArea tailTextArea) {
-        // Get the current content of tailTextArea
-        String textContent = tailTextArea.getValue();
+    private void toggleLineNumbers(boolean showLineNumbers, String textContent) {
 
         if (showLineNumbers) {
             // Add line numbers to the text
@@ -383,39 +392,60 @@ public class FileBrowserView extends VerticalLayout {
         if (filterText.isEmpty()) {
             Notification.show("Please enter text to search");
             tailTextArea.setValue(tailTextAreaContent.toString());
-            toggleLineNumbers(lineNumbersCheckbox.getValue(), tailTextArea);
+            toggleLineNumbers(lineNumbersCheckbox.getValue(), tailTextArea.getValue());
             return;
         }
 
 
-        String fileContent = tailTextArea.getValue();
+        // String fileContent = tailTextArea.getValue();
+        String fileContent = tailTextAreaContent.toString();
 
         // Split the file content into lines
         String[] lines = fileContent.split("\n");
-        countPreLinesField.setValue(lines.length);
+
+        // Get the user-defined number of lines before and after the match
+        int countPreLines = countPreLinesField.getValue() != null ? countPreLinesField.getValue() : 0;
+        int countPostLines = countPostLinesField.getValue() != null ? countPostLinesField.getValue() : 0;
 
         // Create a StringBuilder to collect matching lines
         StringBuilder filteredContent = new StringBuilder();
 
-        // Track line numbers if the checkbox is checked
+//        // Track line numbers if the checkbox is checked
         boolean showLineNumbers = lineNumbersCheckbox.getValue();
+//
+//        int lineNumber = 1; // Line number starts from 1
+//        for (String line : lines) {
+//            if (line.contains(filterText)) {
+//                if (showLineNumbers) {
+//                    filteredContent.append(lineNumber).append(": ").append(line).append("\n");
+//                } else {
+//                    filteredContent.append(line).append("\n");
+//                }
+//            }
+//            lineNumber++;
+//        }
 
-        int lineNumber = 1; // Line number starts from 1
-        for (String line : lines) {
-            if (line.contains(filterText)) {
-                if (showLineNumbers) {
-                    filteredContent.append(lineNumber).append(": ").append(line).append("\n");
-                } else {
-                    filteredContent.append(line).append("\n");
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i].contains(filterText)) {
+                // Append lines before the match
+                int startLine = Math.max(0, i - countPreLines);
+                int endLine = Math.min(lines.length - 1, i + countPostLines);
+
+                for (int j = startLine; j <= endLine; j++) {
+//                    if (showLineNumbers) {
+//                        filteredContent.append(j + 1).append(": ").append(lines[j]).append("\n");
+//                    } else {
+                    filteredContent.append(lines[j]).append("\n");
+                    //   }
                 }
+                filteredContent.append("\n"); // Separate different match sections with an empty line
             }
-            lineNumber++;
         }
 
-        String [] filterlines = filteredContent.toString().split("\n");
-        countPostLinesField.setValue(filterlines.length);
+        toggleLineNumbers(showLineNumbers, filteredContent.toString());
+
         // Set the filtered content to the tailTextArea
-        tailTextArea.setValue(filteredContent.toString());
+        //  tailTextArea.setValue(filteredContent.toString());
     }
 
     private void tail(String file) throws JSchException, IOException, SftpException {
