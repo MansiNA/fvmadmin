@@ -422,6 +422,8 @@ public final class SftpClient {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+    /*
         updateLog("###################### TAIL -300 ##############################",logTextArea);
         while (true) {
             try {
@@ -433,7 +435,7 @@ public final class SftpClient {
             //  System.out.println(line);
             updateLog(line,logTextArea);
         }
-
+*/
 
 
         //   sftpChannel.exit();
