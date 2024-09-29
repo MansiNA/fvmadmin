@@ -202,7 +202,9 @@ public class CockpitView extends VerticalLayout{
     private Label lastRefreshLabel;
     private Label countdownLabel;
 
-    private ContextMenu menu;
+    private ContextMenu alert_menu;
+    private ContextMenu check_menu;
+    private Span syscheck;
     private Span alerting;
     Button menuButton = new Button("Show/Hide Columns");
 
@@ -304,10 +306,20 @@ public class CockpitView extends VerticalLayout{
 
     private void setAlerting(String status) {
         // Update checked state of menu items
-        menu.getItems().forEach(item -> item.setChecked(item.getText().equals(status)));
+        alert_menu.getItems().forEach(item -> item.setChecked(item.getText().equals(status)));
 
         alerting.setText(status);
         alertingState = status;
+
+
+    }
+
+
+    private void setChecker(String status) {
+        // Update checked state of menu items
+
+        syscheck.setText(status);
+
 
 
     }
@@ -470,14 +482,17 @@ public class CockpitView extends VerticalLayout{
 
         updateLastRefreshLabel();
 
+        syscheck = new Span();
+        check_menu = new ContextMenu();
+        check_menu.setTarget(syscheck);
 
         alerting = new Span();
         //  add(xmlBt);
-        menu = new ContextMenu();
-        menu.setTarget(alerting);
+        alert_menu = new ContextMenu();
+        alert_menu.setTarget(alerting);
 
 // Add "On" menu item and mark it checkable
-        MenuItem onMenuItem = menu.addItem("On", event -> {
+        MenuItem onMenuItem = alert_menu.addItem("On", event -> {
             setAlerting("On");
             Configuration configuration = comboBox.getValue();
             cockpitService.updateIsActive(1, configuration);
@@ -488,7 +503,7 @@ public class CockpitView extends VerticalLayout{
         onMenuItem.setCheckable(true); // Ensure the "On" item is checkable
 
 // Add "Off" menu item and mark it checkable
-        MenuItem offMenuItem = menu.addItem("Off", event -> {
+        MenuItem offMenuItem = alert_menu.addItem("Off", event -> {
             setAlerting("Off");
             cockpitService.updateIsActive(0, comboBox.getValue());
             System.out.println("Alerting eMail ausgeschaltet");
@@ -496,8 +511,8 @@ public class CockpitView extends VerticalLayout{
         });
         offMenuItem.setCheckable(true); // Ensure the "Off" item is checkable
 
-// Add "E-Mail Konfiguration" menu item without checkable option (no need)
-        menu.addItem("E-Mail Konfiguration", event -> {
+        // Add "E-Mail Konfiguration" menu item without checkable option (no need)
+        alert_menu.addItem("E-Mail Konfiguration", event -> {
             System.out.println("Konfig-Dialog aufrufen");
             emailConfigurationDialog();
         });
@@ -509,11 +524,40 @@ public class CockpitView extends VerticalLayout{
         } else {
             setAlerting("Off");
         }
-        Div assigneeInfo = new Div(new Span("eMail-Alerting: "), alerting);
+        Div alertingInfo = new Div(new Span("eMail-Alerting: "), alerting);
         alerting.getStyle().set("font-weight", "bold");
 
 
-        HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn, lastRefreshLabel, autorefresh, countdownLabel, assigneeInfo);
+        // Add "On" menu item and mark it checkable
+        MenuItem onMenuItemChecker = check_menu.addItem("On", event -> {
+
+            System.out.println("Background Job for checker eingeschaltet");
+            setChecker("On");
+        });
+        onMenuItemChecker.setCheckable(true); // Ensure the "On" item is checkable
+
+        // Add "Off" menu item and mark it checkable
+        MenuItem offMenuItemChecker = check_menu.addItem("Off", event -> {
+            System.out.println("Background Job for checker ausgeschaltet");
+            setChecker("Off");
+        });
+        offMenuItemChecker.setCheckable(true);
+
+        // Add "Cron Expression" menu item
+        check_menu.addItem("Cron-Expression", event -> {
+            System.out.println("Call Dialog for cron expression");
+        });
+
+
+
+
+        setChecker("Off");
+        Div checkInfo = new Div(new Span("Background-Job: "), syscheck);
+        syscheck.getStyle().set("font-weight", "bold");
+
+       // Div alertingInfo = new Div(new Span("eMail-Alerting: "), alerting);
+
+        HorizontalLayout layout = new HorizontalLayout(comboBox,refreshBtn, lastRefreshLabel, autorefresh, countdownLabel, checkInfo, alertingInfo);
         layout.setPadding(false);
         layout.setAlignItems(Alignment.BASELINE);
 
