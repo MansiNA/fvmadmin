@@ -544,7 +544,7 @@ public class CockpitView extends VerticalLayout{
         offMenuItemChecker.setCheckable(true);
 
         // Add "Cron Expression" menu item
-        check_menu.addItem("Cron-Expression", event -> {
+        check_menu.addItem("Konfiguration", event -> {
             System.out.println("Call Dialog for cron expression");
         });
 
