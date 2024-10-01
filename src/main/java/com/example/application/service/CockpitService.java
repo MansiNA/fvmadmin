@@ -165,7 +165,8 @@ public class CockpitService {
                         + "CHECK_INTERVALL INT, "
                         + "LAST_ALERT_TIME DATE, "
                         + "LAST_ALERT_CHECKTIME TIMESTAMP, "
-                        + "IS_ACTIVE INT"
+                        + "IS_ACTIVE INT,"
+                        + "CRON_EXPRESSION VARCHAR(255)"
                         + ")";
 
                 jdbcTemplate.execute(createTableSQL);
