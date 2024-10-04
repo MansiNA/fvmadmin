@@ -20,6 +20,8 @@ public class MonitorAlerting {
     private Integer isActive;
     private LocalDateTime lastAlertTime;
     private LocalDateTime lastALertCheckTime;
+    private int retentionTime;
+    private int maxParallelCheck;
 
     // Default constructor
     public MonitorAlerting() {}

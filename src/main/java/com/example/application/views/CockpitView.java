@@ -361,6 +361,45 @@ public class CockpitView extends VerticalLayout{
 
         scheduler.scheduleJob(jobDetail, trigger);
     }
+
+    public void scheduleBackgroundJob(Configuration configuration) throws SchedulerException {
+        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+        scheduler.start();
+
+        JobDataMap jobDataMap = new JobDataMap();
+        try {
+            jobDataMap.put("configuration", JobDefinitionUtils.serializeJobDefinition(configuration));
+        } catch (JsonProcessingException e) {
+            Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        jobDataMap.put("startType", "cron");
+
+        JobDetail jobDetail = JobBuilder.newJob(BackgroundJobExecutor.class)
+                .withIdentity("job-background-cron-" + configuration.getId(), "group2")
+                .usingJobData(jobDataMap)
+                .build();
+
+        // Fetch monitorAlerting configuration to get the interval
+        MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
+        System.out.println("---------------------------------------"+monitorAlerting.getMailEmpfaenger()+"--------------------------------------");
+        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+            System.out.println("No interval set for the configuration. Job will not be scheduled.");
+            return;
+        }
+
+        String cronExpression = monitorAlerting.getCron();
+
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("trigger-background -cron-" + configuration.getId(), "group2")
+                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                .forJob(jobDetail)
+                .build();
+
+        scheduler.scheduleJob(jobDetail, trigger);
+    }
+
     private String createCronExpression(int interval) {
         // Cron expression format for every N minutes
         return "0 0/" + interval + " * * * ?";
@@ -375,6 +414,27 @@ public class CockpitView extends VerticalLayout{
             if (scheduler.checkExists(cronJobKey)) {
                 if (scheduler.deleteJob(cronJobKey)) {
                     System.out.println("stop alert job successful "+ configuration.getName());
+                    Notification.show("Cron job " + configuration.getName() + " stopped successfully,," + configuration.getId());
+                }
+            }
+
+
+        } catch (Exception e) {
+            Notification.show("Error stopping jobs: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
+
+    private void stopBackgroundScheduledJobs(Configuration configuration) {
+
+        try {
+            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+            JobKey cronJobKey = new JobKey("job-background-cron-" + configuration.getId(), "group2");
+
+            // Try stopping cron job
+            if (scheduler.checkExists(cronJobKey)) {
+                if (scheduler.deleteJob(cronJobKey)) {
+                    BackgroundJobExecutor.stopJob = true;
+                    System.out.println("stop bachground job successful "+ configuration.getName());
                     Notification.show("Cron job " + configuration.getName() + " stopped successfully,," + configuration.getId());
                 }
             }
@@ -533,6 +593,7 @@ public class CockpitView extends VerticalLayout{
 
             System.out.println("Background Job for checker eingeschaltet");
             setChecker("On");
+            checkBackgroundProcess();
         });
         onMenuItemChecker.setCheckable(true); // Ensure the "On" item is checkable
 
@@ -540,18 +601,20 @@ public class CockpitView extends VerticalLayout{
         MenuItem offMenuItemChecker = check_menu.addItem("Off", event -> {
             System.out.println("Background Job for checker ausgeschaltet");
             setChecker("Off");
+            checkBackgroundProcess();
         });
         offMenuItemChecker.setCheckable(true);
 
         // Add "Cron Expression" menu item
         check_menu.addItem("Konfiguration", event -> {
             System.out.println("Call Dialog for cron expression");
+            backGroundConfigurationDialog();
         });
 
 
 
 
-        setChecker("Off");
+        setChecker("On");
         Div checkInfo = new Div(new Span("Background-Job: "), syscheck);
         syscheck.getStyle().set("font-weight", "bold");
 
@@ -728,6 +791,23 @@ public class CockpitView extends VerticalLayout{
         } else {
             // If alerting is "Off", stop all scheduled jobs
             stopAllScheduledJobs(configuration);
+        }
+    }
+
+    public void checkBackgroundProcess() {
+        Configuration configuration = comboBox.getValue();
+        // Only proceed if alerting is set to "On"
+        if ("On".equals(syscheck.getText())) {
+            try {
+                Notification.show("Starting background job executing.... " + configuration.getName(), 5000, Notification.Position.MIDDLE);
+                BackgroundJobExecutor.stopJob = false;
+                scheduleBackgroundJob(configuration);
+            } catch (Exception e) {
+                Notification.show("Error executing job: " + configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            }
+        } else {
+            // If alerting is "Off", stop all scheduled jobs
+            stopBackgroundScheduledJobs(configuration);
         }
     }
     @Scheduled(fixedRateString = "#{fetchEmailConfiguration().getIntervall() * 1000}") // Schedule based on user-defined interval
@@ -1558,6 +1638,91 @@ public class CockpitView extends VerticalLayout{
         dialog.open(); // Open the dialog
     }
 
+    private void backGroundConfigurationDialog() {
+        // Create a dialog with a header title
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Background Job Konfiguration");
+
+        // Create fields for user input
+        TextField mailEmpfaengerField = new TextField("MAIL_EMPFAENGER");
+        TextField mailCCEmpfaengerField = new TextField("MAIL_CC_EMPFAENGER");
+        TextField mailBetreffField = new TextField("MAIL_BETREFF");
+        TextArea mailTextArea = new TextArea("MAIL_TEXT");
+        TextField cronField = new TextField("CRON_EXPRESSION");
+        //  IntegerField intervalField = new IntegerField("Intervall (in minutes)");
+        Checkbox aktiv = new Checkbox("aktiv");
+        IntegerField retentionTimeField = new IntegerField("RETENTION_TIME");
+        IntegerField maxParallelChecksField = new IntegerField("MAX_PARALLEL_CHECKS");
+
+        // Set widths for fields
+        mailEmpfaengerField.setWidth("100%");
+        mailCCEmpfaengerField.setWidth("100%");
+        mailBetreffField.setWidth("100%");
+        mailTextArea.setWidth("100%");
+        mailTextArea.setHeight("150px"); // Adjust height as needed
+        cronField.setWidth("100%");
+        aktiv.setWidth("100%");
+        retentionTimeField.setWidth("100%");
+        maxParallelChecksField.setWidth("100%");
+
+        MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
+
+        Optional.ofNullable(monitorAlerting.getMailEmpfaenger()).ifPresent(mailEmpfaengerField::setValue);
+        Optional.ofNullable(monitorAlerting.getMailCCEmpfaenger()).ifPresent(mailCCEmpfaengerField::setValue);
+        Optional.ofNullable(monitorAlerting.getMailBetreff()).ifPresent(mailBetreffField::setValue);
+        Optional.ofNullable(monitorAlerting.getMailText()).ifPresent(mailTextArea::setValue);
+        Optional.ofNullable(monitorAlerting.getCron()).ifPresent(cronField::setValue);
+        aktiv.setValue(monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() != 0);
+        Optional.ofNullable(monitorAlerting.getRetentionTime()).ifPresent(retentionTimeField::setValue);
+        Optional.ofNullable(monitorAlerting.getMaxParallelCheck()).ifPresent(maxParallelChecksField::setValue);
+
+        Button saveButton = new Button("Save", event -> {
+            // Update the monitorAlerting object with values from the input fields
+            monitorAlerting.setMailEmpfaenger(mailEmpfaengerField.getValue());
+            monitorAlerting.setMailCCEmpfaenger(mailCCEmpfaengerField.getValue());
+            monitorAlerting.setMailBetreff(mailBetreffField.getValue());
+            monitorAlerting.setMailText(mailTextArea.getValue());
+            monitorAlerting.setCron(cronField.getValue());
+            monitorAlerting.setIsActive(aktiv.getValue() ? 1: 0);
+            monitorAlerting.setRetentionTime(retentionTimeField.getValue());
+            monitorAlerting.setMaxParallelCheck(maxParallelChecksField.getValue());
+
+            // Call the save method to persist the configuration
+            boolean isSuccess = cockpitService.saveEmailConfiguration(monitorAlerting, comboBox.getValue());
+            if(isSuccess) {
+                restartAlertCron(monitorAlerting);
+            }
+
+            dialog.close(); // Close the dialog after saving
+        });
+        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY); // Apply primary theme
+
+        Button cancelButton = new Button("Cancel", event -> dialog.close());
+        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY); // Apply tertiary theme
+
+        // Create layout and add components
+        VerticalLayout layout = new VerticalLayout(
+                mailEmpfaengerField,
+                mailCCEmpfaengerField,
+                mailBetreffField,
+                mailTextArea,
+                cronField,
+                aktiv,
+                retentionTimeField,
+                maxParallelChecksField,
+                new HorizontalLayout(saveButton, cancelButton) // Align buttons horizontally
+        );
+        layout.setSpacing(true); // Add spacing between components
+        layout.setPadding(true); // Add padding around the layout
+        layout.setMargin(true); // Add margin around the layout
+        layout.setWidth("500px"); // Set a fixed width for the layout
+
+        // Add layout to dialog
+        dialog.add(layout);
+        dialog.setWidth("600px"); // Set a fixed width for the dialog
+        dialog.open(); // Open the dialog
+    }
+
     private void saveEmailConfigurationOld(MonitorAlerting monitorAlerting) {
         try {
 //            DriverManagerDataSource ds = new DriverManagerDataSource();
@@ -1585,6 +1750,7 @@ public class CockpitView extends VerticalLayout{
             Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
+
 
     private void restartAlertCron(MonitorAlerting monitorAlerting) {
         try {

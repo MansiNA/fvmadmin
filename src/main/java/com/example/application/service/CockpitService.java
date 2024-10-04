@@ -39,6 +39,19 @@ public class CockpitService {
         }
     }
 
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(Configuration conf) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+        try {
+           return this.jdbcTemplate = new JdbcTemplate(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
+
     public void connectionClose() {
         Connection connection = null;
         DataSource dataSource = null;
@@ -165,7 +178,8 @@ public class CockpitService {
                         + "CHECK_INTERVALL INT, "
                         + "LAST_ALERT_TIME DATE, "
                         + "LAST_ALERT_CHECKTIME TIMESTAMP, "
-                        + "IS_ACTIVE INT"
+                        + "IS_ACTIVE INT, "
+                        + "RETENTION_TIME INT"
                         + ")";
 
                 jdbcTemplate.execute(createTableSQL);
@@ -189,7 +203,7 @@ public class CockpitService {
             connectWithDatabase(configuration);
 
             // Query to get the existing configuration
-            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE FROM FVM_MONITOR_ALERTING";
+            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS FROM FVM_MONITOR_ALERTING";
 
             // Use jdbcTemplate to query and map results to MonitorAlerting object
             jdbcTemplate.query(sql, rs -> {
@@ -199,6 +213,8 @@ public class CockpitService {
                 monitorAlerting.setMailBetreff(rs.getString("MAIL_BETREFF"));
                 monitorAlerting.setMailText(rs.getString("MAIL_TEXT"));
                 monitorAlerting.setCron(rs.getString("CRON_EXPRESSION"));
+                monitorAlerting.setRetentionTime(rs.getInt("RETENTION_TIME"));
+                monitorAlerting.setMaxParallelCheck(rs.getInt("MAX_PARALLEL_CHECKS"));
                 // Converting SQL Timestamp to LocalDateTime
                 Timestamp lastAlertTimeStamp = rs.getTimestamp("LAST_ALERT_TIME");
                 if (lastAlertTimeStamp != null) {
@@ -238,7 +254,9 @@ public class CockpitService {
                         "MAIL_BETREFF = ?, " +
                         "MAIL_TEXT = ?, " +
                         "CRON_EXPRESSION = ?, " +
-                        "IS_ACTIVE = ?";
+                        "IS_ACTIVE = ?, "+
+                        "MAX_PARALLEL_CHECKS = ?, "+
+                        "RETENTION_TIME = ?";
 
                 int rowsAffected = jdbcTemplate.update(updateQuery,
                         monitorAlerting.getMailEmpfaenger(),
@@ -246,7 +264,9 @@ public class CockpitService {
                         monitorAlerting.getMailBetreff(),
                         monitorAlerting.getMailText(),
                         monitorAlerting.getCron(),
-                        monitorAlerting.getIsActive()
+                        monitorAlerting.getIsActive(),
+                        monitorAlerting.getMaxParallelCheck(),
+                        monitorAlerting.getRetentionTime()
                 );
 
                 if (rowsAffected > 0) {
@@ -257,8 +277,8 @@ public class CockpitService {
             } else {
                 // If no record exists, insert a new configuration
                 String insertQuery = "INSERT INTO FVM_MONITOR_ALERTING " +
-                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, IS_ACTIVE) " +
-                        "VALUES (?, ?, ?, ?, ?, ?)";
+                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?,?)";
 
                 int rowsAffected = jdbcTemplate.update(insertQuery,
                         monitorAlerting.getMailEmpfaenger(),
@@ -266,7 +286,9 @@ public class CockpitService {
                         monitorAlerting.getMailBetreff(),
                         monitorAlerting.getMailText(),
                         monitorAlerting.getCron(),
-                        monitorAlerting.getIsActive()
+                        monitorAlerting.getIsActive(),
+                        monitorAlerting.getRetentionTime(),
+                        monitorAlerting.getMaxParallelCheck()
                 );
 
                 if (rowsAffected > 0) {
