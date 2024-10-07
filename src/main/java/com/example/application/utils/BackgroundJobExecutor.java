@@ -73,18 +73,19 @@ public class BackgroundJobExecutor implements Job {
         // Clean up old results based on retention time
         cleanUpOldResults(monitorAlerting.getRetentionTime());
 
+        try {
+            if (jdbcTemplate != null) {
+                jdbcTemplate.update(
+                        "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1"
+                );
+            }
+        } catch (Exception e) {
+            e.getMessage();
+        }
+
         for (fvm_monitoring monitoring : monitorings) {
             if(monitoring.getIS_ACTIVE().equals("1")) {
-                try {
-                    if (jdbcTemplate != null) {
-                        jdbcTemplate.update(
-                                "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
-                                monitoring.getID()
-                        );
-                    }
-                } catch (Exception e) {
-                    e.getMessage();
-                }
+
                 executorService.submit(() -> {
                     try {
                         if (stopJob) {
