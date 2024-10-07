@@ -253,20 +253,82 @@ public class CockpitService {
                         "MAIL_CC_EMPFAENGER = ?, " +
                         "MAIL_BETREFF = ?, " +
                         "MAIL_TEXT = ?, " +
-                        "CRON_EXPRESSION = ?, " +
-                        "IS_ACTIVE = ?, "+
-                        "MAX_PARALLEL_CHECKS = ?, "+
-                        "RETENTION_TIME = ?";
+                        "IS_ACTIVE = ? ";
 
                 int rowsAffected = jdbcTemplate.update(updateQuery,
                         monitorAlerting.getMailEmpfaenger(),
                         monitorAlerting.getMailCCEmpfaenger(),
                         monitorAlerting.getMailBetreff(),
                         monitorAlerting.getMailText(),
+                    //    monitorAlerting.getCron(),
+                        monitorAlerting.getIsActive()
+//                        monitorAlerting.getMaxParallelCheck(),
+//                        monitorAlerting.getRetentionTime()
+                );
+
+                if (rowsAffected > 0) {
+                    return true;
+                } else {
+                    Notification.show("No configuration was updated.", 5000, Notification.Position.MIDDLE);
+                }
+            } else {
+                // If no record exists, insert a new configuration
+                String insertQuery = "INSERT INTO FVM_MONITOR_ALERTING " +
+                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?,?)";
+
+                int rowsAffected = jdbcTemplate.update(insertQuery,
+                        monitorAlerting.getMailEmpfaenger(),
+                        monitorAlerting.getMailCCEmpfaenger(),
+                        monitorAlerting.getMailBetreff(),
+                        monitorAlerting.getMailText(),
                         monitorAlerting.getCron(),
                         monitorAlerting.getIsActive(),
-                        monitorAlerting.getMaxParallelCheck(),
-                        monitorAlerting.getRetentionTime()
+                        monitorAlerting.getRetentionTime(),
+                        monitorAlerting.getMaxParallelCheck()
+                );
+
+                if (rowsAffected > 0) {
+                    return true;
+                } else {
+                    Notification.show("Failed to insert new configuration.", 5000, Notification.Position.MIDDLE);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        } finally {
+            // Ensure database connection is properly closed
+            connectionClose();
+        }
+        return false;
+    }
+
+    public boolean saveBackgoundJobConfiguration(MonitorAlerting monitorAlerting, Configuration configuration) {
+        try {
+            connectWithDatabase(configuration);
+
+            // Check if there is any existing data in the table
+            String checkQuery = "SELECT COUNT(*) FROM FVM_MONITOR_ALERTING";
+            Integer count = jdbcTemplate.queryForObject(checkQuery, Integer.class);
+
+            if (count != null && count > 0) {
+                // If record exists, update the configuration
+                String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET " +
+                        "CRON_EXPRESSION = ?, " +
+                        "IS_ACTIVE = ?, " +
+                        "RETENTION_TIME = ?, " +
+                        "MAX_PARALLEL_CHECKS = ? ";
+
+                int rowsAffected = jdbcTemplate.update(updateQuery,
+                        monitorAlerting.getCron(),
+                        monitorAlerting.getIsActive(),
+                        monitorAlerting.getRetentionTime(),
+                        monitorAlerting.getMaxParallelCheck()
+                        //    monitorAlerting.getCron(),
+
+//                        monitorAlerting.getMaxParallelCheck(),
+//                        monitorAlerting.getRetentionTime()
                 );
 
                 if (rowsAffected > 0) {

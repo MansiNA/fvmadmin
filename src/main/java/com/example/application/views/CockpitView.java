@@ -801,6 +801,7 @@ public class CockpitView extends VerticalLayout{
             try {
                 Notification.show("Starting background job executing.... " + configuration.getName(), 5000, Notification.Position.MIDDLE);
                 BackgroundJobExecutor.stopJob = false;
+                System.out.println("xxxxxxxxxxxxxxx................."+configuration.getName());
                 scheduleBackgroundJob(configuration);
             } catch (Exception e) {
                 Notification.show("Error executing job: " + configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
@@ -1573,7 +1574,7 @@ public class CockpitView extends VerticalLayout{
         TextField mailCCEmpfaengerField = new TextField("MAIL_CC_EMPFAENGER");
         TextField mailBetreffField = new TextField("MAIL_BETREFF");
         TextArea mailTextArea = new TextArea("MAIL_TEXT");
-        TextField cronField = new TextField("CRON_EXPRESSION");
+    //    TextField cronField = new TextField("CRON_EXPRESSION");
       //  IntegerField intervalField = new IntegerField("Intervall (in minutes)");
         Checkbox aktiv = new Checkbox("aktiv");
 
@@ -1583,7 +1584,7 @@ public class CockpitView extends VerticalLayout{
         mailBetreffField.setWidth("100%");
         mailTextArea.setWidth("100%");
         mailTextArea.setHeight("150px"); // Adjust height as needed
-        cronField.setWidth("100%");
+    //    cronField.setWidth("100%");
         aktiv.setWidth("100%");
 
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
@@ -1592,7 +1593,7 @@ public class CockpitView extends VerticalLayout{
         Optional.ofNullable(monitorAlerting.getMailCCEmpfaenger()).ifPresent(mailCCEmpfaengerField::setValue);
         Optional.ofNullable(monitorAlerting.getMailBetreff()).ifPresent(mailBetreffField::setValue);
         Optional.ofNullable(monitorAlerting.getMailText()).ifPresent(mailTextArea::setValue);
-        Optional.ofNullable(monitorAlerting.getCron()).ifPresent(cronField::setValue);
+    //    Optional.ofNullable(monitorAlerting.getCron()).ifPresent(cronField::setValue);
         aktiv.setValue(monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() != 0);
 
         Button saveButton = new Button("Save", event -> {
@@ -1601,7 +1602,7 @@ public class CockpitView extends VerticalLayout{
             monitorAlerting.setMailCCEmpfaenger(mailCCEmpfaengerField.getValue());
             monitorAlerting.setMailBetreff(mailBetreffField.getValue());
             monitorAlerting.setMailText(mailTextArea.getValue());
-            monitorAlerting.setCron(cronField.getValue());
+    //        monitorAlerting.setCron(cronField.getValue());
             monitorAlerting.setIsActive(aktiv.getValue() ? 1: 0);
 
             // Call the save method to persist the configuration
@@ -1623,7 +1624,7 @@ public class CockpitView extends VerticalLayout{
                 mailCCEmpfaengerField,
                 mailBetreffField,
                 mailTextArea,
-                cronField,
+   //             cronField,
                 aktiv,
                 new HorizontalLayout(saveButton, cancelButton) // Align buttons horizontally
         );
@@ -1644,22 +1645,12 @@ public class CockpitView extends VerticalLayout{
         dialog.setHeaderTitle("Background Job Konfiguration");
 
         // Create fields for user input
-        TextField mailEmpfaengerField = new TextField("MAIL_EMPFAENGER");
-        TextField mailCCEmpfaengerField = new TextField("MAIL_CC_EMPFAENGER");
-        TextField mailBetreffField = new TextField("MAIL_BETREFF");
-        TextArea mailTextArea = new TextArea("MAIL_TEXT");
         TextField cronField = new TextField("CRON_EXPRESSION");
         //  IntegerField intervalField = new IntegerField("Intervall (in minutes)");
         Checkbox aktiv = new Checkbox("aktiv");
         IntegerField retentionTimeField = new IntegerField("RETENTION_TIME");
         IntegerField maxParallelChecksField = new IntegerField("MAX_PARALLEL_CHECKS");
 
-        // Set widths for fields
-        mailEmpfaengerField.setWidth("100%");
-        mailCCEmpfaengerField.setWidth("100%");
-        mailBetreffField.setWidth("100%");
-        mailTextArea.setWidth("100%");
-        mailTextArea.setHeight("150px"); // Adjust height as needed
         cronField.setWidth("100%");
         aktiv.setWidth("100%");
         retentionTimeField.setWidth("100%");
@@ -1667,10 +1658,6 @@ public class CockpitView extends VerticalLayout{
 
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
 
-        Optional.ofNullable(monitorAlerting.getMailEmpfaenger()).ifPresent(mailEmpfaengerField::setValue);
-        Optional.ofNullable(monitorAlerting.getMailCCEmpfaenger()).ifPresent(mailCCEmpfaengerField::setValue);
-        Optional.ofNullable(monitorAlerting.getMailBetreff()).ifPresent(mailBetreffField::setValue);
-        Optional.ofNullable(monitorAlerting.getMailText()).ifPresent(mailTextArea::setValue);
         Optional.ofNullable(monitorAlerting.getCron()).ifPresent(cronField::setValue);
         aktiv.setValue(monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() != 0);
         Optional.ofNullable(monitorAlerting.getRetentionTime()).ifPresent(retentionTimeField::setValue);
@@ -1678,17 +1665,13 @@ public class CockpitView extends VerticalLayout{
 
         Button saveButton = new Button("Save", event -> {
             // Update the monitorAlerting object with values from the input fields
-            monitorAlerting.setMailEmpfaenger(mailEmpfaengerField.getValue());
-            monitorAlerting.setMailCCEmpfaenger(mailCCEmpfaengerField.getValue());
-            monitorAlerting.setMailBetreff(mailBetreffField.getValue());
-            monitorAlerting.setMailText(mailTextArea.getValue());
             monitorAlerting.setCron(cronField.getValue());
             monitorAlerting.setIsActive(aktiv.getValue() ? 1: 0);
             monitorAlerting.setRetentionTime(retentionTimeField.getValue());
             monitorAlerting.setMaxParallelCheck(maxParallelChecksField.getValue());
 
             // Call the save method to persist the configuration
-            boolean isSuccess = cockpitService.saveEmailConfiguration(monitorAlerting, comboBox.getValue());
+            boolean isSuccess = cockpitService.saveBackgoundJobConfiguration(monitorAlerting, comboBox.getValue());
             if(isSuccess) {
                 restartAlertCron(monitorAlerting);
             }
@@ -1702,10 +1685,6 @@ public class CockpitView extends VerticalLayout{
 
         // Create layout and add components
         VerticalLayout layout = new VerticalLayout(
-                mailEmpfaengerField,
-                mailCCEmpfaengerField,
-                mailBetreffField,
-                mailTextArea,
                 cronField,
                 aktiv,
                 retentionTimeField,

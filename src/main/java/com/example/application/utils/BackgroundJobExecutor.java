@@ -19,6 +19,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -73,38 +74,65 @@ public class BackgroundJobExecutor implements Job {
         cleanUpOldResults(monitorAlerting.getRetentionTime());
 
         for (fvm_monitoring monitoring : monitorings) {
-            executorService.submit(() -> {
+            if(monitoring.getIS_ACTIVE().equals("1")) {
                 try {
-                    if (stopJob) {
-                        return; // Exit if the job is stopped
-                    }
                     if (jdbcTemplate != null) {
-                        String sqlQuery = monitoring.getSQL();
-                        String result = jdbcTemplate.queryForObject(sqlQuery, String.class);
-                        System.out.println(monitoring.getID() + " query executed: " + monitoring.getSQL());
+                        jdbcTemplate.update(
+                                "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
+                                monitoring.getID()
+                        );
+                    }
+                } catch (Exception e) {
+                    e.getMessage();
+                }
+                executorService.submit(() -> {
+                    try {
+                        if (stopJob) {
+                            return; // Exit if the job is stopped
+                        }
+                        if (jdbcTemplate != null) {
+                            Timestamp lastCheck = jdbcTemplate.queryForObject(
+                                    "SELECT MAX(Zeitpunkt) FROM FVM_MONITOR_RESULT WHERE ID = ?",
+                                    new Object[]{monitoring.getID()},
+                                    Timestamp.class
+                            );
 
-                        // Insert new result with IS_ACTIVE = 1 and store any message
-                        jdbcTemplate.update("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?) ",
+                            long timeSinceLastCheck = (lastCheck != null) ?
+                                    Duration.between(lastCheck.toLocalDateTime(), LocalDateTime.now()).toMinutes() :
+                                    Long.MAX_VALUE;
+
+                            System.out.println(monitoring.getID()+"  +++++++ "+timeSinceLastCheck+" +++++++++ "+monitoring.getCheck_Intervall());
+                            if (timeSinceLastCheck >= monitoring.getCheck_Intervall()) {
+
+                                String sqlQuery = monitoring.getSQL();
+                                String result = jdbcTemplate.queryForObject(sqlQuery, String.class);
+
+
+                                // Insert new result with IS_ACTIVE = 1 and store any message
+                                jdbcTemplate.update("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?) ",
+                                        monitoring.getID(),
+                                        Timestamp.valueOf(LocalDateTime.now()),
+                                        1,
+                                        result,
+                                        "Query executed successfully");
+
+                                System.out.println(monitoring.getID() + " query executed: " + monitoring.getSQL());
+                            }
+                        }
+
+                    } catch (Exception e) {
+                        System.out.println("Error executing SQL for monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
+
+                        // Store the error message in DB_MESSAGE
+                        jdbcTemplate.update("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
                                 monitoring.getID(),
                                 Timestamp.valueOf(LocalDateTime.now()),
-                                1,
-                                result,
-                                "Query executed successfully");
-
+                                0,
+                                null, // No result on error
+                                e.getMessage()); // Store error message
                     }
-
-                } catch (Exception e) {
-                    System.out.println("Error executing SQL for monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
-
-                    // Store the error message in DB_MESSAGE
-                    jdbcTemplate.update("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
-                            monitoring.getID(),
-                            Timestamp.valueOf(LocalDateTime.now()),
-                            0,
-                            null, // No result on error
-                            e.getMessage()); // Store error message
-                }
-            });
+                });
+            }
         }
 
         executorService.shutdown();
