@@ -1519,7 +1519,9 @@ public class CockpitView extends VerticalLayout{
         abfrage.setWidthFull();
 
         TextArea detailabfrage = new TextArea("SQL-Detail Abfrage");
-        detailabfrage.setValue(monitor.getSQL_Detail());
+        if (monitor.getSQL_Detail() != null) {
+            detailabfrage.setValue(monitor.getSQL_Detail());
+        }
         detailabfrage.setWidthFull();
 
         abfrage.addValueChangeListener(event -> monitor.setSQL(event.getValue()));
@@ -1552,6 +1554,7 @@ public class CockpitView extends VerticalLayout{
         }
 
         // Add value change listeners to trigger binder updates
+        titel.addValueChangeListener(event -> monitor.setTitel(event.getValue()));
         intervall.addValueChangeListener(event -> monitor.setCheck_Intervall(event.getValue()));
         infoSchwellwert.addValueChangeListener(event -> monitor.setWarning_Schwellwert(event.getValue()));
         errorSchwellwert.addValueChangeListener(event -> monitor.setError_Schwellwert(event.getValue()));
