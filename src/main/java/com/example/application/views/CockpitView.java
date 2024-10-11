@@ -317,7 +317,7 @@ public class CockpitView extends VerticalLayout{
 
     private void setChecker(String status) {
         // Update checked state of menu items
-
+        check_menu.getItems().forEach(item -> item.setChecked(item.getText().equals(status)));
         syscheck.setText(status);
 
 
@@ -611,10 +611,8 @@ public class CockpitView extends VerticalLayout{
             backGroundConfigurationDialog();
         });
 
-
-
-
         setChecker("On");
+
         Div checkInfo = new Div(new Span("Background-Job: "), syscheck);
         syscheck.getStyle().set("font-weight", "bold");
 
@@ -1094,10 +1092,10 @@ public class CockpitView extends VerticalLayout{
 
             }));
 
-            addItem("refresh", e -> e.getItem().ifPresent(person -> {
-                System.out.printf("refresh im ContextMenü aufgerufen: %s%n", person.getID());
-                refreshMonitor(person.getID());
-
+            addItem("refresh", e -> e.getItem().ifPresent(monitor -> {
+                System.out.printf("refresh im ContextMenü aufgerufen: %s%n", monitor.getID());
+                refreshMonitor(monitor.getID());
+                executeImmediateSQLCheck(monitor);
 
 
             }));
@@ -1153,6 +1151,40 @@ public class CockpitView extends VerticalLayout{
         return ;
 
     }
+
+    public void executeImmediateSQLCheck(fvm_monitoring monitoring) {
+
+        if (monitoring.getIS_ACTIVE().equals("1")) {
+            try {
+                String sqlQuery = monitoring.getSQL();
+                String result = jdbcTemplate.queryForObject(sqlQuery, String.class);
+                Integer count = jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE ID = ?",
+                        new Object[]{monitoring.getID()},
+                        Integer.class
+                );
+                System.out.println("count########"+count);
+                if (count != null && count > 0) {
+                    jdbcTemplate.update(
+                            "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
+                            monitoring.getID());
+                }
+
+                jdbcTemplate.update(
+                        "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
+                        monitoring.getID(),
+                        Timestamp.valueOf(LocalDateTime.now()),
+                        1, // Mark as active
+                        result,
+                        "Query executed successfully");
+
+                System.out.println("refresh...sql check...." + monitoring.getID() + "----------------------query executed: " + monitoring.getSQL().toString());
+            } catch (Exception ex) {
+                throw ex;
+            }
+        }
+    }
+
 
     private void fill_grid_metadata(String sql) throws SQLException, IOException {
         System.out.println(sql);
@@ -1384,7 +1416,7 @@ public class CockpitView extends VerticalLayout{
         saveButton.addClickListener(saveEvent -> {
             System.out.println("saved data....");
             saveEditedMonitor(monitor);
-            updateGrid();
+             updateGrid();
             dialog.close(); // Close the confirmation dialog
         });
 
@@ -1410,6 +1442,7 @@ public class CockpitView extends VerticalLayout{
 
     private void saveEditedMonitor(fvm_monitoring monitor) {
         callback.save(monitor);
+        restartBackgroundCron();
     }
 
     private Component getHandlungsinformationen(fvm_monitoring monitor) {
@@ -1611,7 +1644,7 @@ public class CockpitView extends VerticalLayout{
             // Call the save method to persist the configuration
             boolean isSuccess = cockpitService.saveEmailConfiguration(monitorAlerting, comboBox.getValue());
             if(isSuccess) {
-                restartAlertCron(monitorAlerting);
+                restartAlertCron();
             }
 
             dialog.close(); // Close the dialog after saving
@@ -1676,7 +1709,7 @@ public class CockpitView extends VerticalLayout{
             // Call the save method to persist the configuration
             boolean isSuccess = cockpitService.saveBackgoundJobConfiguration(monitorAlerting, comboBox.getValue());
             if(isSuccess) {
-                restartAlertCron(monitorAlerting);
+                restartBackgroundCron();
             }
 
             dialog.close(); // Close the dialog after saving
@@ -1734,7 +1767,7 @@ public class CockpitView extends VerticalLayout{
     }
 
 
-    private void restartAlertCron(MonitorAlerting monitorAlerting) {
+    private void restartAlertCron() {
         try {
             Configuration configuration = comboBox.getValue();
             if(alertingState.equals("On")) {
@@ -1746,6 +1779,20 @@ public class CockpitView extends VerticalLayout{
             Notification.show("Failed to restart alert job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
+
+    private void restartBackgroundCron() {
+        try {
+            Configuration configuration = comboBox.getValue();
+            if(syscheck.getText().equals("On")) {
+                stopBackgroundScheduledJobs(configuration);
+                scheduleBackgroundJob(configuration);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Failed to restart alert job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
+
 
     private MonitorAlerting fetchEmailConfiguration() {
         MonitorAlerting monitorAlerting = new MonitorAlerting();
