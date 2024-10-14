@@ -11,6 +11,7 @@ import java.sql.Date;
 public class fvm_monitoring {
     @Id
     private Integer ID;
+    private Integer Pid;
     private String SQL;
     private String SQL_Detail;
     private String Titel;
@@ -22,6 +23,7 @@ public class fvm_monitoring {
     private Integer Error_Schwellwert;
     private Double Error_Prozent;
     private String IS_ACTIVE;
+    private String bereich;
     private Date Zeitpunkt ;
     public String getIS_ACTIVE() {
         return IS_ACTIVE;
@@ -77,6 +79,14 @@ public class fvm_monitoring {
     public void setID(Integer ID) {
         this.ID = ID;
     }
+    public Integer getPid() {
+        return Pid;
+    }
+
+    public void setPid(Integer pid) {
+        this.Pid = pid;
+    }
+
 
     public String getSQL() {
         return SQL;
@@ -132,6 +142,17 @@ public class fvm_monitoring {
 
     public void setSQL_Detail(String SQL_Detail) {
         this.SQL_Detail = SQL_Detail;
+    }
+
+    public String getBereich() {
+        if(bereich == null) {
+            return bereich = "";
+        }
+        return bereich;
+    }
+
+    public void setBereich(String bereich) {
+        this.bereich = bereich;
     }
 
 }

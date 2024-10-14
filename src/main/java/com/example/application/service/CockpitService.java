@@ -1,6 +1,7 @@
 package com.example.application.service;
 
 import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.JobManager;
 import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
 import com.vaadin.flow.component.notification.Notification;
@@ -17,11 +18,15 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class CockpitService {
 
     private JdbcTemplate jdbcTemplate;
+    List<fvm_monitoring> listOfMonitores;
+
 
     public CockpitService(JdbcTemplate jdbcTemplate){
         this.jdbcTemplate = jdbcTemplate;
@@ -78,7 +83,7 @@ public class CockpitService {
     }
 
     public List<fvm_monitoring> getMonitoring(Configuration configuration) {
-        List<fvm_monitoring> monitore = new ArrayList<>();
+     //   List<fvm_monitoring> monitore = new ArrayList<>();
 
         //String sql = "SELECT ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT, ERROR_SCHWELLWERT FROM EKP.FVM_MONITORING";
 
@@ -89,7 +94,7 @@ public class CockpitService {
 //                "on m.id=mr.id\n" +
 //                "and mr.is_active='1'";
 
-        String sql = "SELECT m.ID, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
+        String sql = "SELECT m.ID,m.PID, m.Bereich, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
                 ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent" +
                 ", Zeitpunkt, m.is_active, m.sql_detail as sql_detail FROM FVM_MONITORING m\n" +
                 "left outer join FVM_MONITOR_RESULT mr\n" +
@@ -103,7 +108,7 @@ public class CockpitService {
         connectWithDatabase(configuration);
 
         try {
-            monitore = jdbcTemplate.query(
+            listOfMonitores = jdbcTemplate.query(
                     sql,
                     new BeanPropertyRowMapper(fvm_monitoring.class));
 
@@ -117,7 +122,7 @@ public class CockpitService {
             connectionClose();
         }
 
-        return monitore;
+        return listOfMonitores;
     }
     private boolean tableExistsold(String tableName) {
         try {
@@ -441,4 +446,29 @@ public class CockpitService {
         }
     }
 
+    public List<fvm_monitoring> getRootMonitor() {
+        System.out.println("-----------"+ listOfMonitores.size()+"-----------------------------");
+        List<fvm_monitoring> rootProjects = listOfMonitores
+                .stream()
+                .filter(monitor -> monitor.getPid() == 0)
+                .collect(Collectors.toList());
+
+        // Log the names of root projects
+        //    rootProjects.forEach(project -> System.out.println("Root Project: " + project.toString()));
+
+        return rootProjects;
+    }
+
+    public List<fvm_monitoring> getChildMonitor(fvm_monitoring parent) {
+
+        List<fvm_monitoring> childProjects = listOfMonitores
+                .stream()
+                .filter(monitor -> Objects.equals(monitor.getPid(), parent.getID()))
+                .collect(Collectors.toList());
+
+        // Log the names of child projects
+        //    childProjects.forEach(project -> System.out.println("Child Project of " + parent.getName() + ": " + project.getName()));
+
+        return childProjects;
+    }
 }

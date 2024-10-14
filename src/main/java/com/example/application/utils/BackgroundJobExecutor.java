@@ -84,7 +84,7 @@ public class BackgroundJobExecutor implements Job {
         cleanUpOldResults(monitorAlerting.getRetentionTime());
 
         for (fvm_monitoring monitoring : monitorings) {
-            if (monitoring.getIS_ACTIVE().equals("1")) {
+            if (monitoring.getIS_ACTIVE().equals("1") && monitoring.getPid() != 0) {
 
                 try {
                     // step 1.

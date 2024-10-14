@@ -1,9 +1,7 @@
 package com.example.application.views;
 
+import com.example.application.data.entity.*;
 import com.example.application.data.entity.Configuration;
-import com.example.application.data.entity.Mailbox;
-import com.example.application.data.entity.MonitorAlerting;
-import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.service.CockpitService;
 import com.example.application.service.EmailService;
@@ -42,6 +40,7 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -176,6 +175,7 @@ public class CockpitView extends VerticalLayout{
         }
     };
     Grid<fvm_monitoring> grid = new Grid<>(fvm_monitoring.class, false);
+    private TreeGrid<fvm_monitoring> treeGrid;
 
     Grid<LinkedHashMap<String, Object>> grid_metadata = new Grid<>();
 
@@ -226,7 +226,8 @@ public class CockpitView extends VerticalLayout{
         addClassName("cockpit-view");
         setSizeFull();
 
-        configureGrid();
+      //  configureGrid();
+        configureTreeGrid();
 
         countdownLabel = new Label();
         lastRefreshLabel=new Label();
@@ -299,10 +300,12 @@ public class CockpitView extends VerticalLayout{
 
 
 
-        add(getToolbar(),grid,form );
-
+        //add(getToolbar(),grid,form );
+        add(getToolbar(),treeGrid,form );
 
     }
+
+
 
     private void setAlerting(String status) {
         // Update checked state of menu items
@@ -479,7 +482,8 @@ public class CockpitView extends VerticalLayout{
         refreshBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         refreshBtn.addClickListener(clickEvent -> {
 
-            updateGrid();
+       //     updateGrid();
+            updateTreeGrid();
             updateLastRefreshLabel();
 
         });
@@ -500,14 +504,16 @@ public class CockpitView extends VerticalLayout{
                     Notification.show("No configurations available for monitoring.", 5000, Notification.Position.MIDDLE);
                 }
             }
-            updateGrid();
+            updateTreeGrid();
+        //    updateGrid();
         } catch (Exception e) {
             // Display the error message to the user
             Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
 
         comboBox.addValueChangeListener(event -> {
-            updateGrid();
+            updateTreeGrid();
+        //    updateGrid();
             cockpitService.createFvmMonitorAlertingTable(comboBox.getValue());
             MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(event.getValue());
             if(monitorAlerting.getIsActive() == 1) {
@@ -633,13 +639,154 @@ public class CockpitView extends VerticalLayout{
         lastRefreshLabel.setText("letzte Aktualisierung: " + formattedTime);
     }
 
-    private void updateGrid() {
+//    private void updateGrid() {
+//        param_Liste = cockpitService.getMonitoring(comboBox.getValue());
+//        if(param_Liste != null) {
+//            grid.setItems(param_Liste);
+//        }
+//    }
+
+    private void updateTreeGrid() {
         param_Liste = cockpitService.getMonitoring(comboBox.getValue());
         if(param_Liste != null) {
-            grid.setItems(param_Liste);
+            List<fvm_monitoring> rootItems = cockpitService.getRootMonitor();
+            treeGrid.setItems(rootItems, cockpitService ::getChildMonitor);
         }
+
     }
 
+    private void configureTreeGrid() {
+        treeGrid = new TreeGrid<>();
+
+        // Add the hierarchy column for displaying the hierarchical data
+        treeGrid.addHierarchyColumn(fvm_monitoring::getBereich).setHeader("Bereich").setAutoWidth(true).setResizable(true);
+
+        Grid.Column<fvm_monitoring> idColumn = treeGrid.addColumn((fvm_monitoring::getID)).setHeader("ID")
+                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
+        treeGrid.addColumn(fvm_monitoring::getTitel).setHeader("Titel")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
+      /*  grid.addColumn(fvm_monitoring::getCheck_Intervall).setHeader("Intervall")
+                .setAutoWidth(true).setResizable(true).setSortable(true); */
+//        grid.addColumn(fvm_monitoring::getWarning_Schwellwert).setHeader("Warning Schwellwert")
+//                .setAutoWidth(true).setResizable(true).setSortable(true);
+        Grid.Column<fvm_monitoring> warnSchwellwerkColumn = treeGrid.addColumn((fvm_monitoring::getWarning_Schwellwert)).setHeader("Warning Schwellwert")
+                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
+        treeGrid.addColumn(fvm_monitoring::getError_Schwellwert ).setHeader("Error Schwellwert")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
+        treeGrid.addColumn(fvm_monitoring::getAktueller_Wert).setHeader("Aktuell")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
+        //  grid.addColumn(fvm_monitoring::getBeschreibung).setHeader("Beschreibung")
+        //          .setAutoWidth(true).setResizable(true).setSortable(true);
+        //  grid.addColumn(fvm_monitoring::getHandlungs_INFO).setHeader("Handlungsinfo")
+        //          .setAutoWidth(true).setResizable(true).setSortable(true);
+
+        // Spalte für den Fortschritt mit ProgressBarRenderer
+        treeGrid.addColumn(new ComponentRenderer<>(item -> {
+            ProgressBar progressBar = new ProgressBar();
+
+            progressBar.setValue(item.getError_Prozent()); // Wert zwischen 0 und 1
+            //progressBar.setValue(0.8); // Wert zwischen 0 und 1
+
+            Double p = item.getError_Prozent();
+            Double rounded;
+            p = p*100;
+            rounded = (double) Math.round(p);
+            Text t = new Text(rounded.toString() + "%");
+            HorizontalLayout hl = new HorizontalLayout();
+            hl.add(t,progressBar);
+
+            return hl;
+        })).setHeader("Auslastung").setWidth("150px").setResizable(true);
+
+        treeGrid.addColumn(fvm_monitoring::getIS_ACTIVE).setHeader("Aktiv")
+                .setAutoWidth(true).setResizable(true).setSortable(true);
+
+
+        treeGrid.setItemDetailsRenderer(createPersonDetailsRenderer());
+        treeGrid.setSelectionMode(Grid.SelectionMode.NONE);
+        // grid.setSelectionMode(Grid.SelectionMode.SINGLE);
+        // grid.setDetailsVisibleOnClick(false);
+
+        treeGrid.addItemClickListener(event -> {
+
+            //  System.out.println("ClickEvent:" + event.getItem().getTitel());
+
+            if (((ClickEvent) event).getClickCount() == 2){
+                System.out.println("Double ClickEvent:" + event.getItem().getTitel());
+                treeGrid.setDetailsVisible(event.getItem(), !treeGrid.isDetailsVisible(event.getItem()));
+            }
+
+            //   ClickEvent<fvm_monitoring> clickEvent = (ClickEvent<fvm_monitoring>) event;
+            //   if (clickEvent.getClickCount() == 2) {
+            //       grid.setDetailsVisible(event.getItem(), !grid.isDetailsVisible(event.getItem()));
+            //   }
+        });
+
+
+//        if(param_Liste != null) {
+//            treeGrid.setItems(param_Liste);
+//            listOfJobManager = jobDefinitionService.findAll();
+//            List<JobManager> rootItems = jobDefinitionService.getRootJobManager();
+//            treeGrid.setItems(rootItems, jobDefinitionService ::getChildJobManager);
+//        }
+        treeGrid.setHeight("800px");
+        treeGrid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
+        treeGrid.addThemeVariants(GridVariant.LUMO_COMPACT);
+        treeGrid.setThemeName("dense");
+
+        MonitorContextMenu contextMenu = new MonitorContextMenu(treeGrid);
+
+        treeGrid.setClassNameGenerator(person -> {
+
+            if (person.getAktueller_Wert() != null && person.getWarning_Schwellwert() != null && person.getError_Schwellwert() != null ) {
+
+                if (person.getAktueller_Wert() >= person.getWarning_Schwellwert() && person.getAktueller_Wert() < person.getError_Schwellwert())
+                    return "warning";
+                if (person.getAktueller_Wert() >= person.getError_Schwellwert())
+                    return "error";
+            }
+
+            // Check if any child of this person has an "error" status
+            if (hasChildWithError(person)) {
+                return "error"; // Propagate the error class to the parent
+            }
+            return null;
+        });
+        treeGrid.addExpandListener(event -> {
+           System.out.println("yes..."+event.getItems().size());
+        });
+
+        menuButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        idColumn.setVisible(false);
+        warnSchwellwerkColumn.setVisible(false);
+        ColumnToggleContextMenu columnToggleContextMenu = new ColumnToggleContextMenu(menuButton);
+        columnToggleContextMenu.addColumnToggleItem("ID", idColumn);
+        columnToggleContextMenu.addColumnToggleItem("Warning Schwellwert", warnSchwellwerkColumn);
+
+
+    }
+
+    private boolean hasChildWithError(fvm_monitoring person) {
+        // Retrieve children for the given person (use your service logic for getting children)
+        List<fvm_monitoring> children = cockpitService.getChildMonitor(person);
+
+        for (fvm_monitoring child : children) {
+            // Check if the child itself has an error
+            if (child.getAktueller_Wert() != null && child.getError_Schwellwert() != null &&
+                    child.getAktueller_Wert() >= child.getError_Schwellwert()) {
+                return true;
+            }
+
+            // Recursively check if any of the child's children have an error
+            if (hasChildWithError(child)) {
+                return true;
+            }
+        }
+
+        // No child with error found
+        return false;
+    }
     private void configureGrid() {
         /*grid.addColumn(fvm_monitoring::getID).setHeader("ID")
                 .setAutoWidth(true).setResizable(true).setSortable(true);*/
@@ -918,7 +1065,8 @@ public class CockpitView extends VerticalLayout{
 
         if (remainingTime.isNegative()){
             startTime = Instant.now();
-            updateGrid();
+            updateTreeGrid();
+          //  updateGrid();
             updateLastRefreshLabel();
             return;
         }
@@ -964,18 +1112,28 @@ public class CockpitView extends VerticalLayout{
 
         public void setPerson(fvm_monitoring person) {
 
-            if (person.getZeitpunkt() != null) {
+            if (person.getPid() != null && person.getPid() != 0) {
 
-                SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
-                String dateAsString = dateFormat.format(person.getZeitpunkt());
+                idField.setVisible(true);
+                refreshIntervallField.setVisible(true);
+                lastRefreshField.setVisible(true);
 
-                lastRefreshField.setValue(dateAsString);
+                if (person.getZeitpunkt() != null) {
+
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+                    String dateAsString = dateFormat.format(person.getZeitpunkt());
+
+                    lastRefreshField.setValue(dateAsString);
+                } else {
+                    lastRefreshField.setValue("unbekannt...");
+                }
+                idField.setValue(person.getID().toString());
+                refreshIntervallField.setValue(person.getCheck_Intervall().toString());
+            } else {
+                idField.setVisible(false);
+                refreshIntervallField.setVisible(false);
+                lastRefreshField.setVisible(false);
             }
-            else {
-                lastRefreshField.setValue("unbekannt...");
-            }
-            idField.setValue(person.getID().toString());
-            refreshIntervallField.setValue(person.getCheck_Intervall().toString());
         }
     }
 
@@ -1167,7 +1325,7 @@ public class CockpitView extends VerticalLayout{
                 if (count != null && count > 0) {
                     jdbcTemplate.update(
                             "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
-                            monitoring.getID());
+                             monitoring.getID());
                 }
 
                 jdbcTemplate.update(
@@ -1416,7 +1574,8 @@ public class CockpitView extends VerticalLayout{
         saveButton.addClickListener(saveEvent -> {
             System.out.println("saved data....");
             saveEditedMonitor(monitor);
-             updateGrid();
+            updateTreeGrid();
+         //    updateGrid();
             dialog.close(); // Close the confirmation dialog
         });
 
