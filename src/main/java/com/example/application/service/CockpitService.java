@@ -471,4 +471,19 @@ public class CockpitService {
 
         return childProjects;
     }
+
+    public List<fvm_monitoring> getParentNodes() {
+        return listOfMonitores
+                .stream()
+                .filter(monitor -> monitor.getPid() == 0)
+                .collect(Collectors.toList());
+    }
+
+    public fvm_monitoring getParentByPid(Integer pid) {
+        return listOfMonitores.stream()
+                .filter(monitor -> monitor.getID().equals(pid))
+                .findFirst()
+                .orElse(null);
+    }
+
 }

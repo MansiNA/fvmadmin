@@ -23,6 +23,7 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
+import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.html.Label;
 import com.vaadin.flow.component.notification.Notification;
@@ -127,11 +128,12 @@ public class CockpitView extends VerticalLayout{
                     " WARNING_SCHWELLWERT=?, " +
                     " ERROR_SCHWELLWERT=?, " +
                     " IS_ACTIVE=?, " +
-                    " SQL_Detail=? " +
-                    "where id= ?";
+                    " SQL_Detail=?, " +
+                    " PID=?" +
+                    " where id= ?";
 
 
-            System.out.println("Update FVM_Monitoring (CockpitView.java): ");
+            System.out.println("Update FVM_Monitoring (CockpitView.java):......................... "+mon.getPid());
             System.out.println(sql);
 
             DriverManagerDataSource ds = new DriverManagerDataSource();
@@ -154,6 +156,7 @@ public class CockpitView extends VerticalLayout{
                         , mon.getError_Schwellwert()
                         , mon.getIS_ACTIVE()
                         , mon.getSQL_Detail()
+                        , mon.getPid()
                         , mon.getID()
                 );
 
@@ -648,6 +651,7 @@ public class CockpitView extends VerticalLayout{
 
     private void updateTreeGrid() {
         param_Liste = cockpitService.getMonitoring(comboBox.getValue());
+        System.out.println(param_Liste.size()+"............fffffffffffffffffffffffffff");
         if(param_Liste != null) {
             List<fvm_monitoring> rootItems = cockpitService.getRootMonitor();
             treeGrid.setItems(rootItems, cockpitService ::getChildMonitor);
@@ -662,6 +666,8 @@ public class CockpitView extends VerticalLayout{
         treeGrid.addHierarchyColumn(fvm_monitoring::getBereich).setHeader("Bereich").setAutoWidth(true).setResizable(true);
 
         Grid.Column<fvm_monitoring> idColumn = treeGrid.addColumn((fvm_monitoring::getID)).setHeader("ID")
+                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
+        Grid.Column<fvm_monitoring> pidColumn = treeGrid.addColumn((fvm_monitoring::getPid)).setHeader("PID")
                 .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
         treeGrid.addColumn(fvm_monitoring::getTitel).setHeader("Titel")
                 .setAutoWidth(true).setResizable(true).setSortable(true);
@@ -759,9 +765,11 @@ public class CockpitView extends VerticalLayout{
         menuButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
         idColumn.setVisible(false);
+        pidColumn.setVisible(false);
         warnSchwellwerkColumn.setVisible(false);
         ColumnToggleContextMenu columnToggleContextMenu = new ColumnToggleContextMenu(menuButton);
         columnToggleContextMenu.addColumnToggleItem("ID", idColumn);
+        columnToggleContextMenu.addColumnToggleItem("PID", pidColumn);
         columnToggleContextMenu.addColumnToggleItem("Warning Schwellwert", warnSchwellwerkColumn);
 
 
@@ -791,6 +799,8 @@ public class CockpitView extends VerticalLayout{
         /*grid.addColumn(fvm_monitoring::getID).setHeader("ID")
                 .setAutoWidth(true).setResizable(true).setSortable(true);*/
         Grid.Column<fvm_monitoring> idColumn = grid.addColumn((fvm_monitoring::getID)).setHeader("ID")
+                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
+        Grid.Column<fvm_monitoring> pidColumn = grid.addColumn((fvm_monitoring::getPid)).setHeader("PID")
                 .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
         grid.addColumn(fvm_monitoring::getTitel).setHeader("Titel")
                 .setAutoWidth(true).setResizable(true).setSortable(true);
@@ -920,6 +930,7 @@ public class CockpitView extends VerticalLayout{
         warnSchwellwerkColumn.setVisible(false);
         ColumnToggleContextMenu columnToggleContextMenu = new ColumnToggleContextMenu(menuButton);
         columnToggleContextMenu.addColumnToggleItem("ID", idColumn);
+        columnToggleContextMenu.addColumnToggleItem("PID", idColumn);
         columnToggleContextMenu.addColumnToggleItem("Warning Schwellwert", warnSchwellwerkColumn);
     }
 
@@ -1180,105 +1191,104 @@ public class CockpitView extends VerticalLayout{
         public MonitorContextMenu(Grid<fvm_monitoring> target) {
             super(target);
 
-            addItem("Beschreibung", e -> e.getItem().ifPresent(a -> {
-                System.out.printf("Edit: %s%n", a.getID());
-                dialog_Beschreibung.setHeaderTitle(a.getTitel());
-                //  VerticalLayout dialogLayout = createDialogLayout(person.getBeschreibung());
+            // Description context menu item
+            GridMenuItem<fvm_monitoring> beschreibungItem = addItem("Beschreibung", e -> e.getItem().ifPresent(a -> {
+                if (a.getPid() != 0) {
+                    System.out.printf("Beschreibung: %s%n", a.getID());
 
-                VerticalLayout dialogLayout =showDialog(a);
+                    dialog_Beschreibung.setHeaderTitle(a.getTitel());
+                    VerticalLayout dialogLayout = showDialog(a);
 
-                dialog_Beschreibung.removeAll();
-                dialog_Beschreibung.add(dialogLayout);
-                dialog_Beschreibung.setModal(false);
-                dialog_Beschreibung.setDraggable(true);
-                dialog_Beschreibung.setResizable(true);
-                dialog_Beschreibung.setWidth("800px");
-                dialog_Beschreibung.setHeight("600px");
-                dialog_Beschreibung.open();
-            }));
-
-
-            addItem("Show Data", e -> e.getItem().ifPresent(a -> {
-                //  System.out.printf("Daten anzeigen für: %s%n", a.getID());
-
-                dialog_Beschreibung.setHeaderTitle("Detailabfrage für " + a.getTitel() + " (ID: " + a.getID() + ")");
-                VerticalLayout dialogLayout = null;
-                try {
-                    dialogLayout = createDialogData(a.getSQL_Detail());
-                } catch (SQLException ex) {
-                    throw new RuntimeException(ex);
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
+                    dialog_Beschreibung.removeAll();
+                    dialog_Beschreibung.add(dialogLayout);
+                    dialog_Beschreibung.setModal(false);
+                    dialog_Beschreibung.setDraggable(true);
+                    dialog_Beschreibung.setResizable(true);
+                    dialog_Beschreibung.setWidth("800px");
+                    dialog_Beschreibung.setHeight("600px");
+                    dialog_Beschreibung.open();
                 }
-
-                dialog_Beschreibung.removeAll();
-                dialog_Beschreibung.add(dialogLayout);
-                dialog_Beschreibung.setModal(false);
-                dialog_Beschreibung.setDraggable(true);
-                dialog_Beschreibung.setResizable(true);
-                dialog_Beschreibung.open();
-
             }));
 
+            // Show Data context menu item
+            GridMenuItem<fvm_monitoring> showDataItem = addItem("Show Data", e -> e.getItem().ifPresent(a -> {
+                if (a.getPid() != 0) {
+                    dialog_Beschreibung.setHeaderTitle("Detailabfrage für " + a.getTitel() + " (ID: " + a.getID() + ")");
+                    VerticalLayout dialogLayout = null;
+                    try {
+                        dialogLayout = createDialogData(a.getSQL_Detail());
+                    } catch (SQLException | IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
 
-
-
-            addItem("Historie", e -> e.getItem().ifPresent(monitor -> {
-                dialog_Beschreibung.setHeaderTitle("Historie für " + monitor.getTitel() + " (ID: " + monitor.getID() + ")");
-                VerticalLayout dialogLayout = createDialogGraph(monitor.getID());
-
-                dialog_Beschreibung.removeAll();
-                dialog_Beschreibung.add(dialogLayout);
-                dialog_Beschreibung.setModal(false);
-                dialog_Beschreibung.setDraggable(true);
-                dialog_Beschreibung.setResizable(true);
-                dialog_Beschreibung.open();
-
-
-                //System.out.printf("Delete: %s%n", person.getID());
+                    dialog_Beschreibung.removeAll();
+                    dialog_Beschreibung.add(dialogLayout);
+                    dialog_Beschreibung.setModal(false);
+                    dialog_Beschreibung.setDraggable(true);
+                    dialog_Beschreibung.setResizable(true);
+                    dialog_Beschreibung.open();
+                }
             }));
 
-            add(new Hr());
+            // History context menu item
+            GridMenuItem<fvm_monitoring> historyItem = addItem("Historie", e -> e.getItem().ifPresent(monitor -> {
+                if (monitor.getPid() != 0) {
+                    dialog_Beschreibung.setHeaderTitle("Historie für " + monitor.getTitel() + " (ID: " + monitor.getID() + ")");
+                    VerticalLayout dialogLayout = createDialogGraph(monitor.getID());
 
-            addItem("edit", e -> e.getItem().ifPresent(monitor -> {
-                System.out.printf("Edit: %s%n", monitor.getID());
-
-                //   form.setVisible(true);
-                //  form.setContact(monitor);
-                System.out.println(monitor + " ...1");
-                showEditDialog(monitor);
-
+                    dialog_Beschreibung.removeAll();
+                    dialog_Beschreibung.add(dialogLayout);
+                    dialog_Beschreibung.setModal(false);
+                    dialog_Beschreibung.setDraggable(true);
+                    dialog_Beschreibung.setResizable(true);
+                    dialog_Beschreibung.open();
+                }
             }));
 
-            addItem("refresh", e -> e.getItem().ifPresent(monitor -> {
-                System.out.printf("refresh im ContextMenü aufgerufen: %s%n", monitor.getID());
-                refreshMonitor(monitor.getID());
-                executeImmediateSQLCheck(monitor);
+            // Edit context menu item (not shown when pid == 0)
+            GridMenuItem<fvm_monitoring> editItem = addItem("Edit", e -> e.getItem().ifPresent(monitor -> {
+                if (monitor.getPid() != 0) {
+                    System.out.printf("Edit: %s%n", monitor.getID());
+                    showEditDialog(monitor);
+                }
+            }));
+            // New context menu item for pid == 0
+            GridMenuItem<fvm_monitoring> newItemForPidZero = addItem("New", e -> e.getItem().ifPresent(monitor -> {
+                if (monitor.getPid() == 0) {
+                    System.out.println("New dialog open");
 
-
+                }
+            }));
+            // Refresh context menu item
+            GridMenuItem<fvm_monitoring> refreshItem = addItem("Refresh", e -> e.getItem().ifPresent(monitor -> {
+                if (monitor.getPid() != 0) {
+                    System.out.printf("Refresh im ContextMenü aufgerufen: %s%n", monitor.getID());
+                    refreshMonitor(monitor.getID());
+                    executeImmediateSQLCheck(monitor);
+                }
             }));
 
-         /*   GridMenuItem<fvm_monitoring> emailItem = addItem("Email",
-                    e -> e.getItem().ifPresent(person -> {
-                        // System.out.printf("Email: %s%n",
-                        // person.getFullName());
-                    }));
-            GridMenuItem<fvm_monitoring> phoneItem = addItem("Call",
-                    e -> e.getItem().ifPresent(person -> {
-                        // System.out.printf("Phone: %s%n",
-                        // person.getFullName());
-                    }));*/
-
+            // Set dynamic content handler to hide other options when pid == 0
             setDynamicContentHandler(person -> {
-                // Do not show context menu when header is clicked
-                if (person == null)
-                    return false;
-                // emailItem.setText(String.format("Email: %s", person.getTitel()));
+                // If pid == 0, show only the "Edit" option
+                if (person != null && person.getPid() == 0) {
+                    beschreibungItem.setEnabled(false);
+                    showDataItem.setEnabled(false);
+                    historyItem.setEnabled(false);
+                    editItem.setEnabled(false);
+                    refreshItem.setEnabled(false);
+                    newItemForPidZero.setEnabled(true);
+                } else {
+                    beschreibungItem.setEnabled(true);
+                    showDataItem.setEnabled(true);
+                    historyItem.setEnabled(true);
+                    editItem.setEnabled(true);
+                    refreshItem.setEnabled(true);
+                    newItemForPidZero.setEnabled(true);
+                }
                 return true;
             });
         }
-
-
     }
 
     private void refreshMonitor(Integer id) {
@@ -1745,17 +1755,24 @@ public class CockpitView extends VerticalLayout{
             checkbox.setValue(true);
         }
 
+        List<fvm_monitoring> parentNode = cockpitService.getParentNodes();
+        ComboBox<fvm_monitoring> parentComboBox = new ComboBox<>("Parent Node (PID)");
+        parentComboBox.setItems(parentNode);  // Populate with parent options
+        parentComboBox.setItemLabelGenerator(fvm_monitoring::getBereich);
+        parentComboBox.setValue(cockpitService.getParentByPid(monitor.getPid()));
+
         // Add value change listeners to trigger binder updates
         titel.addValueChangeListener(event -> monitor.setTitel(event.getValue()));
         intervall.addValueChangeListener(event -> monitor.setCheck_Intervall(event.getValue()));
         infoSchwellwert.addValueChangeListener(event -> monitor.setWarning_Schwellwert(event.getValue()));
         errorSchwellwert.addValueChangeListener(event -> monitor.setError_Schwellwert(event.getValue()));
         checkbox.addValueChangeListener(event -> monitor.setIS_ACTIVE(event.getValue() ? "1" : "0"));
+        parentComboBox.addValueChangeListener(event -> monitor.setPid(event.getValue().getID()));
 
         HorizontalLayout hr = new HorizontalLayout(intervall,infoSchwellwert,errorSchwellwert, checkbox);
         hr.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
         System.out.println(monitor + "... 3");
-        content.add(id, titel, hr);
+        content.add(id, parentComboBox, titel, hr);
         return content;
     }
 
