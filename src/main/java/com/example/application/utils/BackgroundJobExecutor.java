@@ -146,6 +146,9 @@ public class BackgroundJobExecutor implements Job {
                                 } catch (Exception e) {
                                     System.out.println("Error executing SQL for monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
 
+                                    jdbcTemplate.update(
+                                            "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
+                                            monitoring.getID());
                                     // Store the error message in DB_MESSAGE in case of error
                                     jdbcTemplate.update("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
                                             monitoring.getID(),
