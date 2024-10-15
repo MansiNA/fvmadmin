@@ -11,6 +11,7 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.*;
@@ -20,6 +21,7 @@ import com.vaadin.flow.shared.Registration;
 public class ConfigForm extends FormLayout {
 
     Binder<Configuration> binder = new BeanValidationBinder<>(Configuration.class);
+    IntegerField id = new IntegerField("Id");
     TextField name = new TextField("Name");
     TextField userName = new TextField("Username");
     PasswordField password = new PasswordField("Password");
@@ -39,6 +41,22 @@ public class ConfigForm extends FormLayout {
 
       //  binder.bindInstanceFields(this);
         // Bind fields without "isMonitoring" which needs special handling
+        id.setReadOnly(true);
+        binder.forField(id)
+                .withConverter(new Converter<Integer, Long>() {
+                            @Override
+                            public Result<Long> convertToModel(Integer fieldValue, ValueContext context) {
+                                // Convert Integer to Long
+                                return Result.ok(fieldValue != null ? fieldValue.longValue() : null);
+                            }
+
+                            @Override
+                            public Integer convertToPresentation(Long idValue, ValueContext context) {
+                                // Convert Long to Integer
+                                return idValue != null ? idValue.intValue() : null;
+                            }
+                        })
+                .bind("id");
         binder.forField(name).bind("name");
         binder.forField(userName).bind("userName");
         binder.forField(password).bind("password");
@@ -61,6 +79,7 @@ public class ConfigForm extends FormLayout {
                 })
                 .bind("isMonitoring");
         add(
+                id,
                 name,
                 userName,
                 password,
