@@ -1,8 +1,6 @@
 package com.example.application.data.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import java.sql.Date;
 
@@ -10,6 +8,7 @@ import java.sql.Date;
 @Table(name ="fvm_monitoring", schema="ekp")
 public class fvm_monitoring {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-generates ID via trigger in Oracle
     private Integer ID;
     private Integer Pid;
     private String SQL;

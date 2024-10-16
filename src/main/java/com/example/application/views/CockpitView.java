@@ -54,7 +54,6 @@ import org.json.JSONObject;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -119,22 +118,8 @@ public class CockpitView extends VerticalLayout{
                     "where id=" + mon.getID();
 */
 
-            String sql = "update FVM_MONITORING set " +
-                    " SQL=?, " +
-                    " TITEL=?," +
-                    " Beschreibung=?," +
-                    " Handlungs_Info=?," +
-                    " Check_Intervall=?, " +
-                    " WARNING_SCHWELLWERT=?, " +
-                    " ERROR_SCHWELLWERT=?, " +
-                    " IS_ACTIVE=?, " +
-                    " SQL_Detail=?, " +
-                    " PID=?" +
-                    " where id= ?";
-
 
             System.out.println("Update FVM_Monitoring (CockpitView.java):......................... "+mon.getPid());
-            System.out.println(sql);
 
             DriverManagerDataSource ds = new DriverManagerDataSource();
             com.example.application.data.entity.Configuration conf;
@@ -147,22 +132,59 @@ public class CockpitView extends VerticalLayout{
             try {
                 jdbcTemplate.setDataSource(ds);
 
-                jdbcTemplate.update(sql , mon.getSQL()
-                        , mon.getTitel()
-                        , mon.getBeschreibung()
-                        , mon.getHandlungs_INFO()
-                        , mon.getCheck_Intervall()
-                        , mon.getWarning_Schwellwert()
-                        , mon.getError_Schwellwert()
-                        , mon.getIS_ACTIVE()
-                        , mon.getSQL_Detail()
-                        , mon.getPid()
-                        , mon.getID()
-                );
+                if (mon.getID() == null) {
+                    // If ID is null, perform INSERT
+                    String insertSql = "INSERT INTO FVM_MONITORING " +
+                            "(SQL, TITEL, Beschreibung, Handlungs_Info, Check_Intervall, WARNING_SCHWELLWERT, ERROR_SCHWELLWERT, IS_ACTIVE, SQL_Detail, PID) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-                //     jdbcTemplate.update(sql);
-                System.out.println("Update durchgeführt");
+                    jdbcTemplate.update(insertSql,
+                            mon.getSQL(),
+                            mon.getTitel(),
+                            mon.getBeschreibung(),
+                            mon.getHandlungs_INFO(),
+                            mon.getCheck_Intervall(),
+                            mon.getWarning_Schwellwert(),
+                            mon.getError_Schwellwert(),
+                            mon.getIS_ACTIVE(),
+                            mon.getSQL_Detail(),
+                            mon.getPid()
+                    );
 
+                    System.out.println("Insert durchgeführt");
+                } else {
+
+                    String sql = "update FVM_MONITORING set " +
+                            " SQL=?, " +
+                            " TITEL=?," +
+                            " Beschreibung=?," +
+                            " Handlungs_Info=?," +
+                            " Check_Intervall=?, " +
+                            " WARNING_SCHWELLWERT=?, " +
+                            " ERROR_SCHWELLWERT=?, " +
+                            " IS_ACTIVE=?, " +
+                            " SQL_Detail=?, " +
+                            " PID=?" +
+                            " where id= ?";
+
+                    System.out.println(sql);
+
+                    jdbcTemplate.update(sql, mon.getSQL()
+                            , mon.getTitel()
+                            , mon.getBeschreibung()
+                            , mon.getHandlungs_INFO()
+                            , mon.getCheck_Intervall()
+                            , mon.getWarning_Schwellwert()
+                            , mon.getError_Schwellwert()
+                            , mon.getIS_ACTIVE()
+                            , mon.getSQL_Detail()
+                            , mon.getPid()
+                            , mon.getID()
+                    );
+
+                    //     jdbcTemplate.update(sql);
+                    System.out.println("Update durchgeführt");
+                }
             } catch (Exception e) {
                 System.out.println("Exception: " + e.getMessage());
             }
@@ -1139,7 +1161,9 @@ public class CockpitView extends VerticalLayout{
                     lastRefreshField.setValue("unbekannt...");
                 }
                 idField.setValue(person.getID().toString());
-                refreshIntervallField.setValue(person.getCheck_Intervall().toString());
+                if(person.getCheck_Intervall() != null) {
+                    refreshIntervallField.setValue(person.getCheck_Intervall().toString());
+                }
             } else {
                 idField.setVisible(false);
                 refreshIntervallField.setVisible(false);
@@ -1249,16 +1273,15 @@ public class CockpitView extends VerticalLayout{
             GridMenuItem<fvm_monitoring> editItem = addItem("Edit", e -> e.getItem().ifPresent(monitor -> {
                 if (monitor.getPid() != 0) {
                     System.out.printf("Edit: %s%n", monitor.getID());
-                    showEditDialog(monitor);
+                    showEditDialog(monitor, "Edit");
                 }
             }));
             // New context menu item for pid == 0
             GridMenuItem<fvm_monitoring> newItemForPidZero = addItem("New", e -> e.getItem().ifPresent(monitor -> {
-                if (monitor.getPid() == 0) {
-                    System.out.println("New dialog open");
-
-                }
+                System.out.println("New dialog open");
+                showEditDialog(monitor, "New");
             }));
+
             // Refresh context menu item
             GridMenuItem<fvm_monitoring> refreshItem = addItem("Refresh", e -> e.getItem().ifPresent(monitor -> {
                 if (monitor.getPid() != 0) {
@@ -1563,17 +1586,32 @@ public class CockpitView extends VerticalLayout{
 
     }
 
-    private VerticalLayout showEditDialog(fvm_monitoring monitor){
+    private VerticalLayout showEditDialog(fvm_monitoring monitor, String context){
         VerticalLayout dialogLayout = new VerticalLayout();
         Dialog dialog = new Dialog();
-        dialog.add(getTabsheet(monitor));
+
+        boolean isNew = false;
+        fvm_monitoring newMonitor = new fvm_monitoring();
+
+        if(context.equals("New")){
+            if( monitor.getPid() == 0) {
+                newMonitor.setPid(monitor.getID());
+            } else {
+                newMonitor.setPid(monitor.getPid());
+            }
+            dialog.add(getTabsheet(newMonitor, true));
+        } else {
+            dialog.add(getTabsheet(monitor, false));
+
+        }
+
         dialog.setDraggable(true);
         dialog.setResizable(true);
         dialog.setWidth("1000px");
         dialog.setHeight("400px");
         //  Button addButton = new Button("add");
         Button cancelButton = new Button("Cancel");
-        Button saveButton = new Button("Save");
+        Button saveButton = new Button(context.equalsIgnoreCase("New") ? "Add" : "Save");
         // Add buttons to the footer
         dialog.getFooter().add(saveButton, cancelButton);
 
@@ -1583,7 +1621,12 @@ public class CockpitView extends VerticalLayout{
 
         saveButton.addClickListener(saveEvent -> {
             System.out.println("saved data....");
-            saveEditedMonitor(monitor);
+            if(context.equals("New")) {
+                saveEditedMonitor(newMonitor);
+            } else {
+                saveEditedMonitor(monitor);
+            }
+
             updateTreeGrid();
          //    updateGrid();
             dialog.close(); // Close the confirmation dialog
@@ -1594,14 +1637,14 @@ public class CockpitView extends VerticalLayout{
         return dialogLayout;
 
     }
-    private TabSheet getTabsheet(fvm_monitoring monitor) {
+    private TabSheet getTabsheet(fvm_monitoring monitor, boolean isNew) {
 
         TabSheet tabSheet = new TabSheet();
 
-        tabSheet.add("General", getGeneral(monitor));
-        tabSheet.add("SQL-Abfrage", getSqlAbfrage(monitor));
-        tabSheet.add("Beschreibung", getBeschreibung(monitor));
-        tabSheet.add("Handlungsinformationen", getHandlungsinformationen(monitor));
+        tabSheet.add("General", getGeneral(monitor, isNew));
+        tabSheet.add("SQL-Abfrage", getSqlAbfrage(monitor, isNew));
+        tabSheet.add("Beschreibung", getBeschreibung(monitor, isNew));
+        tabSheet.add("Handlungsinformationen", getHandlungsinformationen(monitor, isNew));
 
         tabSheet.setSizeFull();
         tabSheet.setHeightFull();
@@ -1614,7 +1657,7 @@ public class CockpitView extends VerticalLayout{
         restartBackgroundCron();
     }
 
-    private Component getHandlungsinformationen(fvm_monitoring monitor) {
+    private Component getHandlungsinformationen(fvm_monitoring monitor, boolean isNew) {
         VerticalLayout content = new VerticalLayout();
         VaadinCKEditor editor;
         Button saveBtn = new Button("save");
@@ -1642,7 +1685,8 @@ public class CockpitView extends VerticalLayout{
 
         //    editor.setReadOnly(true);
         editor.getStyle().setMargin ("-5px");
-        editor.setValue(monitor.getHandlungs_INFO());
+        //  editor.setValue(monitor.getHandlungs_INFO());
+        editor.setValue(isNew ? "" : (monitor.getHandlungs_INFO() != null ? monitor.getHandlungs_INFO() : ""));
         editor.addValueChangeListener(event -> monitor.setHandlungs_INFO(event.getValue()));
 //        saveBtn.addClickListener((event -> {
 //            editBtn.setVisible(true);
@@ -1664,7 +1708,7 @@ public class CockpitView extends VerticalLayout{
         return content;
     }
 
-    private Component getBeschreibung(fvm_monitoring monitor) {
+    private Component getBeschreibung(fvm_monitoring monitor, boolean isNew) {
         VerticalLayout content = new VerticalLayout();
         VaadinCKEditor editor;
         Button saveBtn = new Button("save");
@@ -1692,7 +1736,8 @@ public class CockpitView extends VerticalLayout{
 
         // editor.setReadOnly(true);
         editor.getStyle().setMargin ("-5px");
-        editor.setValue(monitor.getBeschreibung());
+     //   editor.setValue(monitor.getBeschreibung());
+        editor.setValue(isNew ? "" : (monitor.getBeschreibung() != null ? monitor.getBeschreibung() : ""));
         editor.addValueChangeListener(event -> monitor.setBeschreibung(event.getValue()));
 //        saveBtn.addClickListener((event -> {
 //            editBtn.setVisible(true);
@@ -1714,15 +1759,17 @@ public class CockpitView extends VerticalLayout{
         return content;
     }
 
-    private Component getSqlAbfrage(fvm_monitoring monitor) {
+    private Component getSqlAbfrage(fvm_monitoring monitor, boolean isNew) {
         VerticalLayout content = new VerticalLayout();
         TextArea abfrage = new TextArea("SQL-Abfrage");
-        abfrage.setValue(monitor.getSQL());
+      //  abfrage.setValue(monitor.getSQL());
+        abfrage.setValue(isNew ? "" : (monitor.getSQL() != null ? monitor.getSQL() : ""));
         abfrage.setWidthFull();
 
         TextArea detailabfrage = new TextArea("SQL-Detail Abfrage");
         if (monitor.getSQL_Detail() != null) {
-            detailabfrage.setValue(monitor.getSQL_Detail());
+           // detailabfrage.setValue(monitor.getSQL_Detail());
+            detailabfrage.setValue(isNew ? "" : (monitor.getSQL_Detail() != null ? monitor.getSQL_Detail() : ""));
         }
         detailabfrage.setWidthFull();
 
@@ -1732,27 +1779,32 @@ public class CockpitView extends VerticalLayout{
         return content;
     }
 
-    private Component getGeneral(fvm_monitoring monitor) {
+    private Component getGeneral(fvm_monitoring monitor, boolean isNew) {
         VerticalLayout content = new VerticalLayout();
 
         IntegerField id = new IntegerField("Id");
-        id.setValue(monitor.getID());
+        id.setValue(monitor.getID() != null ? monitor.getID() : null);
         id.setReadOnly(true);
 
         TextField titel = new TextField("Titel");
-        titel.setValue(monitor.getTitel());
+        titel.setValue(isNew ? "" : (monitor.getTitel() != null ? monitor.getTitel() : ""));
         titel.setWidthFull();
 
         IntegerField intervall = new IntegerField("Check-Intervall");
-        IntegerField infoSchwellwert = new IntegerField("Warning Schwellwert");
-        IntegerField errorSchwellwert = new IntegerField("Error Schwellwert");
-        Checkbox checkbox = new Checkbox("aktiv");
+        intervall.setValue(isNew ? null : monitor.getCheck_Intervall());
 
-        intervall.setValue(monitor.getCheck_Intervall());
-        infoSchwellwert.setValue(monitor.getWarning_Schwellwert());
-        errorSchwellwert.setValue(monitor.getError_Schwellwert());
-        if(monitor.getIS_ACTIVE().equals("1")){
-            checkbox.setValue(true);
+        IntegerField infoSchwellwert = new IntegerField("Warning Schwellwert");
+        infoSchwellwert.setValue(isNew ? null : monitor.getWarning_Schwellwert());
+
+        IntegerField errorSchwellwert = new IntegerField("Error Schwellwert");
+        errorSchwellwert.setValue(isNew ? null : monitor.getError_Schwellwert());
+
+        Checkbox checkbox = new Checkbox("aktiv");
+       // checkbox.setValue(!isNew && monitor.getIS_ACTIVE().equals("1"));
+        if (isNew) {
+            checkbox.setValue(false); // Set to 0 when new
+        } else {
+            checkbox.setValue(monitor.getIS_ACTIVE().equals("1")); // Set based on monitor's IS_ACTIVE
         }
 
         List<fvm_monitoring> parentNode = cockpitService.getParentNodes();
@@ -1771,8 +1823,9 @@ public class CockpitView extends VerticalLayout{
 
         HorizontalLayout hr = new HorizontalLayout(intervall,infoSchwellwert,errorSchwellwert, checkbox);
         hr.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
-        System.out.println(monitor + "... 3");
-        content.add(id, parentComboBox, titel, hr);
+        HorizontalLayout hr1 = new HorizontalLayout(id,parentComboBox);
+        hr1.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
+        content.add(hr1, titel, hr);
         return content;
     }
 
