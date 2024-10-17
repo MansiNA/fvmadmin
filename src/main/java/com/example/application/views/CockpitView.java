@@ -71,6 +71,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
@@ -92,6 +93,7 @@ public class CockpitView extends VerticalLayout{
     @Autowired
     JdbcTemplate jdbcTemplate;
     private EmailService emailService;
+    private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     myCallback callback=new myCallback() {
         @Override
@@ -1344,38 +1346,41 @@ public class CockpitView extends VerticalLayout{
     }
 
     public void executeImmediateSQLCheck(fvm_monitoring monitoring) {
+        executorService.submit(() -> {
+            if (monitoring.getIS_ACTIVE().equals("1")) {
+                try {
+                    String sqlQuery = monitoring.getSQL();
+                    String result = jdbcTemplate.queryForObject(sqlQuery, String.class);
+                    Integer count = jdbcTemplate.queryForObject(
+                            "SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE ID = ?",
+                            new Object[]{monitoring.getID()},
+                            Integer.class
+                    );
+                    System.out.println("count########" + count);
+                    if (count != null && count > 0) {
+                        jdbcTemplate.update(
+                                "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
+                                monitoring.getID());
+                    }
 
-        if (monitoring.getIS_ACTIVE().equals("1")) {
-            try {
-                String sqlQuery = monitoring.getSQL();
-                String result = jdbcTemplate.queryForObject(sqlQuery, String.class);
-                Integer count = jdbcTemplate.queryForObject(
-                        "SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE ID = ?",
-                        new Object[]{monitoring.getID()},
-                        Integer.class
-                );
-                System.out.println("count########"+count);
-                if (count != null && count > 0) {
                     jdbcTemplate.update(
-                            "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
-                             monitoring.getID());
+                            "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
+                            monitoring.getID(),
+                            Timestamp.valueOf(LocalDateTime.now()),
+                            1, // Mark as active
+                            result,
+                            "Query executed successfully");
+
+                    System.out.println("refresh...sql check...." + monitoring.getID() + "----------------------query executed: " + monitoring.getSQL().toString());
+                } catch (Exception ex) {
+                    throw ex;
                 }
-
-                jdbcTemplate.update(
-                        "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
-                        monitoring.getID(),
-                        Timestamp.valueOf(LocalDateTime.now()),
-                        1, // Mark as active
-                        result,
-                        "Query executed successfully");
-
-                System.out.println("refresh...sql check...." + monitoring.getID() + "----------------------query executed: " + monitoring.getSQL().toString());
-            } catch (Exception ex) {
-                throw ex;
             }
-        }
+        });
     }
-
+    public void shutdownExecutorService() {
+        executorService.shutdown();
+    }
 
     private void fill_grid_metadata(String sql) throws SQLException, IOException {
         System.out.println(sql);
