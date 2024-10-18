@@ -1278,11 +1278,19 @@ public class CockpitView extends VerticalLayout{
                     showEditDialog(monitor, "Edit");
                 }
             }));
-            // New context menu item for pid == 0
-            GridMenuItem<fvm_monitoring> newItemForPidZero = addItem("New", e -> e.getItem().ifPresent(monitor -> {
-                System.out.println("New dialog open");
-                showEditDialog(monitor, "New");
-            }));
+
+            // New context menu item for pid == 0 or no selection
+            GridMenuItem<fvm_monitoring> newItemForPidZero = addItem("New", e -> {
+                if (e.getItem().isPresent()) {
+                    fvm_monitoring monitor = e.getItem().get();
+                    System.out.println("New dialog open for existing monitor");
+                    showEditDialog(monitor, "New");
+                } else {
+                    // No row selected, open "New" dialog without a monitor instance
+                    System.out.println("New dialog open for no selection");
+                    showEditDialog(null, "New");  // Pass a new instance for creating a new monitor
+                }
+            });
 
             // Refresh context menu item
             GridMenuItem<fvm_monitoring> refreshItem = addItem("Refresh", e -> e.getItem().ifPresent(monitor -> {
@@ -1296,7 +1304,7 @@ public class CockpitView extends VerticalLayout{
             // Set dynamic content handler to hide other options when pid == 0
             setDynamicContentHandler(person -> {
                 // If pid == 0, show only the "Edit" option
-                if (person != null && person.getPid() == 0) {
+                if (person == null || person.getPid() == 0) {
                     beschreibungItem.setEnabled(false);
                     showDataItem.setEnabled(false);
                     historyItem.setEnabled(false);
@@ -1599,15 +1607,16 @@ public class CockpitView extends VerticalLayout{
         fvm_monitoring newMonitor = new fvm_monitoring();
 
         if(context.equals("New")){
-            if( monitor.getPid() == 0) {
-                newMonitor.setPid(monitor.getID());
-            } else {
-                newMonitor.setPid(monitor.getPid());
+            if(monitor != null) {
+                if (monitor.getPid() == 0) {
+                    newMonitor.setPid(monitor.getID());
+                } else {
+                    newMonitor.setPid(monitor.getPid());
+                }
             }
             dialog.add(getTabsheet(newMonitor, true));
         } else {
             dialog.add(getTabsheet(monitor, false));
-
         }
 
         dialog.setDraggable(true);
@@ -1807,16 +1816,22 @@ public class CockpitView extends VerticalLayout{
         Checkbox checkbox = new Checkbox("aktiv");
        // checkbox.setValue(!isNew && monitor.getIS_ACTIVE().equals("1"));
         if (isNew) {
-            checkbox.setValue(false); // Set to 0 when new
+            checkbox.setValue(false);// Set to 0 when new
+            monitor.setIS_ACTIVE("0");
         } else {
             checkbox.setValue(monitor.getIS_ACTIVE().equals("1")); // Set based on monitor's IS_ACTIVE
         }
 
-        List<fvm_monitoring> parentNode = cockpitService.getParentNodes();
+        List<fvm_monitoring> parentNodes = cockpitService.getParentNodes();
         ComboBox<fvm_monitoring> parentComboBox = new ComboBox<>("Parent Node (PID)");
-        parentComboBox.setItems(parentNode);  // Populate with parent options
+        parentComboBox.setItems(parentNodes);  // Populate with parent options
         parentComboBox.setItemLabelGenerator(fvm_monitoring::getBereich);
-        parentComboBox.setValue(cockpitService.getParentByPid(monitor.getPid()));
+        if(monitor.getPid() != null) {
+            parentComboBox.setValue(cockpitService.getParentByPid(monitor.getPid()));
+        } else {
+            monitor.setPid(parentNodes.get(0).getID());
+            parentComboBox.setValue(parentNodes.get(0));
+        }
 
         // Add value change listeners to trigger binder updates
         titel.addValueChangeListener(event -> monitor.setTitel(event.getValue()));
