@@ -1,0 +1,9 @@
+
+global:
+  scrape_interval: 15s  # Scrape every 15 seconds (adjust according to your needs)
+
+scrape_configs:
+  - job_name: 'cockpit_monitoring'
+    metrics_path: '/cockpit_view/export_id/12'  # Replace with the ID you want to monitor
+    static_configs:
+      - targets: ['localhost:8080']  # Your Vaadin application's address and port
