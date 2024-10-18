@@ -1288,7 +1288,7 @@ public class CockpitView extends VerticalLayout{
             GridMenuItem<fvm_monitoring> refreshItem = addItem("Refresh", e -> e.getItem().ifPresent(monitor -> {
                 if (monitor.getPid() != 0) {
                     System.out.printf("Refresh im ContextMenü aufgerufen: %s%n", monitor.getID());
-                    refreshMonitor(monitor.getID());
+                 //   refreshMonitor(monitor.getID());
                     executeImmediateSQLCheck(monitor);
                 }
             }));
