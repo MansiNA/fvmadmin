@@ -137,8 +137,8 @@ public class CockpitView extends VerticalLayout{
                 if (mon.getID() == null) {
                     // If ID is null, perform INSERT
                     String insertSql = "INSERT INTO FVM_MONITORING " +
-                            "(SQL, TITEL, Beschreibung, Handlungs_Info, Check_Intervall, WARNING_SCHWELLWERT, ERROR_SCHWELLWERT, IS_ACTIVE, SQL_Detail, PID) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                            "(SQL, TITEL, Beschreibung, Handlungs_Info, Check_Intervall, WARNING_SCHWELLWERT, ERROR_SCHWELLWERT, IS_ACTIVE, SQL_Detail, PID, BEREICH) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                     jdbcTemplate.update(insertSql,
                             mon.getSQL(),
@@ -150,7 +150,8 @@ public class CockpitView extends VerticalLayout{
                             mon.getError_Schwellwert(),
                             mon.getIS_ACTIVE(),
                             mon.getSQL_Detail(),
-                            mon.getPid()
+                            mon.getPid(),
+                            mon.getBereich()
                     );
 
                     System.out.println("Insert durchgeführt");
@@ -166,7 +167,8 @@ public class CockpitView extends VerticalLayout{
                             " ERROR_SCHWELLWERT=?, " +
                             " IS_ACTIVE=?, " +
                             " SQL_Detail=?, " +
-                            " PID=?" +
+                            " PID=?, " +
+                            " BEREICH=?" +
                             " where id= ?";
 
                     System.out.println(sql);
@@ -181,6 +183,7 @@ public class CockpitView extends VerticalLayout{
                             , mon.getIS_ACTIVE()
                             , mon.getSQL_Detail()
                             , mon.getPid()
+                            , mon.getBereich()
                             , mon.getID()
                     );
 
@@ -1273,10 +1276,8 @@ public class CockpitView extends VerticalLayout{
 
             // Edit context menu item (not shown when pid == 0)
             GridMenuItem<fvm_monitoring> editItem = addItem("Edit", e -> e.getItem().ifPresent(monitor -> {
-                if (monitor.getPid() != 0) {
-                    System.out.printf("Edit: %s%n", monitor.getID());
-                    showEditDialog(monitor, "Edit");
-                }
+                System.out.printf("Edit: %s%n", monitor.getID());
+                showEditDialog(monitor, "Edit");
             }));
 
             // New context menu item for pid == 0 or no selection
@@ -1304,11 +1305,18 @@ public class CockpitView extends VerticalLayout{
             // Set dynamic content handler to hide other options when pid == 0
             setDynamicContentHandler(person -> {
                 // If pid == 0, show only the "Edit" option
-                if (person == null || person.getPid() == 0) {
+                if (person == null) {
                     beschreibungItem.setEnabled(false);
                     showDataItem.setEnabled(false);
                     historyItem.setEnabled(false);
                     editItem.setEnabled(false);
+                    refreshItem.setEnabled(false);
+                    newItemForPidZero.setEnabled(true);
+                } else if (person.getPid() == 0) {
+                    beschreibungItem.setEnabled(false);
+                    showDataItem.setEnabled(false);
+                    historyItem.setEnabled(false);
+                    editItem.setEnabled(true);
                     refreshItem.setEnabled(false);
                     newItemForPidZero.setEnabled(true);
                 } else {
@@ -1813,6 +1821,9 @@ public class CockpitView extends VerticalLayout{
         IntegerField errorSchwellwert = new IntegerField("Error Schwellwert");
         errorSchwellwert.setValue(isNew ? null : monitor.getError_Schwellwert());
 
+        TextField bereich = new TextField("Bereich");
+        bereich.setValue(isNew ? "" : (monitor.getBereich() != null ? monitor.getBereich() : ""));
+
         Checkbox checkbox = new Checkbox("aktiv");
        // checkbox.setValue(!isNew && monitor.getIS_ACTIVE().equals("1"));
         if (isNew) {
@@ -1827,6 +1838,9 @@ public class CockpitView extends VerticalLayout{
         parentComboBox.setItems(parentNodes);  // Populate with parent options
         parentComboBox.setItemLabelGenerator(fvm_monitoring::getBereich);
         if(monitor.getPid() != null) {
+            if(monitor.getPid() == 0){
+                parentComboBox.setEnabled(false);
+            }
             parentComboBox.setValue(cockpitService.getParentByPid(monitor.getPid()));
         } else {
             monitor.setPid(parentNodes.get(0).getID());
@@ -1835,6 +1849,7 @@ public class CockpitView extends VerticalLayout{
 
         // Add value change listeners to trigger binder updates
         titel.addValueChangeListener(event -> monitor.setTitel(event.getValue()));
+        bereich.addValueChangeListener(event -> monitor.setBereich(event.getValue()));
         intervall.addValueChangeListener(event -> monitor.setCheck_Intervall(event.getValue()));
         infoSchwellwert.addValueChangeListener(event -> monitor.setWarning_Schwellwert(event.getValue()));
         errorSchwellwert.addValueChangeListener(event -> monitor.setError_Schwellwert(event.getValue()));
@@ -1843,7 +1858,7 @@ public class CockpitView extends VerticalLayout{
 
         HorizontalLayout hr = new HorizontalLayout(intervall,infoSchwellwert,errorSchwellwert, checkbox);
         hr.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
-        HorizontalLayout hr1 = new HorizontalLayout(id,parentComboBox);
+        HorizontalLayout hr1 = new HorizontalLayout(id,parentComboBox, bereich);
         hr1.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
         content.add(hr1, titel, hr);
         return content;
