@@ -1324,7 +1324,7 @@ public class CockpitView extends VerticalLayout{
                     historyItem.setEnabled(false);
                     editItem.setEnabled(true);
                     refreshItem.setEnabled(false);
-                    newItemForPidZero.setEnabled(true);
+                    newItemForPidZero.setEnabled(false);
                     deleteItem.setEnabled(true);
                 } else {
                     beschreibungItem.setEnabled(true);
@@ -1632,10 +1632,12 @@ public class CockpitView extends VerticalLayout{
             if(monitor != null) {
                 if (monitor.getPid() == 0) {
                     newMonitor.setPid(monitor.getID());
+                    dialog.add(getParentNodeDialog(newMonitor, true));
+
                 } else {
                     newMonitor.setPid(monitor.getPid());
+                    dialog.add(getTabsheet(newMonitor, true));
                 }
-                dialog.add(getTabsheet(newMonitor, true));
             } else  {
                 dialog.add(getParentNodeDialog(newMonitor, true));
                 dialog.setWidth("300px");
@@ -1643,7 +1645,13 @@ public class CockpitView extends VerticalLayout{
             }
 
         } else {
-            dialog.add(getTabsheet(monitor, false));
+            if (monitor.getPid() == 0) {
+                dialog.add(getParentNodeDialog(monitor, false));
+                dialog.setWidth("300px");
+                dialog.setHeight("250px");
+            } else {
+                dialog.add(getTabsheet(monitor, false));
+            }
         }
 
         //  Button addButton = new Button("add");
@@ -1918,21 +1926,11 @@ public class CockpitView extends VerticalLayout{
         TextField bereich = new TextField("Bereich");
         bereich.setValue(isNew ? "" : (monitor.getBereich() != null ? monitor.getBereich() : ""));
 
-        Checkbox checkbox = new Checkbox("aktiv");
-        // checkbox.setValue(!isNew && monitor.getIS_ACTIVE().equals("1"));
-        if (isNew) {
-            checkbox.setValue(false);// Set to 0 when new
-            monitor.setIS_ACTIVE("0");
-        } else {
-            checkbox.setValue(monitor.getIS_ACTIVE().equals("1")); // Set based on monitor's IS_ACTIVE
-        }
-
         monitor.setPid(0);
+        monitor.setIS_ACTIVE("0");
         // Add value change listeners to trigger binder updates
         bereich.addValueChangeListener(event -> monitor.setBereich(event.getValue()));
-        checkbox.addValueChangeListener(event -> monitor.setIS_ACTIVE(event.getValue() ? "1" : "0"));
-
-        content.add(bereich, checkbox);
+        content.add(bereich);
         return content;
     }
 
