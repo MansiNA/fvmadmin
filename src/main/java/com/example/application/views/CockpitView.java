@@ -1293,6 +1293,16 @@ public class CockpitView extends VerticalLayout{
                 }
             });
 
+            GridMenuItem<fvm_monitoring> deleteItem = addItem("Delete", e -> e.getItem().ifPresent(monitor -> {
+                System.out.printf("Delete: %s%n", monitor.getID());
+                if (cockpitService.hasChildEntries(monitor)) {
+                    Notification.show("Cannot delete. This entry has child elements!", 3000, Notification.Position.MIDDLE);
+                } else {
+                    cockpitService.deleteMonitor(monitor, comboBox.getValue());
+                    updateTreeGrid();
+                }
+            }));
+
             // Refresh context menu item
             GridMenuItem<fvm_monitoring> refreshItem = addItem("Refresh", e -> e.getItem().ifPresent(monitor -> {
                 if (monitor.getPid() != 0) {
@@ -1311,6 +1321,7 @@ public class CockpitView extends VerticalLayout{
                     historyItem.setEnabled(false);
                     editItem.setEnabled(false);
                     refreshItem.setEnabled(false);
+                    deleteItem.setEnabled(false);
                     newItemForPidZero.setEnabled(true);
                 } else if (person.getPid() == 0) {
                     beschreibungItem.setEnabled(false);
@@ -1319,6 +1330,7 @@ public class CockpitView extends VerticalLayout{
                     editItem.setEnabled(true);
                     refreshItem.setEnabled(false);
                     newItemForPidZero.setEnabled(true);
+                    deleteItem.setEnabled(true);
                 } else {
                     beschreibungItem.setEnabled(true);
                     showDataItem.setEnabled(true);
@@ -1326,6 +1338,7 @@ public class CockpitView extends VerticalLayout{
                     editItem.setEnabled(true);
                     refreshItem.setEnabled(true);
                     newItemForPidZero.setEnabled(true);
+                    deleteItem.setEnabled(true);
                 }
                 return true;
             });
@@ -1614,6 +1627,11 @@ public class CockpitView extends VerticalLayout{
         boolean isNew = false;
         fvm_monitoring newMonitor = new fvm_monitoring();
 
+        dialog.setDraggable(true);
+        dialog.setResizable(true);
+        dialog.setWidth("1000px");
+        dialog.setHeight("400px");
+
         if(context.equals("New")){
             if(monitor != null) {
                 if (monitor.getPid() == 0) {
@@ -1621,16 +1639,17 @@ public class CockpitView extends VerticalLayout{
                 } else {
                     newMonitor.setPid(monitor.getPid());
                 }
+                dialog.add(getTabsheet(newMonitor, true));
+            } else  {
+                dialog.add(getParentNodeDialog(newMonitor, true));
+                dialog.setWidth("300px");
+                dialog.setHeight("250px");
             }
-            dialog.add(getTabsheet(newMonitor, true));
+
         } else {
             dialog.add(getTabsheet(monitor, false));
         }
 
-        dialog.setDraggable(true);
-        dialog.setResizable(true);
-        dialog.setWidth("1000px");
-        dialog.setHeight("400px");
         //  Button addButton = new Button("add");
         Button cancelButton = new Button("Cancel");
         Button saveButton = new Button(context.equalsIgnoreCase("New") ? "Add" : "Save");
@@ -1861,6 +1880,30 @@ public class CockpitView extends VerticalLayout{
         HorizontalLayout hr1 = new HorizontalLayout(id,parentComboBox, bereich);
         hr1.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
         content.add(hr1, titel, hr);
+        return content;
+    }
+
+    private Component getParentNodeDialog(fvm_monitoring monitor, boolean isNew) {
+        VerticalLayout content = new VerticalLayout();
+
+        TextField bereich = new TextField("Bereich");
+        bereich.setValue(isNew ? "" : (monitor.getBereich() != null ? monitor.getBereich() : ""));
+
+        Checkbox checkbox = new Checkbox("aktiv");
+        // checkbox.setValue(!isNew && monitor.getIS_ACTIVE().equals("1"));
+        if (isNew) {
+            checkbox.setValue(false);// Set to 0 when new
+            monitor.setIS_ACTIVE("0");
+        } else {
+            checkbox.setValue(monitor.getIS_ACTIVE().equals("1")); // Set based on monitor's IS_ACTIVE
+        }
+
+        monitor.setPid(0);
+        // Add value change listeners to trigger binder updates
+        bereich.addValueChangeListener(event -> monitor.setBereich(event.getValue()));
+        checkbox.addValueChangeListener(event -> monitor.setIS_ACTIVE(event.getValue() ? "1" : "0"));
+
+        content.add(bereich, checkbox);
         return content;
     }
 

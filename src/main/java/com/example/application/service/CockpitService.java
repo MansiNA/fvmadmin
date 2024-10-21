@@ -1,7 +1,6 @@
 package com.example.application.service;
 
 import com.example.application.data.entity.Configuration;
-import com.example.application.data.entity.JobManager;
 import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
 import com.vaadin.flow.component.notification.Notification;
@@ -16,7 +15,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -486,4 +484,36 @@ public class CockpitService {
                 .orElse(null);
     }
 
+    public boolean hasChildEntries(fvm_monitoring monitor) {
+        // Assuming 'getChildMonitors' returns a list of child elements for the selected entry
+        List<fvm_monitoring> children = getChildMonitor(monitor);
+        return children != null && !children.isEmpty();
+    }
+
+    public void deleteMonitor(fvm_monitoring monitor, Configuration configuration) {
+
+        String sql = "DELETE FROM FVM_MONITORING WHERE ID = ?";
+
+        System.out.println("Deleting entry with ID: " + monitor.getID());
+
+        connectWithDatabase(configuration);
+
+        try {
+            int rowsAffected = jdbcTemplate.update(sql, monitor.getID());
+
+            if (rowsAffected > 0) {
+                Notification.show("Entry deleted successfully!", 3000, Notification.Position.MIDDLE);
+                System.out.println("Deleted FVM_Monitoring with ID: " + monitor.getID());
+            } else {
+                Notification.show("Error: Entry not found or could not be deleted.", 5000, Notification.Position.MIDDLE);
+            }
+
+        } catch (Exception e) {
+            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            System.out.println("Exception during delete: " + e.getMessage());
+        } finally {
+            // Ensure database connection is properly closed
+            connectionClose();
+        }
+    }
 }
