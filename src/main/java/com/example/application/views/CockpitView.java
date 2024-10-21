@@ -1295,12 +1295,7 @@ public class CockpitView extends VerticalLayout{
 
             GridMenuItem<fvm_monitoring> deleteItem = addItem("Delete", e -> e.getItem().ifPresent(monitor -> {
                 System.out.printf("Delete: %s%n", monitor.getID());
-                if (cockpitService.hasChildEntries(monitor)) {
-                    Notification.show("Cannot delete. This entry has child elements!", 3000, Notification.Position.MIDDLE);
-                } else {
-                    cockpitService.deleteMonitor(monitor, comboBox.getValue());
-                    updateTreeGrid();
-                }
+                showDeleteDialog(monitor);
             }));
 
             // Refresh context menu item
@@ -1344,6 +1339,7 @@ public class CockpitView extends VerticalLayout{
             });
         }
     }
+
 
     private void refreshMonitor(Integer id) {
 
@@ -1678,6 +1674,39 @@ public class CockpitView extends VerticalLayout{
         return dialogLayout;
 
     }
+
+    private void showDeleteDialog(fvm_monitoring monitor) {
+        Dialog confirmationDialog = new Dialog();
+        confirmationDialog.setHeaderTitle("Confirm Deletion");
+
+        String name = monitor.getTitel();
+        if(name == null) {
+            name = monitor.getBereich();
+        }
+        Label confirmationMessage = new Label("Are you sure you want to delete the entry: " + name + "?");
+        confirmationDialog.add(confirmationMessage);
+
+        Button confirmButton = new Button("Delete", event -> {
+            if (cockpitService.hasChildEntries(monitor)) {
+                Notification.show("Cannot delete. This entry has child elements!", 3000, Notification.Position.MIDDLE);
+            } else {
+                cockpitService.deleteMonitor(monitor, comboBox.getValue());
+                updateTreeGrid();
+            }
+            confirmationDialog.close();
+        });
+
+        Button cancelButton = new Button("Cancel", event -> confirmationDialog.close());
+
+        confirmButton.getStyle().set("color", "red");
+        cancelButton.getStyle().set("color", "blue");
+
+        HorizontalLayout buttonLayout = new HorizontalLayout(confirmButton, cancelButton);
+        confirmationDialog.getFooter().add(buttonLayout);
+
+        confirmationDialog.open();
+    }
+
     private TabSheet getTabsheet(fvm_monitoring monitor, boolean isNew) {
 
         TabSheet tabSheet = new TabSheet();
