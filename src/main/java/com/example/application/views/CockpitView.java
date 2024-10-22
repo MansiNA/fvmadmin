@@ -551,6 +551,11 @@ public class CockpitView extends VerticalLayout{
             } else {
                 setAlerting("Off");
             }
+            if(monitorAlerting.getIsBackJobActive() == 1) {
+                setChecker("On");
+            } else {
+                setChecker("Off");
+            }
         });
 
         autorefresh.setLabel("Autorefresh");
@@ -629,6 +634,7 @@ public class CockpitView extends VerticalLayout{
 
             System.out.println("Background Job for checker eingeschaltet");
             setChecker("On");
+            cockpitService.updateIsBackJobActive(1, comboBox.getValue());
             checkBackgroundProcess();
         });
         onMenuItemChecker.setCheckable(true); // Ensure the "On" item is checkable
@@ -637,6 +643,7 @@ public class CockpitView extends VerticalLayout{
         MenuItem offMenuItemChecker = check_menu.addItem("Off", event -> {
             System.out.println("Background Job for checker ausgeschaltet");
             setChecker("Off");
+            cockpitService.updateIsBackJobActive(0, comboBox.getValue());
             checkBackgroundProcess();
         });
         offMenuItemChecker.setCheckable(true);
@@ -647,8 +654,12 @@ public class CockpitView extends VerticalLayout{
             backGroundConfigurationDialog();
         });
 
-        setChecker("On");
-
+        boolean isBackJobActive = monitorAlerting.getIsBackJobActive() != null && monitorAlerting.getIsBackJobActive() != 0;
+        if (isBackJobActive) {
+            setChecker("On");
+        } else {
+            setChecker("Off");
+        }
         Div checkInfo = new Div(new Span("Background-Job: "), syscheck);
         syscheck.getStyle().set("font-weight", "bold");
 
@@ -1978,6 +1989,11 @@ public class CockpitView extends VerticalLayout{
             // Call the save method to persist the configuration
             boolean isSuccess = cockpitService.saveEmailConfiguration(monitorAlerting, comboBox.getValue());
             if(isSuccess) {
+                if(aktiv.getValue()) {
+                    setAlerting("On");
+                } else {
+                    setAlerting("Off");
+                }
                 restartAlertCron();
             }
 
@@ -2017,7 +2033,7 @@ public class CockpitView extends VerticalLayout{
         // Create fields for user input
         TextField cronField = new TextField("CRON_EXPRESSION");
         //  IntegerField intervalField = new IntegerField("Intervall (in minutes)");
-        Checkbox aktiv = new Checkbox("aktiv");
+        Checkbox aktiv = new Checkbox("BackJob aktiv");
         IntegerField retentionTimeField = new IntegerField("RETENTION_TIME");
         IntegerField maxParallelChecksField = new IntegerField("MAX_PARALLEL_CHECKS");
 
@@ -2029,20 +2045,25 @@ public class CockpitView extends VerticalLayout{
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
 
         Optional.ofNullable(monitorAlerting.getCron()).ifPresent(cronField::setValue);
-        aktiv.setValue(monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() != 0);
+        aktiv.setValue(monitorAlerting.getIsBackJobActive() != null && monitorAlerting.getIsBackJobActive() != 0);
         Optional.ofNullable(monitorAlerting.getRetentionTime()).ifPresent(retentionTimeField::setValue);
         Optional.ofNullable(monitorAlerting.getMaxParallelCheck()).ifPresent(maxParallelChecksField::setValue);
 
         Button saveButton = new Button("Save", event -> {
             // Update the monitorAlerting object with values from the input fields
             monitorAlerting.setCron(cronField.getValue());
-            monitorAlerting.setIsActive(aktiv.getValue() ? 1: 0);
+            monitorAlerting.setIsBackJobActive(aktiv.getValue() ? 1: 0);
             monitorAlerting.setRetentionTime(retentionTimeField.getValue());
-            monitorAlerting.setMaxParallelCheck(maxParallelChecksField.getValue());
+             monitorAlerting.setMaxParallelCheck(maxParallelChecksField.getValue());
 
             // Call the save method to persist the configuration
             boolean isSuccess = cockpitService.saveBackgoundJobConfiguration(monitorAlerting, comboBox.getValue());
             if(isSuccess) {
+                if(aktiv.getValue()) {
+                    setChecker("On");
+                } else {
+                    setChecker("Off");
+                }
                 restartBackgroundCron();
             }
 
@@ -2107,6 +2128,8 @@ public class CockpitView extends VerticalLayout{
             if(alertingState.equals("On")) {
                 stopAllScheduledJobs(configuration);
                 scheduleEmailMonitorJob(configuration);
+            } else {
+                stopAllScheduledJobs(configuration);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -2120,6 +2143,8 @@ public class CockpitView extends VerticalLayout{
             if(syscheck.getText().equals("On")) {
                 stopBackgroundScheduledJobs(configuration);
                 scheduleBackgroundJob(configuration);
+            } else {
+                stopBackgroundScheduledJobs(configuration);
             }
         } catch (Exception e) {
             e.printStackTrace();

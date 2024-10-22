@@ -206,7 +206,7 @@ public class CockpitService {
             connectWithDatabase(configuration);
 
             // Query to get the existing configuration
-            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS FROM FVM_MONITOR_ALERTING";
+            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE FROM FVM_MONITOR_ALERTING";
 
             // Use jdbcTemplate to query and map results to MonitorAlerting object
             jdbcTemplate.query(sql, rs -> {
@@ -229,6 +229,7 @@ public class CockpitService {
                     monitorAlerting.setLastALertCheckTime(lastAlertCheckTimeStamp.toLocalDateTime());
                 }
                 monitorAlerting.setIsActive(rs.getInt("IS_ACTIVE"));
+                monitorAlerting.setIsBackJobActive(rs.getInt("ISBACKJOBACTIVE"));
             });
 
             return monitorAlerting;
@@ -319,13 +320,13 @@ public class CockpitService {
                 // If record exists, update the configuration
                 String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET " +
                         "CRON_EXPRESSION = ?, " +
-                        "IS_ACTIVE = ?, " +
+                        "ISBACKJOBACTIVE = ?, " +
                         "RETENTION_TIME = ?, " +
                         "MAX_PARALLEL_CHECKS = ? ";
 
                 int rowsAffected = jdbcTemplate.update(updateQuery,
                         monitorAlerting.getCron(),
-                        monitorAlerting.getIsActive(),
+                        monitorAlerting.getIsBackJobActive(),
                         monitorAlerting.getRetentionTime(),
                         monitorAlerting.getMaxParallelCheck()
                         //    monitorAlerting.getCron(),
@@ -342,7 +343,7 @@ public class CockpitService {
             } else {
                 // If no record exists, insert a new configuration
                 String insertQuery = "INSERT INTO FVM_MONITOR_ALERTING " +
-                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS) " +
+                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, ISBACKJOBACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS) " +
                         "VALUES (?, ?, ?, ?, ?, ?, ?,?)";
 
                 int rowsAffected = jdbcTemplate.update(insertQuery,
@@ -351,7 +352,7 @@ public class CockpitService {
                         monitorAlerting.getMailBetreff(),
                         monitorAlerting.getMailText(),
                         monitorAlerting.getCron(),
-                        monitorAlerting.getIsActive(),
+                        monitorAlerting.getIsBackJobActive(),
                         monitorAlerting.getRetentionTime(),
                         monitorAlerting.getMaxParallelCheck()
                 );
@@ -376,6 +377,24 @@ public class CockpitService {
         try {
             connectWithDatabase(configuration);
             String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET IS_ACTIVE = ?";
+
+            // Update the database with the new configuration
+            int rowsAffected = jdbcTemplate.update(updateQuery, isActive);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Failed to update configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        } finally {
+            // Ensure database connection is properly closed
+            connectionClose();
+        }
+        return false;
+    }
+
+    public boolean updateIsBackJobActive(int isActive, Configuration configuration) {
+        try {
+            connectWithDatabase(configuration);
+            String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET isBackJobActive = ?";
 
             // Update the database with the new configuration
             int rowsAffected = jdbcTemplate.update(updateQuery, isActive);

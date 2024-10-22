@@ -159,41 +159,43 @@ public class Application implements AppShellConfigurator {
     }
 
     public void scheduleBackgroundJob(Configuration configuration) throws SchedulerException {
-        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
-        scheduler.start();
 
-        JobDataMap jobDataMap = new JobDataMap();
-        try {
-            jobDataMap.put("configuration", JobDefinitionUtils.serializeJobDefinition(configuration));
-        } catch (JsonProcessingException e) {
-            Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
-            return;
-        }
-
-        jobDataMap.put("startType", "cron");
-
-        JobDetail jobDetail = JobBuilder.newJob(BackgroundJobExecutor.class)
-                .withIdentity("job-background-cron-" + configuration.getId(), "group2")
-                .usingJobData(jobDataMap)
-                .build();
-
-        // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
-        System.out.println("---------------------------------------"+monitorAlerting.getMailEmpfaenger()+"--------------------------------------");
-        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
-            System.out.println("No interval set for the configuration. Job will not be scheduled.");
-            return;
+        if(monitorAlerting.getIsBackJobActive() != null && monitorAlerting.getIsBackJobActive() == 1) {
+            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+            scheduler.start();
+
+            JobDataMap jobDataMap = new JobDataMap();
+            try {
+                jobDataMap.put("configuration", JobDefinitionUtils.serializeJobDefinition(configuration));
+            } catch (JsonProcessingException e) {
+                Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                return;
+            }
+
+            jobDataMap.put("startType", "cron");
+
+            JobDetail jobDetail = JobBuilder.newJob(BackgroundJobExecutor.class)
+                    .withIdentity("job-background-cron-" + configuration.getId(), "group2")
+                    .usingJobData(jobDataMap)
+                    .build();
+
+            System.out.println("---------------------------------------" + monitorAlerting.getMailEmpfaenger() + "--------------------------------------");
+            if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+                System.out.println("No interval set for the configuration. Job will not be scheduled.");
+                return;
+            }
+
+            String cronExpression = monitorAlerting.getCron();
+
+            Trigger trigger = TriggerBuilder.newTrigger()
+                    .withIdentity("trigger-background -cron-" + configuration.getId(), "group2")
+                    .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                    .forJob(jobDetail)
+                    .build();
+
+            scheduler.scheduleJob(jobDetail, trigger);
         }
-
-        String cronExpression = monitorAlerting.getCron();
-
-        Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-background -cron-" + configuration.getId(), "group2")
-                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
-                .forJob(jobDetail)
-                .build();
-
-        scheduler.scheduleJob(jobDetail, trigger);
     }
 
     private String createCronExpression(int interval) {
