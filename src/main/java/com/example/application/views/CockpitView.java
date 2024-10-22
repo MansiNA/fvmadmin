@@ -1888,8 +1888,8 @@ public class CockpitView extends VerticalLayout{
         IntegerField errorSchwellwert = new IntegerField("Error Schwellwert");
         errorSchwellwert.setValue(isNew ? null : monitor.getError_Schwellwert());
 
-        TextField bereich = new TextField("Bereich");
-        bereich.setValue(isNew ? "" : (monitor.getBereich() != null ? monitor.getBereich() : ""));
+//        TextField bereich = new TextField("Bereich");
+//        bereich.setValue(isNew ? "" : (monitor.getBereich() != null ? monitor.getBereich() : ""));
 
         Checkbox checkbox = new Checkbox("aktiv");
        // checkbox.setValue(!isNew && monitor.getIS_ACTIVE().equals("1"));
@@ -1916,7 +1916,7 @@ public class CockpitView extends VerticalLayout{
 
         // Add value change listeners to trigger binder updates
         titel.addValueChangeListener(event -> monitor.setTitel(event.getValue()));
-        bereich.addValueChangeListener(event -> monitor.setBereich(event.getValue()));
+   //     bereich.addValueChangeListener(event -> monitor.setBereich(event.getValue()));
         intervall.addValueChangeListener(event -> monitor.setCheck_Intervall(event.getValue()));
         infoSchwellwert.addValueChangeListener(event -> monitor.setWarning_Schwellwert(event.getValue()));
         errorSchwellwert.addValueChangeListener(event -> monitor.setError_Schwellwert(event.getValue()));
@@ -1925,7 +1925,7 @@ public class CockpitView extends VerticalLayout{
 
         HorizontalLayout hr = new HorizontalLayout(intervall,infoSchwellwert,errorSchwellwert, checkbox);
         hr.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
-        HorizontalLayout hr1 = new HorizontalLayout(id,parentComboBox, bereich);
+        HorizontalLayout hr1 = new HorizontalLayout(id,parentComboBox);
         hr1.setDefaultVerticalComponentAlignment(Alignment.BASELINE);
         content.add(hr1, titel, hr);
         return content;
