@@ -161,7 +161,8 @@ public class Application implements AppShellConfigurator {
     public void scheduleBackgroundJob(Configuration configuration) throws SchedulerException {
 
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
-        if(monitorAlerting.getIsBackJobActive() != null && monitorAlerting.getIsBackJobActive() == 1) {
+        cockpitService.updateIsBackJobActive(1, configuration);
+//        if(monitorAlerting.getIsBackJobActive() != null && monitorAlerting.getIsBackJobActive() == 1) {
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
             scheduler.start();
 
@@ -195,7 +196,7 @@ public class Application implements AppShellConfigurator {
                     .build();
 
             scheduler.scheduleJob(jobDetail, trigger);
-        }
+       // }
     }
 
     private String createCronExpression(int interval) {
