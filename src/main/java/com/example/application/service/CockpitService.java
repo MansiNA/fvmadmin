@@ -6,12 +6,14 @@ import com.example.application.data.entity.fvm_monitoring;
 import com.vaadin.flow.component.notification.Notification;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -141,7 +143,7 @@ public class CockpitService {
             // Switch based on the database type
             switch (databaseType.toLowerCase()) {
                 case "oracle":
-                    checkTableSql = "SELECT COUNT(*) FROM ALL_TABLES WHERE table_name = ?";
+                    checkTableSql = "SELECT COUNT(*) FROM user_tables WHERE UPPER(table_name) = UPPER(?)";
                     break;
                 case "sqlserver":
                     checkTableSql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?";
@@ -166,10 +168,17 @@ public class CockpitService {
         String tableName = "FVM_MONITOR_ALERTING";
         try {
             connectWithDatabase(configuration);
+            String schema = getCurrentSchema();
             String dbType = "oracle";
             if(configuration.getName().contains("SQLServer")) {
                 dbType = "sqlserver";
             }
+            System.out.println("db______________________ "+configuration.getName());
+
+//            // Form the SQL statement to drop the table, considering case sensitivity and special characters
+//            String dropTableSQL = "DROP TABLE \"" + schema + "\".\"" + tableName.toUpperCase() + "\"";
+//            jdbcTemplate.execute(dropTableSQL);
+
             if (!tableExists(tableName, dbType)) {
                 System.out.println("Creating table: " + tableName);
 
@@ -178,18 +187,20 @@ public class CockpitService {
                         + "MAIL_CC_EMPFAENGER VARCHAR(255), "
                         + "MAIL_BETREFF VARCHAR(255), "
                         + "MAIL_TEXT VARCHAR(255), "
-                        + "CHECK_INTERVALL INT, "
+                        + "CRON_EXPRESSION VARCHAR(255), "
                         + "LAST_ALERT_TIME DATE, "
                         + "LAST_ALERT_CHECKTIME TIMESTAMP, "
                         + "IS_ACTIVE INT, "
-                        + "RETENTION_TIME INT"
+                        + "RETENTION_TIME INT,"
+                        + "MAX_PARALLEL_CHECKS INT, "
+                        + "ISBACKJOBACTIVE INT"
                         + ")";
 
                 jdbcTemplate.execute(createTableSQL);
 
                 System.out.println("Table created successfully.");
             } else {
-                System.out.println("Table already exists: " + tableName);
+                  System.out.println("Table already exists: " + tableName);
             }
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
@@ -199,10 +210,32 @@ public class CockpitService {
         }
     }
 
+    public String getCurrentSchema() {
+        // Use JdbcTemplate's execute method with a ConnectionCallback to get the schema
+        return jdbcTemplate.execute((ConnectionCallback<String>) connection -> {
+            String schema = null;
+            try {
+                // Attempt to get the schema using the Connection.getSchema() method
+                schema = connection.getSchema();
+
+                // If getSchema() returns null or is not supported, use a fallback
+                if (schema == null) {
+                    DatabaseMetaData metaData = connection.getMetaData();
+                    schema = metaData.getUserName(); // Fallback for Oracle or unsupported DBs
+                }
+
+                System.out.println("Current Schema: " + schema);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return schema;
+        });
+    }
+
     public MonitorAlerting fetchEmailConfiguration(Configuration configuration) {
         MonitorAlerting monitorAlerting = new MonitorAlerting();
         try {
-
+            System.out.println(configuration.getName()+",,,,,,,,,,,,,,,,,,,,,,,,,,,");
             connectWithDatabase(configuration);
 
             // Query to get the existing configuration
@@ -235,7 +268,7 @@ public class CockpitService {
             return monitorAlerting;
         } catch (Exception e) {
             e.printStackTrace();
-            Notification.show("Failed to load configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+         //   Notification.show("Failed to load configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed
             connectionClose();
@@ -273,7 +306,8 @@ public class CockpitService {
                 if (rowsAffected > 0) {
                     return true;
                 } else {
-                    Notification.show("No configuration was updated.", 5000, Notification.Position.MIDDLE);
+                    System.out.println("No configuration was updated.");
+                   // Notification.show("No configuration was updated.", 5000, Notification.Position.MIDDLE);
                 }
             } else {
                 // If no record exists, insert a new configuration
