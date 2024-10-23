@@ -135,7 +135,7 @@ public class Application implements AppShellConfigurator {
             jobDataMap.put("startType", "cron");
 
             JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
-                    .withIdentity("job-alert-cron-" + configuration.getId(), "group2")
+                    .withIdentity("job-alert-cron-" + configuration.getId(), "Email_group")
                     .usingJobData(jobDataMap)
                     .build();
 
@@ -149,7 +149,7 @@ public class Application implements AppShellConfigurator {
             String cronExpression = monitorAlerting.getCron();
 
             Trigger trigger = TriggerBuilder.newTrigger()
-                    .withIdentity("trigger-alert-cron-" + configuration.getId(), "group2")
+                    .withIdentity("trigger-alert-cron-" + configuration.getId(), "Email_group")
                     .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                     .forJob(jobDetail)
                     .build();
@@ -177,7 +177,7 @@ public class Application implements AppShellConfigurator {
             jobDataMap.put("startType", "cron");
 
             JobDetail jobDetail = JobBuilder.newJob(BackgroundJobExecutor.class)
-                    .withIdentity("job-background-cron-" + configuration.getId(), "group2")
+                    .withIdentity("job-background-cron-" + configuration.getId(), "Chek_group")
                     .usingJobData(jobDataMap)
                     .build();
 
@@ -190,7 +190,7 @@ public class Application implements AppShellConfigurator {
             String cronExpression = monitorAlerting.getCron();
 
             Trigger trigger = TriggerBuilder.newTrigger()
-                    .withIdentity("trigger-background -cron-" + configuration.getId(), "group2")
+                    .withIdentity("trigger-background -cron-" + configuration.getId(), "Chek_group")
                     .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                     .forJob(jobDetail)
                     .build();

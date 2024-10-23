@@ -372,7 +372,7 @@ public class CockpitView extends VerticalLayout{
         jobDataMap.put("startType", "cron");
 
         JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
-                .withIdentity("job-alert-cron-" + configuration.getId(), "group2")
+                .withIdentity("job-alert-cron-" + configuration.getId(), "Email_group")
                 .usingJobData(jobDataMap)
                 .build();
 
@@ -387,7 +387,7 @@ public class CockpitView extends VerticalLayout{
         String cronExpression = monitorAlerting.getCron();
 
         Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-alert-cron-" + configuration.getId(), "group2")
+                .withIdentity("trigger-alert-cron-" + configuration.getId(), "Email_group")
                 .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                 .forJob(jobDetail)
                 .build();
@@ -410,7 +410,7 @@ public class CockpitView extends VerticalLayout{
         jobDataMap.put("startType", "cron");
 
         JobDetail jobDetail = JobBuilder.newJob(BackgroundJobExecutor.class)
-                .withIdentity("job-background-cron-" + configuration.getId(), "group2")
+                .withIdentity("job-background-cron-" + configuration.getId(), "Chek_group")
                 .usingJobData(jobDataMap)
                 .build();
 
@@ -425,7 +425,7 @@ public class CockpitView extends VerticalLayout{
         String cronExpression = monitorAlerting.getCron();
 
         Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-background -cron-" + configuration.getId(), "group2")
+                .withIdentity("trigger-background -cron-" + configuration.getId(), "Chek_group")
                 .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                 .forJob(jobDetail)
                 .build();
@@ -441,7 +441,7 @@ public class CockpitView extends VerticalLayout{
 
         try {
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
-            JobKey cronJobKey = new JobKey("job-alert-cron-" + configuration.getId(), "group2");
+            JobKey cronJobKey = new JobKey("job-alert-cron-" + configuration.getId(), "Email_group");
 
             // Try stopping cron job
             if (scheduler.checkExists(cronJobKey)) {
@@ -461,7 +461,7 @@ public class CockpitView extends VerticalLayout{
 
         try {
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
-            JobKey cronJobKey = new JobKey("job-background-cron-" + configuration.getId(), "group2");
+            JobKey cronJobKey = new JobKey("job-background-cron-" + configuration.getId(), "Chek_group");
 
             // Try stopping cron job
             if (scheduler.checkExists(cronJobKey)) {
