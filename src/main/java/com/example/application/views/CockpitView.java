@@ -378,7 +378,7 @@ public class CockpitView extends VerticalLayout{
 
         // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
-        System.out.println("---------------------------------------"+monitorAlerting.getMailEmpfaenger()+"--------------------------------------");
+   //     System.out.println("---------------------------------------"+monitorAlerting.getMailEmpfaenger()+"--------------------------------------");
         if (monitorAlerting == null || monitorAlerting.getCron() == null) {
             System.out.println("No interval set for the configuration. Job will not be scheduled.");
             return;
@@ -416,7 +416,7 @@ public class CockpitView extends VerticalLayout{
 
         // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
-        System.out.println("---------------------------------------"+monitorAlerting.getMailEmpfaenger()+"--------------------------------------");
+
         if (monitorAlerting == null || monitorAlerting.getCron() == null) {
             System.out.println("No interval set for the configuration. Job will not be scheduled.");
             return;
@@ -689,7 +689,7 @@ public class CockpitView extends VerticalLayout{
 
     private void updateTreeGrid() {
         param_Liste = cockpitService.getMonitoring(comboBox.getValue());
-        System.out.println(param_Liste.size()+"............fffffffffffffffffffffffffff");
+      //  System.out.println(param_Liste.size()+"............fffffffffffffffffffffffffff");
         if(param_Liste != null) {
             List<fvm_monitoring> rootItems = cockpitService.getRootMonitor();
             treeGrid.setItems(rootItems, cockpitService ::getChildMonitor);

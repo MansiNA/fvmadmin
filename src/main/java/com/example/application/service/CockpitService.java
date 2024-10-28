@@ -17,6 +17,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -56,8 +57,44 @@ public class CockpitService {
         }
         return null;
     }
-
+    public JdbcTemplate getNewJdbcTemplateWithDatabase(Configuration conf) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+        try {
+            return new JdbcTemplate(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
     public void connectionClose() {
+        Connection connection = null;
+        DataSource dataSource = null;
+        try {
+            connection = jdbcTemplate.getDataSource().getConnection();
+            dataSource = jdbcTemplate.getDataSource();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+
+                    if (dataSource instanceof HikariDataSource) {
+                        ((HikariDataSource) dataSource).close();
+                    }
+
+                } catch (SQLException e) {
+
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void connectionClose(JdbcTemplate jdbcTemplate) {
         Connection connection = null;
         DataSource dataSource = null;
         try {
@@ -93,7 +130,8 @@ public class CockpitService {
 //                "left outer join FVM_MONITOR_RESULT mr\n" +
 //                "on m.id=mr.id\n" +
 //                "and mr.is_active='1'";
-
+        connectWithDatabase(configuration);
+       // JdbcTemplate  jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         String sql = "SELECT m.ID,m.PID, m.Bereich, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
                 ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent" +
                 ", Zeitpunkt, m.is_active, m.sql_detail as sql_detail FROM FVM_MONITORING m\n" +
@@ -102,17 +140,17 @@ public class CockpitService {
                 "and mr.is_active='1'";
 
 
-        System.out.println("Abfrage EKP.FVM_Monitoring (CockpitView.java): ");
-        System.out.println(sql);
+      //  System.out.println("Abfrage EKP.FVM_Monitoring (CockpitView.java): ");
+      //  System.out.println(sql);
 
-        connectWithDatabase(configuration);
-
+        List<fvm_monitoring> fvmMonitorings = new ArrayList<>();
         try {
-            listOfMonitores = jdbcTemplate.query(
+            fvmMonitorings = jdbcTemplate.query(
                     sql,
                     new BeanPropertyRowMapper(fvm_monitoring.class));
 
-            System.out.println("FVM_Monitoring eingelesen");
+            listOfMonitores = fvmMonitorings;
+        //    System.out.println("FVM_Monitoring eingelesen");
 
         } catch (Exception e) {
             Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
@@ -122,7 +160,7 @@ public class CockpitService {
             connectionClose();
         }
 
-        return listOfMonitores;
+        return fvmMonitorings;
     }
     private boolean tableExistsold(String tableName) {
         try {
@@ -498,7 +536,7 @@ public class CockpitService {
     }
 
     public List<fvm_monitoring> getRootMonitor() {
-        System.out.println("-----------"+ listOfMonitores.size()+"-----------------------------");
+      //  System.out.println("-----------"+ listOfMonitores.size()+"-----------------------------");
         List<fvm_monitoring> rootProjects = listOfMonitores
                 .stream()
                 .filter(monitor -> monitor.getPid() == 0)

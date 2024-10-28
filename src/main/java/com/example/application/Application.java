@@ -181,7 +181,6 @@ public class Application implements AppShellConfigurator {
                     .usingJobData(jobDataMap)
                     .build();
 
-            System.out.println("---------------------------------------" + monitorAlerting.getMailEmpfaenger() + "--------------------------------------");
             if (monitorAlerting == null || monitorAlerting.getCron() == null) {
                 System.out.println("No interval set for the configuration. Job will not be scheduled.");
                 return;
