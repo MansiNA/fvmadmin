@@ -3,6 +3,7 @@ package com.example.application.service;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
+import com.example.application.views.CockpitView;
 import com.vaadin.flow.component.notification.Notification;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -26,7 +27,7 @@ import java.util.stream.Collectors;
 public class CockpitService {
 
     private JdbcTemplate jdbcTemplate;
-    List<fvm_monitoring> listOfMonitores;
+  //  List<fvm_monitoring> listOfMonitores;
 
 
     public CockpitService(JdbcTemplate jdbcTemplate){
@@ -149,7 +150,7 @@ public class CockpitService {
                     sql,
                     new BeanPropertyRowMapper(fvm_monitoring.class));
 
-            listOfMonitores = fvmMonitorings;
+        //    listOfMonitores = fvmMonitorings;
         //    System.out.println("FVM_Monitoring eingelesen");
 
         } catch (Exception e) {
@@ -535,7 +536,7 @@ public class CockpitService {
         }
     }
 
-    public List<fvm_monitoring> getRootMonitor() {
+    public List<fvm_monitoring> getRootMonitor(List<fvm_monitoring> listOfMonitores) {
       //  System.out.println("-----------"+ listOfMonitores.size()+"-----------------------------");
         List<fvm_monitoring> rootProjects = listOfMonitores
                 .stream()
@@ -550,7 +551,7 @@ public class CockpitService {
 
     public List<fvm_monitoring> getChildMonitor(fvm_monitoring parent) {
 
-        List<fvm_monitoring> childProjects = listOfMonitores
+        List<fvm_monitoring> childProjects = CockpitView.param_Liste
                 .stream()
                 .filter(monitor -> Objects.equals(monitor.getPid(), parent.getID()))
                 .collect(Collectors.toList());
@@ -562,14 +563,14 @@ public class CockpitService {
     }
 
     public List<fvm_monitoring> getParentNodes() {
-        return listOfMonitores
+        return CockpitView.param_Liste
                 .stream()
                 .filter(monitor -> monitor.getPid() == 0)
                 .collect(Collectors.toList());
     }
 
     public fvm_monitoring getParentByPid(Integer pid) {
-        return listOfMonitores.stream()
+        return CockpitView.param_Liste.stream()
                 .filter(monitor -> monitor.getID().equals(pid))
                 .findFirst()
                 .orElse(null);

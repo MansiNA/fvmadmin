@@ -39,6 +39,9 @@ public class Configuration {
 
     // Method to decode a password from URL-safe Base64
     public static String decodePassword(String encodedPassword) {
+        if (encodedPassword == null || encodedPassword.trim().isEmpty()) {
+           return encodedPassword;
+        }
         byte[] decodedBytes = Base64.getUrlDecoder().decode(encodedPassword);
         return new String(decodedBytes);
     }

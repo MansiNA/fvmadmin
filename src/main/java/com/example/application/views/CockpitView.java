@@ -215,7 +215,7 @@ public class CockpitView extends VerticalLayout{
     // RichTextEditor editor = new RichTextEditor();
 
     private ComboBox<Configuration> comboBox;
-    static List<fvm_monitoring> param_Liste = new ArrayList<fvm_monitoring>();
+    public static List<fvm_monitoring> param_Liste = new ArrayList<fvm_monitoring>();
     static List<fvm_monitoring> monitore;
 
     static VerticalLayout content = new VerticalLayout();;
@@ -619,12 +619,13 @@ public class CockpitView extends VerticalLayout{
         });
         cockpitService.createFvmMonitorAlertingTable(comboBox.getValue());
         MonitorAlerting  monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
-        boolean isActive = monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() != 0;
-        if (isActive) {
+
+        if (monitorAlerting != null && monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() != 0) {
             setAlerting("On");
         } else {
             setAlerting("Off");
         }
+
         Div alertingInfo = new Div(new Span("eMail-Alerting: "), alerting);
         alerting.getStyle().set("font-weight", "bold");
 
@@ -654,12 +655,12 @@ public class CockpitView extends VerticalLayout{
             backGroundConfigurationDialog();
         });
 
-        boolean isBackJobActive = monitorAlerting.getIsBackJobActive() != null && monitorAlerting.getIsBackJobActive() != 0;
-        if (isBackJobActive) {
+        if (monitorAlerting != null && monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() != 0) {
             setChecker("On");
         } else {
             setChecker("Off");
         }
+
         Div checkInfo = new Div(new Span("Background-Job: "), syscheck);
         syscheck.getStyle().set("font-weight", "bold");
 
@@ -691,7 +692,7 @@ public class CockpitView extends VerticalLayout{
         param_Liste = cockpitService.getMonitoring(comboBox.getValue());
       //  System.out.println(param_Liste.size()+"............fffffffffffffffffffffffffff");
         if(param_Liste != null) {
-            List<fvm_monitoring> rootItems = cockpitService.getRootMonitor();
+            List<fvm_monitoring> rootItems = cockpitService.getRootMonitor(param_Liste);
             treeGrid.setItems(rootItems, cockpitService ::getChildMonitor);
         }
 
