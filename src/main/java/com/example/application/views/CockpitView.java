@@ -546,12 +546,12 @@ public class CockpitView extends VerticalLayout{
         //    updateGrid();
             cockpitService.createFvmMonitorAlertingTable(comboBox.getValue());
             MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(event.getValue());
-            if(monitorAlerting.getIsActive() == 1) {
+            if(monitorAlerting != null && monitorAlerting.getIsActive() == 1) {
                 setAlerting("On");
             } else {
                 setAlerting("Off");
             }
-            if(monitorAlerting.getIsBackJobActive() == 1) {
+            if(monitorAlerting != null && monitorAlerting.getIsBackJobActive() == 1) {
                 setChecker("On");
             } else {
                 setChecker("Off");
@@ -655,7 +655,7 @@ public class CockpitView extends VerticalLayout{
             backGroundConfigurationDialog();
         });
 
-        if (monitorAlerting != null && monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() != 0) {
+        if (monitorAlerting != null && monitorAlerting.getIsBackJobActive() != null && monitorAlerting.getIsBackJobActive() != 0) {
             setChecker("On");
         } else {
             setChecker("Off");
@@ -1383,6 +1383,7 @@ public class CockpitView extends VerticalLayout{
     }
 
     public void executeImmediateSQLCheck(fvm_monitoring monitoring) {
+        UI ui = UI.getCurrent();
         executorService.submit(() -> {
             if (monitoring.getIS_ACTIVE().equals("1")) {
                 try {
@@ -1407,10 +1408,21 @@ public class CockpitView extends VerticalLayout{
                             1, // Mark as active
                             result,
                             "Query executed successfully");
-
+                    if (ui != null) {
+                        ui.access(() -> {
+                            Notification.show("refresh : sql check...." + monitoring.getID(), 5000, Notification.Position.MIDDLE);
+                        });
+                    }
                     System.out.println("refresh...sql check...." + monitoring.getID() + "----------------------query executed: " + monitoring.getSQL().toString());
                 } catch (Exception ex) {
-                    throw ex;
+                    System.out.println("Erorr: while " + monitoring.getID() + "----------------------query executed: " + monitoring.getSQL().toString());
+                    if (ui != null) {
+                        ui.access(() -> {
+                            Notification.show("Erorr: while sql-check: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+                        });
+                    } else {
+                        System.err.println("No active UI context found. Unable to show notification.");
+                    }
                 }
             }
         });
