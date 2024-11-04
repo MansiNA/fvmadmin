@@ -83,12 +83,18 @@ public class BackgroundJobExecutor implements Job {
         ExecutorService executorService = Executors.newFixedThreadPool(maxParallelChecks);
 
         // Clean up old results based on retention time
-        cleanUpOldResults(retentionTime, configuration);
+        // cleanUpOldResults(retentionTime, configuration);
+
+        if(monitorings.size() == 0) {
+            System.out.println("global retention used");
+            cleanUpOldResults(retentionTime, configuration, null);
+        }
 
         for (fvm_monitoring monitoring : monitorings) {
             if (monitoring.getIS_ACTIVE().equals("1") && monitoring.getPid() != 0) {
                 JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
                 try {
+                    cleanUpOldResults(monitoring.getRetentionTime(), configuration, monitoring.getID());
                     // step 1.
                     Timestamp lastCheck = jdbcTemplate.queryForObject(
                             "SELECT MAX(Zeitpunkt) FROM FVM_MONITOR_RESULT WHERE ID = ?",
@@ -206,13 +212,21 @@ public class BackgroundJobExecutor implements Job {
         }
     }
 
-    private void cleanUpOldResults(int retentionDays, Configuration configuration) {
+    private void cleanUpOldResults(int retentionDays, Configuration configuration, Integer id) {
         JdbcTemplate jdbcTemplate = null;
         try {
+            int rowsDeleted = 0;
             jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
-            int rowsDeleted = jdbcTemplate.update(
-                    "DELETE FROM FVM_MONITOR_RESULT WHERE TRUNC(Zeitpunkt) < TRUNC(SYSDATE - ?)",
-                    retentionDays);
+            if(id != null) {
+                rowsDeleted = jdbcTemplate.update(
+                        "DELETE FROM FVM_MONITOR_RESULT WHERE ID = ? AND TRUNC(Zeitpunkt) < TRUNC(SYSDATE - ?)",
+                        id, retentionDays);
+                System.out.println(id +".....this id retention time..."+retentionDays);
+            } else {
+                 rowsDeleted = jdbcTemplate.update(
+                        "DELETE FROM FVM_MONITOR_RESULT WHERE TRUNC(Zeitpunkt) < TRUNC(SYSDATE - ?)",
+                        retentionDays);
+            }
 
             System.out.println("Number of rows deleted: " + rowsDeleted);
 

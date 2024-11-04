@@ -133,7 +133,7 @@ public class CockpitService {
 //                "and mr.is_active='1'";
         connectWithDatabase(configuration);
        // JdbcTemplate  jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
-        String sql = "SELECT m.ID,m.PID, m.Bereich, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
+        String sql = "SELECT m.ID,m.PID, m.Bereich, RETENTIONTIME, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
                 ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent" +
                 ", Zeitpunkt, m.is_active, m.sql_detail as sql_detail FROM FVM_MONITORING m\n" +
                 "left outer join FVM_MONITOR_RESULT mr\n" +
@@ -438,7 +438,7 @@ public class CockpitService {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+         //   Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed
             connectionClose();
@@ -456,7 +456,6 @@ public class CockpitService {
 
         } catch (Exception e) {
             e.printStackTrace();
-            Notification.show("Failed to update configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed
             connectionClose();
@@ -474,7 +473,6 @@ public class CockpitService {
 
         } catch (Exception e) {
             e.printStackTrace();
-            Notification.show("Failed to update configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed
             connectionClose();

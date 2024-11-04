@@ -24,6 +24,7 @@ public class fvm_monitoring {
     private String IS_ACTIVE;
     private String bereich;
     private Date Zeitpunkt ;
+    private Integer retentionTime;
     public String getIS_ACTIVE() {
         return IS_ACTIVE;
     }
@@ -141,6 +142,20 @@ public class fvm_monitoring {
 
     public void setSQL_Detail(String SQL_Detail) {
         this.SQL_Detail = SQL_Detail;
+    }
+
+    public int getRetentionTime() {
+        if(retentionTime == null) {
+            return 0;
+        }
+        return retentionTime;
+    }
+
+    public void setRetentionTime(Integer retentionTime) {
+        this.retentionTime = retentionTime;
+        if(retentionTime == null) {
+            this.retentionTime = 0;
+        }
     }
 
     public String getBereich() {
