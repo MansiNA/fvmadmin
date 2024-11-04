@@ -1,7 +1,6 @@
 package com.example.application.data.service;
 
 import com.example.application.data.entity.Configuration;
-import com.example.application.data.entity.ServerConfiguration;
 import com.example.application.data.repository.ConfigurationRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -32,6 +31,13 @@ public class ConfigurationService {
             return null;
         }
         return configurationRepository.findById(id).get();
+    }
+    public Optional<Configuration> findById(Long id) {
+        if (id == null) {
+            System.err.println("ID is null!");
+            return null;
+        }
+        return configurationRepository.findById(id);
     }
 
     public List<Configuration> findMessageConfigurations(){
