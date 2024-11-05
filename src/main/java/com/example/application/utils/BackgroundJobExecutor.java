@@ -221,7 +221,7 @@ public class BackgroundJobExecutor implements Job {
                 rowsDeleted = jdbcTemplate.update(
                         "DELETE FROM FVM_MONITOR_RESULT WHERE ID = ? AND TRUNC(Zeitpunkt) < TRUNC(SYSDATE - ?)",
                         id, retentionDays);
-                System.out.println(id +".....this id retention time..."+retentionDays);
+           //     System.out.println(id +".....this id retention time..."+retentionDays);
             } else {
                  rowsDeleted = jdbcTemplate.update(
                         "DELETE FROM FVM_MONITOR_RESULT WHERE TRUNC(Zeitpunkt) < TRUNC(SYSDATE - ?)",
@@ -235,7 +235,7 @@ public class BackgroundJobExecutor implements Job {
         } finally {
             // Ensure database connection is properly closed
             connectionClose(jdbcTemplate);
-            System.out.println("connection closeeeeeeeee-------------"+configuration.getUserName());
+         //   System.out.println("connection closeeeeeeeee-------------"+configuration.getUserName());
         }
     }
 
