@@ -17,7 +17,8 @@ public class LoggerAspect {
     @Value("${verbose:false}")
     private boolean verbose;
 
-    @Around("execution(* com.example.application..*(..))") // Adjust the pointcut expression as needed
+    @Around("execution(* com.example.application..*(..)) && !execution(* com.example.application.security.SecurityConfiguration.*(..))")
+   // @Around("execution(* com.example.application..*(..))") // Adjust the pointcut expression as needed
     public Object logExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
         if (verbose) {
             logger.info("Executing: " + joinPoint.getSignature());
