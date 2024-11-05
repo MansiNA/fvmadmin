@@ -3,8 +3,6 @@ global:
 
 scrape_configs:
   - job_name: 'vaadin_app'
-    metrics_path: '/cockpit_view/export_id'
-    params:
-      id: ['12']  # Example parameter, update as needed
+    metrics_path: '/cockpit_view/export_id/15'  # Directly include the ID in the metrics path
     static_configs:
       - targets: ['localhost:8080']  # Replace with your Vaadin app's host and port
