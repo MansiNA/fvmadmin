@@ -64,8 +64,8 @@ public class QuarantaeneView extends VerticalLayout {
 
     List<Quarantine> lq = new ArrayList<>();
     private String exportPath;
-    private Anchor anchor = new Anchor(getStreamResource("quaran.xls", "default content"), "click to download");
-    private Button smallButton = new Button("Export");
+  //  private Anchor anchor = new Anchor(getStreamResource("quaran.xls", "default content"), "click to download");
+    private Button downloadButton = new Button("Download");
     ComboBox FehlertypCB;
 
 
@@ -89,8 +89,8 @@ public class QuarantaeneView extends VerticalLayout {
         FehlertypCB.setItems(errorList);
         FehlertypCB.setWidth("200px");
 
-        anchor.getElement().setAttribute("download",true);
-        anchor.setEnabled(false);
+//        anchor.getElement().setAttribute("download",true);
+//        anchor.setEnabled(false);
 
 
         qgrid.addColumn(createNachrichtIDRenderer()).setKey("ID").setHeader("Nachricht-ID").setAutoWidth(true).setSortable(true).setResizable(true).setComparator(Quarantine::getID).setFooter("Anzahl Einträge: 0");
@@ -124,7 +124,7 @@ public class QuarantaeneView extends VerticalLayout {
         hl.setAlignItems(Alignment.BASELINE);
         setSizeFull();
       //  add(comboBox, button, paragraph, qgrid);
-        add(hl,FehlertypCB,smallButton,anchor, qgrid);
+        add(hl,FehlertypCB,downloadButton, qgrid);
 
         button.addClickListener(clickEvent -> {
 
@@ -172,9 +172,9 @@ public class QuarantaeneView extends VerticalLayout {
         });
 
 
-        smallButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
-        smallButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
-        smallButton.addClickListener(clickEvent -> {
+        downloadButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        downloadButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+        downloadButton.addClickListener(clickEvent -> {
             Notification.show("Exportiere Liste ");
             //System.out.println("aktuelle_SQL:" + aktuelle_SQL);
 
@@ -193,17 +193,17 @@ public class QuarantaeneView extends VerticalLayout {
 
                 generateExcel( "quarantaene_export.xls",sql);
 
-                File file= new File( "quarantaene_export.xls");
-                StreamResource streamResource = new StreamResource(file.getName(),()->getStream(file));
-
-                anchor.setHref(streamResource);
-                //anchor = new Anchor(streamResource, String.format("%s (%d KB)", file.getName(), (int) file.length() / 1024));
-
-                anchor.setEnabled(true);
-                smallButton.setVisible(false);
-                //      download("c:\\tmp\\" + aktuelle_Tabelle + ".xls");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+//                File file= new File( "quarantaene_export.xls");
+//                StreamResource streamResource = new StreamResource(file.getName(),()->getStream(file));
+//
+//                anchor.setHref(streamResource);
+//                //anchor = new Anchor(streamResource, String.format("%s (%d KB)", file.getName(), (int) file.length() / 1024));
+//
+//                anchor.setEnabled(true);
+//                downloadButton.setVisible(false);
+//                //      download("c:\\tmp\\" + aktuelle_Tabelle + ".xls");
+            } catch (Exception e) {
+                e.getMessage();
             }
 
         });
@@ -220,7 +220,7 @@ public class QuarantaeneView extends VerticalLayout {
         return stream;
     }
 
-    private static void generateExcel(String file, String query) throws IOException {
+    private void generateExcel(String fileName, String query) {
         Configuration conf;
         conf = comboBox.getValue();
 
@@ -337,17 +337,35 @@ public class QuarantaeneView extends VerticalLayout {
 
             // String path="c:\\tmp\\test.xls";
 
-            FileOutputStream fileOut = new FileOutputStream(file);
+//            FileOutputStream fileOut = new FileOutputStream(file);
+//
+//            workBook.write(fileOut);
+//            fileOut.close();
+            try {
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-            workBook.write(fileOut);
-            fileOut.close();
+                // Write the workbook content to the ByteArrayOutputStream
+                workBook.write(outputStream);
 
+                // Close the workbook to free up resources
+                workBook.close();
 
-        } catch (SQLException | FileNotFoundException e) {
-            System.out.println("Error in Method generateExcel(String file, String query) file: " + file + " query: "  + query);
+                // Create a StreamResource from the ByteArrayOutputStream
+                StreamResource streamResource = new StreamResource(fileName,
+                        () -> new ByteArrayInputStream(outputStream.toByteArray()));
+
+                Anchor anchor = new Anchor(streamResource, "");
+                anchor.getElement().setAttribute("download", true);
+                anchor.getElement().getStyle().set("display", "none");
+                add(anchor);
+                UI.getCurrent().getPage().executeJs("arguments[0].click()", anchor);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        } catch (Exception e) {
+            System.out.println("Error in Method generateExcel(String file, String query) file: " + fileName + " query: "  + query);
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
     }
 
