@@ -53,6 +53,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -94,16 +96,17 @@ public class CockpitView extends VerticalLayout{
     JdbcTemplate jdbcTemplate;
     private EmailService emailService;
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
-
+    private static final Logger logger = LoggerFactory.getLogger(CockpitView.class);
     myCallback callback=new myCallback() {
         @Override
         public void delete(fvm_monitoring mon) {
-            System.out.println("Delete in CockpitView aufgerufen für " + mon.getTitel());
+            logger.info("Delete in CockpitView aufgerufen für " + mon.getTitel());
+
         }
 
         @Override
         public void save(fvm_monitoring mon) {
-            System.out.println("Save in CockpitView aufgerufen für " + mon.getTitel());
+            logger.info("Save in CockpitView aufgerufen für " + mon.getTitel());
 
 
 
@@ -121,7 +124,7 @@ public class CockpitView extends VerticalLayout{
 */
 
 
-            System.out.println("Update FVM_Monitoring (CockpitView.java):......................... "+mon.getPid());
+           // System.out.println("Update FVM_Monitoring (CockpitView.java):......................... "+mon.getPid());
 
             DriverManagerDataSource ds = new DriverManagerDataSource();
             com.example.application.data.entity.Configuration conf;
@@ -154,8 +157,8 @@ public class CockpitView extends VerticalLayout{
                             mon.getBereich(),
                             mon.getRetentionTime()
                     );
+                    logger.info("Insert durchgeführt");
 
-                    System.out.println("Insert durchgeführt");
                 } else {
 
                     String sql = "update FVM_MONITORING set " +
@@ -191,13 +194,16 @@ public class CockpitView extends VerticalLayout{
                     );
 
                     //     jdbcTemplate.update(sql);
-                    System.out.println("Update durchgeführt");
+                    logger.info("Update durchgeführt");
+                   // System.out.println("Update durchgeführt");
                 }
             } catch (Exception e) {
-                System.out.println("Exception: " + e.getMessage());
+
+                logger.error("Exception: " + e.getMessage());
             }
             finally {
                 form.setVisible(false);
+                cockpitService.connectionClose(jdbcTemplate);
             }
 
         }
@@ -256,6 +262,7 @@ public class CockpitView extends VerticalLayout{
         this.emailService = emailService;
         this.cockpitService = cockpitService;
 
+        logger.info("Starting CockpitView");
         addClassName("cockpit-view");
         setSizeFull();
 
@@ -289,7 +296,7 @@ public class CockpitView extends VerticalLayout{
             HttpRequest request = HttpRequest.newBuilder().uri(URI.create("https://jsonplaceholder.typicode.com/albums")).build();
             client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                     .thenApply(HttpResponse::body)
-                    //.thenAccept(System.out::println)
+                    //.thenAccept(System.out::println)s
                     //.thenApply(CockpitView::parse)
                     .thenApply(CockpitView::xmlpare)
                     .join();
@@ -346,7 +353,7 @@ public class CockpitView extends VerticalLayout{
 
         alerting.setText(status);
         alertingState = status;
-
+        logger.info("setAlerting:" +status);
 
     }
 
@@ -355,12 +362,13 @@ public class CockpitView extends VerticalLayout{
         // Update checked state of menu items
         check_menu.getItems().forEach(item -> item.setChecked(item.getText().equals(status)));
         syscheck.setText(status);
-
+        logger.info("setChecker:" +status);
 
 
     }
 
     public void scheduleEmailMonitorJob(Configuration configuration) throws SchedulerException {
+        logger.info("Starting scheduleEmailMonitorJob");
         Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
         scheduler.start();
 
@@ -399,6 +407,7 @@ public class CockpitView extends VerticalLayout{
     }
 
     public void scheduleBackgroundJob(Configuration configuration) throws SchedulerException {
+        logger.info("Starting scheduleBackgroundJob");
         Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
         scheduler.start();
 
@@ -441,7 +450,7 @@ public class CockpitView extends VerticalLayout{
         return "0 0/" + interval + " * * * ?";
     }
     private void stopAllScheduledJobs(Configuration configuration) {
-
+        logger.info("Executing stopAllScheduledJobs");
         try {
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
             JobKey cronJobKey = new JobKey("job-alert-cron-" + configuration.getId(), "Email_group");
@@ -456,12 +465,13 @@ public class CockpitView extends VerticalLayout{
 
 
         } catch (Exception e) {
+            logger.error("Executing stopAllScheduledJobs: Error stopping jobs:");
             Notification.show("Error stopping jobs: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
 
     private void stopBackgroundScheduledJobs(Configuration configuration) {
-
+        logger.info("Executing stopBackgroundScheduledJobs");
         try {
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
             JobKey cronJobKey = new JobKey("job-background-cron-" + configuration.getId(), "Chek_group");
@@ -477,6 +487,7 @@ public class CockpitView extends VerticalLayout{
 
 
         } catch (Exception e) {
+            logger.error("Executing stopBackgroundScheduledJobs: Error stopping jobs:");
             Notification.show("Error stopping jobs: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
@@ -509,7 +520,7 @@ public class CockpitView extends VerticalLayout{
     }
 
     private Component getToolbar() {
-
+        logger.info("Executing getToolbar");
         Button refreshBtn = new Button("refresh");
         refreshBtn.getElement().setProperty("title", "Daten neu einlesen");
         refreshBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
@@ -680,7 +691,7 @@ public class CockpitView extends VerticalLayout{
     private void updateLastRefreshLabel() {
         LocalTime currentTime = LocalTime.now();
         String formattedTime = currentTime.format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-
+        logger.info("updateLastRefreshLabel: letzte Aktualisierung: " + formattedTime);
         lastRefreshLabel.setText("letzte Aktualisierung: " + formattedTime);
     }
 
@@ -697,13 +708,14 @@ public class CockpitView extends VerticalLayout{
         if(param_Liste != null) {
             List<fvm_monitoring> rootItems = cockpitService.getRootMonitor(param_Liste);
             treeGrid.setItems(rootItems, cockpitService ::getChildMonitor);
+            logger.info("updateTreeGrid");
         }
 
     }
 
     private void configureTreeGrid() {
         treeGrid = new TreeGrid<>();
-
+        logger.info("configureTreeGrid");
         // Add the hierarchy column for displaying the hierarchical data
         treeGrid.addHierarchyColumn(fvm_monitoring::getBereich).setHeader("Bereich").setAutoWidth(true).setResizable(true);
 
@@ -986,6 +998,7 @@ public class CockpitView extends VerticalLayout{
         if ("On".equals(alertingState)) {
             try {
                 Notification.show("Starting Alert job executing.... " + configuration.getName(), 5000, Notification.Position.MIDDLE);
+                logger.info("checkForAlert: Starting Alert job executing");
                 scheduleEmailMonitorJob(configuration);
             } catch (Exception e) {
                 Notification.show("Error executing job: " + configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
@@ -1003,7 +1016,7 @@ public class CockpitView extends VerticalLayout{
             try {
                 Notification.show("Starting background job executing.... " + configuration.getName(), 5000, Notification.Position.MIDDLE);
                 BackgroundJobExecutor.stopJob = false;
-                System.out.println("xxxxxxxxxxxxxxx................."+configuration.getName());
+                logger.info("checkBackgroundProcess: Starting background job executing");
                 scheduleBackgroundJob(configuration);
             } catch (Exception e) {
                 Notification.show("Error executing job: " + configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
@@ -1085,11 +1098,12 @@ public class CockpitView extends VerticalLayout{
 
             // Example with JDBC
             jdbcTemplate.update(updateQuery, LocalDateTime.now());
-
-            System.out.println("Updated last alert time in database.");
+            logger.info("updateLastAlertTimeInDatabase: Updated last alert time in database");
+           // System.out.println("Updated last alert time in database.");
         } catch (Exception e) {
             e.printStackTrace();
             Notification.show("Error while updating last alert time in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            logger.error("updateLastAlertTimeInDatabase");
         }
     }
 
@@ -1097,11 +1111,12 @@ public class CockpitView extends VerticalLayout{
         try {
             String updateQuery = "UPDATE ekp.FVM_MONITOR_ALERTING SET LAST_ALERT_CHECKTIME = ?";
             jdbcTemplate.update(updateQuery, LocalDateTime.now());
-
-            System.out.println("Updated last alert check time in database for ID: " + monitorAlerting.getId());
+            logger.info("updateLastAlertCheckTimeInDatabase: Updated last alert check time in database for ID: " + monitorAlerting.getId());
+          //  System.out.println("Updated last alert check time in database for ID: " + monitorAlerting.getId());
         } catch (Exception e) {
             e.printStackTrace();
             Notification.show("Error while updating last alert check time in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            logger.error("updateLastAlertCheckTimeInDatabase");
         }
     }
     private void stopCountdown() {

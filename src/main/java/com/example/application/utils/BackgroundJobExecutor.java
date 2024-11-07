@@ -4,11 +4,14 @@ import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.service.CockpitService;
+import com.example.application.views.CockpitView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.zaxxer.hikari.HikariDataSource;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -36,7 +39,7 @@ public class BackgroundJobExecutor implements Job {
     private String startType;
     private Configuration configuration;
     public static boolean stopJob = false;
-
+    private static final Logger logger = LoggerFactory.getLogger(BackgroundJobExecutor.class);
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         startType = context.getMergedJobDataMap().getString("startType");
@@ -65,8 +68,8 @@ public class BackgroundJobExecutor implements Job {
     private TransactionTemplate transactionTemplate; // Add this dependency
 
     private void executeJob(Configuration configuration) {
+        logger.info("Starting executeJob() of.................."+configuration.getName());
         MonitorAlerting monitorAlerting = fetchEmailConfiguration(configuration);
-        System.out.println(configuration.getName() + "______________________background job execution start........................................................................................");
 
         if (monitorAlerting == null || monitorAlerting.getCron() == null) {
             return; // Exit if no configuration or interval is set
@@ -77,7 +80,7 @@ public class BackgroundJobExecutor implements Job {
         int retentionTime = (monitorAlerting.getRetentionTime() > 0) ? monitorAlerting.getRetentionTime() : 1;
 
         List<fvm_monitoring> monitorings = cockpitService.getMonitoring(configuration);
-        System.out.println(configuration.getUserName()+"......................monitorings list = "+monitorings.size());
+        logger.info("monitorings list size = "+monitorings.size());
 
         // Initialize executor service with a fixed thread pool based on maxParallelChecks
         ExecutorService executorService = Executors.newFixedThreadPool(maxParallelChecks);
@@ -86,7 +89,7 @@ public class BackgroundJobExecutor implements Job {
         // cleanUpOldResults(retentionTime, configuration);
 
         if(monitorings.size() == 0) {
-            System.out.println("global retention used");
+            logger.info("Global retention time used");
             cleanUpOldResults(retentionTime, configuration, null);
         }
 
@@ -123,7 +126,8 @@ public class BackgroundJobExecutor implements Job {
                     }
 
                 } catch (Exception e) {
-                    System.out.println("Error executing monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
+                    logger.error("Executing executeJob() while error monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
+                //    System.out.println("Error executing monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
                 }
             }
         }
@@ -138,6 +142,7 @@ public class BackgroundJobExecutor implements Job {
     }
 
     private void executeMonitoringTask(fvm_monitoring monitoring, JdbcTemplate jdbcTemplate) {
+        logger.info("Executing executeMonitoringTask");
         try {
             if (stopJob) {
                 return; // Exit if the job is stopped
@@ -148,7 +153,7 @@ public class BackgroundJobExecutor implements Job {
                     String sqlQuery = monitoring.getSQL();
                     String result = jdbcTemplate.queryForObject(sqlQuery, String.class);
                     String username = jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName();
-                    System.out.println(monitoring.getID() + "------"+ username +"----------------query executed: " + monitoring.getSQL().toString());
+                    logger.info(monitoring.getID() + ": username"+ username +"------query executed: " + monitoring.getSQL().toString());
 
                     Integer activeRowCount = jdbcTemplate.queryForObject(
                             "SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE IS_ACTIVE = 1 AND ID = ?",
@@ -168,7 +173,8 @@ public class BackgroundJobExecutor implements Job {
                             result,
                             "Query executed successfully");
                     username = jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName();
-                    System.out.println(monitoring.getID() + "-----------"+username+"-----------query result store: " + monitoring.getSQL().toString());
+                    logger.info(monitoring.getID() + ": username"+ username +"----query result store: " + monitoring.getSQL().toString());
+
                 } catch (Exception ex) {
                     status.setRollbackOnly();
 
@@ -188,7 +194,7 @@ public class BackgroundJobExecutor implements Job {
                             1,
                             null, // No result on error
                             ex.getMessage()); // Store error message
-
+                    logger.info(monitoring.getID() + "----query error result store: " + monitoring.getSQL().toString());
                     try {
                         throw ex;
                     } catch (SQLException e) {
@@ -200,8 +206,8 @@ public class BackgroundJobExecutor implements Job {
             });
 
         } catch (Exception e) {
-            System.out.println("Error executing SQL for monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
-
+          //  System.out.println("Error executing SQL for monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
+            logger.error("Executing executeMonitoringTask: Error SQL for monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
         } finally {
             // step 4.
             synchronized (threadLock) {
@@ -227,11 +233,12 @@ public class BackgroundJobExecutor implements Job {
                         "DELETE FROM FVM_MONITOR_RESULT WHERE TRUNC(Zeitpunkt) < TRUNC(SYSDATE - ?)",
                         retentionDays);
             }
-
-            System.out.println("Number of rows deleted: " + rowsDeleted);
+            logger.info("Executing cleanUpOldResults: Number of rows deleted: " + rowsDeleted);
+         //   System.out.println("Number of rows deleted: " + rowsDeleted);
 
         } catch (Exception e) {
-            System.out.println("Error deleting old results: " + e.getMessage());
+            logger.error("Executing cleanUpOldResults: Error deleting old results: " + e.getMessage());
+         //   System.out.println("Error deleting old results: " + e.getMessage());
         } finally {
             // Ensure database connection is properly closed
             connectionClose(jdbcTemplate);
@@ -255,8 +262,7 @@ public class BackgroundJobExecutor implements Job {
         MonitorAlerting monitorAlerting = new MonitorAlerting();
         JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         try {
-            System.out.println(configuration.getName()+",,,,,,,,,,,,,,,,,,,,,,,,,,,");
-
+            logger.info("Executing fetchEmailConfiguration");
 
             // Query to get the existing configuration
             String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE FROM FVM_MONITOR_ALERTING";
@@ -288,6 +294,7 @@ public class BackgroundJobExecutor implements Job {
             return monitorAlerting;
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("Executing fetchEmailConfiguration: from"+ configuration.getUserName());
             //   Notification.show("Failed to load configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed

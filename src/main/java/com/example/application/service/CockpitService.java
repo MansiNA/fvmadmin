@@ -207,7 +207,6 @@ public class CockpitService {
         String tableName = "FVM_MONITOR_ALERTING";
         try {
             connectWithDatabase(configuration);
-            String schema = getCurrentSchema();
             String dbType = "oracle";
             if(configuration.getName().contains("SQLServer")) {
                 dbType = "sqlserver";
