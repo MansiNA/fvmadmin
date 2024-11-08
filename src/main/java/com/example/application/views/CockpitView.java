@@ -126,16 +126,17 @@ public class CockpitView extends VerticalLayout{
 
            // System.out.println("Update FVM_Monitoring (CockpitView.java):......................... "+mon.getPid());
 
-            DriverManagerDataSource ds = new DriverManagerDataSource();
-            com.example.application.data.entity.Configuration conf;
-            conf = comboBox.getValue();
-
-            ds.setUrl(conf.getDb_Url());
-            ds.setUsername(conf.getUserName());
-            ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//            DriverManagerDataSource ds = new DriverManagerDataSource();
+//            com.example.application.data.entity.Configuration conf;
+//            conf = comboBox.getValue();
+//
+//            ds.setUrl(conf.getDb_Url());
+//            ds.setUsername(conf.getUserName());
+//            ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
             try {
-                jdbcTemplate.setDataSource(ds);
+             //   jdbcTemplate.setDataSource(ds);
+                jdbcTemplate = cockpitService.getNewJdbcTemplateWithDatabase(comboBox.getValue());
 
                 if (mon.getID() == null) {
                     // If ID is null, perform INSERT
@@ -1498,73 +1499,49 @@ public class CockpitView extends VerticalLayout{
 
     }
 
-    public List<LinkedHashMap<String,Object>> retrieveRows(String queryString) throws SQLException, IOException {
+    public List<LinkedHashMap<String, Object>> retrieveRows(String queryString) {
+        List<LinkedHashMap<String, Object>> rows = new LinkedList<>();
+        Notification notification;
+        if (queryString != null) {
+            try {
+                // Get JdbcTemplate using the provided configuration
+                Configuration conf = comboBox.getValue();
+                JdbcTemplate jdbcTemplate = cockpitService.getNewJdbcTemplateWithDatabase(conf);
 
-
-        List<LinkedHashMap<String, Object>> rows = new LinkedList<LinkedHashMap<String, Object>>();
-
-        PreparedStatement s = null;
-        ResultSet rs = null;
-        try
-        {
-            //    String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
-            //    String user="SYSTEM";
-            //    String password="Michael123";
-
-            DriverManagerDataSource ds = new DriverManagerDataSource();
-            Configuration conf;
-            conf = comboBox.getValue();
-
-            Class.forName("oracle.jdbc.driver.OracleDriver");
-
-            String password = Configuration.decodePassword(conf.getPassword());
-            //    Connection conn=DriverManager.getConnection(url, user, password);
-            Connection conn= DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), password);
-
-
-            s = conn.prepareStatement(queryString);
-
-            int timeout = s.getQueryTimeout();
-            if(timeout != 0)
-                s.setQueryTimeout(0);
-
-            rs = s.executeQuery();
-
-
-            List<String> columns = new LinkedList<>();
-            ResultSetMetaData resultSetMetaData = rs.getMetaData();
-            int colCount = resultSetMetaData.getColumnCount();
-            for(int i= 1 ; i < colCount+1 ; i++) {
-                columns.add(resultSetMetaData.getColumnLabel(i));
-            }
-
-            while (rs.next()) {
-                LinkedHashMap<String, Object> row  = new LinkedHashMap<String, Object>();
-                for(String col : columns) {
-                    int colIndex = columns.indexOf(col)+1;
-                    String object = rs.getObject(colIndex)== null ? "" : String.valueOf(rs.getObject(colIndex));
-                    row.put(col, object);
+                if (jdbcTemplate == null) {
+                    logger.error("retrieveRows: Failed to create JdbcTemplate");
+                    throw new SQLException("Failed to create JdbcTemplate.");
                 }
+                logger.info("retrieveRows: for show data");
+                // Execute the query and map the result set to rows
+                jdbcTemplate.query(queryString, (ResultSet rs) -> {
+                    ResultSetMetaData metaData = rs.getMetaData();
+                    int columnCount = metaData.getColumnCount();
 
-                rows.add(row);
+                    while (rs.next()) {
+                        LinkedHashMap<String, Object> row = new LinkedHashMap<>();
+                        for (int i = 1; i <= columnCount; i++) {
+                            String columnName = metaData.getColumnLabel(i);
+                            Object value = rs.getObject(i) == null ? "" : rs.getObject(i);
+                            row.put(columnName, value);
+                        }
+                        rows.add(row); // Add directly to the rows list
+                    }
+                    return null; // Return null as we're not using the ResultSetExtractor's result
+                });
+            } catch (SQLException e) {
+                logger.error("retrieveRows: "+e.getMessage());
+                notification = Notification.show(e.getMessage());
+                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return Collections.emptyList();
+            } finally {
+                cockpitService.connectionClose(jdbcTemplate);
             }
-        } catch (SQLException | IllegalArgumentException  | SecurityException e) {
-            // e.printStackTrace();
-            // add(new Text(e.getMessage()));
-
-            Notification notification = Notification.show(e.getMessage());
+        } else {
+            logger.info("retrieveRows: SQL is null");
+            notification = Notification.show("SQL is null");
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-
-            return Collections.emptyList();
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
-        } finally {
-
-            try { rs.close(); } catch (Exception e) { /* Ignored */ }
-            try { s.close(); } catch (Exception e) { /* Ignored */ }
-
         }
-        // conn.close();
         return rows;
     }
 
