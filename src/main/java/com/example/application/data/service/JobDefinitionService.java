@@ -154,7 +154,7 @@ public class JobDefinitionService {
         jobchain.addAll(childJobs);
 
         // Log child job information
-        childJobs.forEach(child -> System.out.println("+++++++++++++++++++++++Child of " + parent.getName() + ": " + child.getName()));
+      //  childJobs.forEach(child -> System.out.println("+++++++++++++++++++++++Child of " + parent.getName() + ": " + child.getName()));
 
         // Recursively gather children of each child job
         for (JobManager childJob : childJobs) {

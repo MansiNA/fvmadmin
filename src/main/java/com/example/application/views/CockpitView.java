@@ -2362,17 +2362,18 @@ public class CockpitView extends VerticalLayout{
         System.out.println("Abfrage EKP.FVM_Monitoring Historie (CockpitView.java): ");
         System.out.println(sql);
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-        conf = comboBox.getValue();
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//        conf = comboBox.getValue();
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         try {
 
-            jdbcTemplate.setDataSource(ds);
+       //     jdbcTemplate.setDataSource(ds);
+            jdbcTemplate = cockpitService.getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
             monitore = jdbcTemplate.query(
                     sql,
@@ -2384,6 +2385,8 @@ public class CockpitView extends VerticalLayout{
 
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
+        } finally {
+            cockpitService.connectionClose(jdbcTemplate);
         }
 
         return monitore;

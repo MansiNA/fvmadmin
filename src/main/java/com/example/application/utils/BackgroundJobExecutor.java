@@ -95,9 +95,12 @@ public class BackgroundJobExecutor implements Job {
 
         for (fvm_monitoring monitoring : monitorings) {
             if (monitoring.getIS_ACTIVE().equals("1") && monitoring.getPid() != 0) {
-                JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+
                 try {
                     cleanUpOldResults(monitoring.getRetentionTime(), configuration, monitoring.getID());
+
+                    JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+
                     // step 1.
                     Timestamp lastCheck = jdbcTemplate.queryForObject(
                             "SELECT MAX(Zeitpunkt) FROM FVM_MONITOR_RESULT WHERE ID = ?",
