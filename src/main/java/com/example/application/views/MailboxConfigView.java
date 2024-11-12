@@ -471,7 +471,7 @@ public class MailboxConfigView  extends VerticalLayout {
         try {
 
         //    jdbcTemplate.setDataSource(ds);
-            jdbcTemplate = getNewJdbcTemplateWithDatabase(comboBox.getValue());
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
             jdbcTemplate.execute("update EKP.MAILBOX_CONFIG set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
 
@@ -623,18 +623,18 @@ public class MailboxConfigView  extends VerticalLayout {
 
         System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-        conf = comboBox.getValue();
-
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//        conf = comboBox.getValue();
+//
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         try {
 
-            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
             mailboxen = jdbcTemplate.query(
                     sql,
@@ -648,6 +648,8 @@ public class MailboxConfigView  extends VerticalLayout {
          //   System.out.println("Exception: " + e.getMessage());
             throw new RuntimeException("Error querying the database: " + e.getMessage(), e);
            // Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
         return mailboxen;
@@ -781,13 +783,13 @@ public class MailboxConfigView  extends VerticalLayout {
         }
     }
 
-    public JdbcTemplate getNewJdbcTemplateWithDatabase(Configuration conf) {
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(com.example.application.data.entity.Configuration conf) {
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
         try {
-            return new JdbcTemplate(ds);
+            jdbcTemplate.setDataSource(ds);
         } catch (Exception e) {
             e.getMessage();
         }
@@ -798,8 +800,9 @@ public class MailboxConfigView  extends VerticalLayout {
         Connection connection = null;
         DataSource dataSource = null;
         try {
-            connection = jdbcTemplate.getDataSource().getConnection();
-            dataSource = jdbcTemplate.getDataSource();
+            jdbcTemplate.getDataSource().getConnection().close();
+//            connection = jdbcTemplate.getDataSource().getConnection();
+//            dataSource = jdbcTemplate.getDataSource();
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {

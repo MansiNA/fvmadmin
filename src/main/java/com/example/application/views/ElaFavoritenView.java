@@ -22,6 +22,7 @@ import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -31,9 +32,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -495,21 +498,62 @@ private void upload() throws SQLException, IOException, ClassNotFoundException, 
 
 }
 
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(Configuration conf) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+        try {
+            jdbcTemplate.setDataSource(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
 
+    public void connectionClose(JdbcTemplate jdbcTemplate) {
+        Connection connection = null;
+        DataSource dataSource = null;
+        try {
+            jdbcTemplate.getDataSource().getConnection().close();
+            //     connection = jdbcTemplate.getDataSource().getConnection();
+            //     dataSource = jdbcTemplate.getDataSource();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+
+                    // System.out.println("connection closed..."+connection.isClosed() +".....");
+                    if (dataSource instanceof HikariDataSource) {
+                        ((HikariDataSource) dataSource).close();
+                    } else {
+                        dataSource.getConnection().close();
+                    }
+
+                } catch (SQLException e) {
+
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 private void countRows()
 {
     String jdbc_sql ="select count(*) from EKP.ELA_FAVORITEN_NEU";
 
     try {
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-        conf = comboBox.getValue();
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//        conf = comboBox.getValue();
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
-
-        jdbcTemplate.setDataSource(ds);
+//        jdbcTemplate.setDataSource(ds);
+        getJdbcTemplateWithDBConnetion(comboBox.getValue());
         int result = jdbcTemplate.queryForObject(jdbc_sql, Integer.class);
 
         article=new Article();
@@ -521,6 +565,8 @@ private void countRows()
         //   textArea.setValue(textArea.getValue() + "\nFehler beim Speichern in DB!");
         System.out.println("Exception: " + e.getMessage());
        // return e.getMessage();
+    } finally {
+        connectionClose(jdbcTemplate);
     }
 
 }
@@ -540,14 +586,15 @@ private void countRows()
 //    ds.setUsername("SYSTEM");
 //    ds.setPassword("Michael123");
 
-            Configuration conf;
-            conf = comboBox.getValue();
-
-            ds.setUrl(conf.getDb_Url());
-            ds.setUsername(conf.getUserName());
-            ds.setPassword(Configuration.decodePassword(conf.getPassword()));
-
-            jdbcTemplate.setDataSource(ds);
+//            Configuration conf;
+//            conf = comboBox.getValue();
+//
+//            ds.setUrl(conf.getDb_Url());
+//            ds.setUsername(conf.getUserName());
+//            ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//
+//            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
             jdbcTemplate.batchUpdate("INSERT INTO EKP.ELA_FAVORITEN_NEU (ID,BENUTZER_KENNUNG,NUTZER_ID,NAME,VORNAME,ORT,PLZ,STRASSE,HAUSNUMMER,ORGANISATION,VERSION) " +
                             "VALUES (?, ?, ?,?, ?, ?,?, ?, ?, ?, ?)",
                     elaFavoritenListe,
@@ -571,6 +618,8 @@ private void countRows()
          //   textArea.setValue(textArea.getValue() + "\nFehler beim Speichern in DB!");
             System.out.println("Exception: " + e.getMessage());
             return e.getMessage();
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
 

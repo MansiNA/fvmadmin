@@ -5,7 +5,9 @@ import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.service.CockpitService;
 import com.example.application.views.CockpitView;
+import com.example.application.views.MainLayout;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
@@ -25,6 +27,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -209,7 +212,8 @@ public class BackgroundJobExecutor implements Job {
             });
 
         } catch (Exception e) {
-          //  System.out.println("Error executing SQL for monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
+          //  System.out.println("Error executing SQL for monitoring
+            //  +ID: " + monitoring.getID() + " - " + e.getMessage());
             logger.error("Executing executeMonitoringTask: Error SQL for monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
         } finally {
             // step 4.
@@ -254,13 +258,46 @@ public class BackgroundJobExecutor implements Job {
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
         ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+
         try {
+            logger.info(conf.getUserName()+": Connection open........");
+
             return new JdbcTemplate(ds);
         } catch (Exception e) {
             e.getMessage();
         }
         return null;
     }
+
+    public JdbcTemplate getNewJdbcTemplateWithDatabasenew(Configuration conf) {
+        // Create HikariConfig object
+        HikariConfig hikariConfig = new HikariConfig();
+
+        // Set database connection parameters
+        hikariConfig.setJdbcUrl(conf.getDb_Url());
+        hikariConfig.setUsername(conf.getUserName());
+        hikariConfig.setPassword(Configuration.decodePassword(conf.getPassword()));
+
+        // Set maxLifetime to 2 minutes (120000 ms), after which connections are closed
+        hikariConfig.setMaxLifetime(60000); // 2 minutes
+
+        // Set idleTimeout to 1 minute (60000 ms) to close connections that are idle for over 1 minute
+        hikariConfig.setIdleTimeout(30000); // 1 minute
+
+        // Set the maximum pool size to control the number of open connections
+        hikariConfig.setMaximumPoolSize(10); // Customize as needed
+
+        // Optionally set minimumIdle to keep fewer connections open during low usage periods
+        hikariConfig.setMinimumIdle(1); // Maintain at least 1 connection
+
+        // Set connection timeout for how long to wait for an available connection
+        hikariConfig.setConnectionTimeout(30000);
+        // Create HikariDataSource from HikariConfig
+        HikariDataSource dataSource = new HikariDataSource(hikariConfig);
+
+        return new JdbcTemplate(dataSource);
+    }
+
     public MonitorAlerting fetchEmailConfiguration(Configuration configuration) {
         MonitorAlerting monitorAlerting = new MonitorAlerting();
         JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
@@ -310,8 +347,10 @@ public class BackgroundJobExecutor implements Job {
         Connection connection = null;
         DataSource dataSource = null;
         try {
-            connection = jdbcTemplate.getDataSource().getConnection();
-            dataSource = jdbcTemplate.getDataSource();
+            jdbcTemplate.getDataSource().getConnection().close();
+           // logger.info(connection.getMetaData().getUserName()+": Connection close........");
+       //     connection = jdbcTemplate.getDataSource().getConnection();
+       //     dataSource = jdbcTemplate.getDataSource();
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
@@ -319,8 +358,11 @@ public class BackgroundJobExecutor implements Job {
                 try {
                     connection.close();
 
+                   // System.out.println("connection closed..."+connection.isClosed() +".....");
                     if (dataSource instanceof HikariDataSource) {
                         ((HikariDataSource) dataSource).close();
+                    } else {
+                        dataSource.getConnection().close();
                     }
 
                 } catch (SQLException e) {

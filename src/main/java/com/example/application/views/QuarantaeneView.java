@@ -21,6 +21,7 @@ import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.poi.hssf.usermodel.HSSFFont;
@@ -37,6 +38,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import javax.sql.DataSource;
 import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
@@ -372,15 +374,15 @@ public class QuarantaeneView extends VerticalLayout {
 
         System.out.println("Abfrage EGVP-Quarantäne: " + sql);
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-
-        conf = comboBox.getValue();
-
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//
+//        conf = comboBox.getValue();
+//
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         //ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
         //ds.setUsername("SYSTEM");
@@ -388,7 +390,8 @@ public class QuarantaeneView extends VerticalLayout {
 
         try {
 
-            jdbcTemplate.setDataSource(ds);
+//            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
             listOfQuarantine = jdbcTemplate.query(
                     sql,
@@ -405,11 +408,52 @@ public class QuarantaeneView extends VerticalLayout {
             });
 
             return null;
+        } finally {
+            connectionClose(jdbcTemplate);
         }
         return listOfQuarantine;
     }
     public StreamResource getStreamResource(String filename, String content) {
         return new StreamResource(filename,
                 () -> new ByteArrayInputStream(content.getBytes()));
+    }
+
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(com.example.application.data.entity.Configuration conf) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
+        try {
+            jdbcTemplate.setDataSource(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
+
+    public void connectionClose(JdbcTemplate jdbcTemplate) {
+        Connection connection = null;
+        DataSource dataSource = null;
+        try {
+            jdbcTemplate.getDataSource().getConnection().close();
+//            connection = jdbcTemplate.getDataSource().getConnection();
+//            dataSource = jdbcTemplate.getDataSource();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+
+                    if (dataSource instanceof HikariDataSource) {
+                        ((HikariDataSource) dataSource).close();
+                    }
+
+                } catch (SQLException e) {
+
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }

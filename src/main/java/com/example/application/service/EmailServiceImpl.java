@@ -72,7 +72,7 @@ public class EmailServiceImpl implements EmailService {
             }
         };
         System.out.println("Email sending.......");
-        emailSender.send(preparator);
+      //  emailSender.send(preparator);
         System.out.println("Email send success.......");
 
     }
@@ -116,7 +116,7 @@ public class EmailServiceImpl implements EmailService {
             }
         };
 
-        emailSender.send(preparator);
+     //   emailSender.send(preparator);
     }
 
 }

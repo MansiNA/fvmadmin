@@ -25,6 +25,7 @@ import com.vaadin.flow.function.SerializableConsumer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.shared.Registration;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -32,12 +33,14 @@ import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Types;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -357,17 +360,17 @@ public class HangingMessagesView extends VerticalLayout {
     private void checkMessage(String line,CountDownLatch latch ) {
         System.out.println("Check NachrichtenID: " + line );
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-        conf = comboBox.getValue();
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//        conf = comboBox.getValue();
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
         try {
 
-            jdbcTemplate.setDataSource(ds);
-
+//            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
             Connection connection = DataSourceUtils.getConnection((jdbcTemplate.getDataSource()));
             CallableStatement statement = connection.prepareCall("{call ekp.HH_MESSAGE_RESEND(?,?,?) }");
             statement.setString(1,line);
@@ -393,6 +396,8 @@ public class HangingMessagesView extends VerticalLayout {
             status.setStatus(false);
             System.out.println("Exception in HangingMessagesView.resendMessage: " + e.getMessage());
             notifySubscribers("Fehler: " + e.getMessage());
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
 
@@ -422,17 +427,17 @@ public class HangingMessagesView extends VerticalLayout {
         System.out.println("Verarbeite NachrichtenID: " + line );
         //Ausführen des HH_MESSAGE_RESEND('NachrichtIDExtern');
         // exec HH_MESSAGE_RESEND('StageMsg1681032256039954439fb-ca07-4546-9fd1-a601006876ab');
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-        conf = comboBox.getValue();
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//        conf = comboBox.getValue();
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
         try {
 
-            jdbcTemplate.setDataSource(ds);
-
+//            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
             Connection connection = DataSourceUtils.getConnection((jdbcTemplate.getDataSource()));
             CallableStatement statement = connection.prepareCall("{call ekp.HH_MESSAGE_RESEND(?,?,?) }");
             statement.setString(1,line);
@@ -458,6 +463,8 @@ public class HangingMessagesView extends VerticalLayout {
             status.setStatus(false);
             System.out.println("Exception in HangingMessagesView.resendMessage: " + e.getMessage());
             notifySubscribers("Fehler: " + e.getMessage());
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
 
@@ -486,6 +493,43 @@ public class HangingMessagesView extends VerticalLayout {
     private String infoText() {
         return String.format("Nachrichten werden erneut verarbeitet");
     }
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(com.example.application.data.entity.Configuration conf) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
+        try {
+            jdbcTemplate.setDataSource(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
 
+    public void connectionClose(JdbcTemplate jdbcTemplate) {
+        Connection connection = null;
+        DataSource dataSource = null;
+        try {
+            jdbcTemplate.getDataSource().getConnection().close();
+//            connection = jdbcTemplate.getDataSource().getConnection();
+//            dataSource = jdbcTemplate.getDataSource();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+
+                    if (dataSource instanceof HikariDataSource) {
+                        ((HikariDataSource) dataSource).close();
+                    }
+
+                } catch (SQLException e) {
+
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 }
 

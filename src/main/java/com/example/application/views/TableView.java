@@ -928,8 +928,9 @@ public class TableView extends VerticalLayout {
         DataSource dataSource = null;
         try {
             // Retrieve the connection from the DataSource
-            connection = jdbcTemplate.getDataSource().getConnection();
-            dataSource = jdbcTemplate.getDataSource();
+            jdbcTemplate.getDataSource().getConnection().close();
+//            connection = jdbcTemplate.getDataSource().getConnection();
+//            dataSource = jdbcTemplate.getDataSource();
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {

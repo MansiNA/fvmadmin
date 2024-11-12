@@ -1419,7 +1419,7 @@ public class CockpitView extends VerticalLayout{
                             new Object[]{monitoring.getID()},
                             Integer.class
                     );
-                    System.out.println("count########" + count+".............."+jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName());
+                //    System.out.println("count########" + count+".............."+jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName());
                     if (count != null && count > 0) {
                         jdbcTemplate.update(
                                 "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
@@ -1448,6 +1448,8 @@ public class CockpitView extends VerticalLayout{
                     } else {
                         System.err.println("No active UI context found. Unable to show notification.");
                     }
+                } finally {
+                    cockpitService.connectionClose(jdbcTemplate);
                 }
             }
         });

@@ -63,8 +63,9 @@ public class MetricsService {
         Connection connection = null;
         DataSource dataSource = null;
         try {
-            connection = jdbcTemplate.getDataSource().getConnection();
-            dataSource = jdbcTemplate.getDataSource();
+            jdbcTemplate.getDataSource().getConnection().close();
+//            connection = jdbcTemplate.getDataSource().getConnection();
+//            dataSource = jdbcTemplate.getDataSource();
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {

@@ -45,13 +45,13 @@ public class ExportCockpitView extends VerticalLayout implements BeforeEnterObse
         }
     }
 
-    public JdbcTemplate getNewJdbcTemplateWithDatabase(Configuration conf) {
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(com.example.application.data.entity.Configuration conf) {
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
         try {
-            return new JdbcTemplate(ds);
+            jdbcTemplate.setDataSource(ds);
         } catch (Exception e) {
             e.getMessage();
         }
@@ -62,8 +62,9 @@ public class ExportCockpitView extends VerticalLayout implements BeforeEnterObse
         Connection connection = null;
         DataSource dataSource = null;
         try {
-            connection = jdbcTemplate.getDataSource().getConnection();
-            dataSource = jdbcTemplate.getDataSource();
+            jdbcTemplate.getDataSource().getConnection().close();
+//            connection = jdbcTemplate.getDataSource().getConnection();
+//            dataSource = jdbcTemplate.getDataSource();
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
@@ -124,7 +125,7 @@ public class ExportCockpitView extends VerticalLayout implements BeforeEnterObse
         Optional<Configuration> conf = configurationService.findById((long) id);
         String metric = "";
         if(conf.isPresent()) {
-            jdbcTemplate = getNewJdbcTemplateWithDatabase(conf.get());
+            getJdbcTemplateWithDBConnetion(conf.get());
             Boolean isMonitoring = conf.get().getIsMonitoring() == 1 ? true : false;
 
 

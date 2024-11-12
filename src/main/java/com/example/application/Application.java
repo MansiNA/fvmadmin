@@ -211,11 +211,9 @@ public class Application implements AppShellConfigurator {
         JobManagerView.notifySubscribers("start running all...");
         for (JobManager jobManager : filterJobsList) {
             try {
-                System.out.println(jobManager.getName()+"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm");
                 if(jobManager.getAktiv() == 1) {
                     String type = jobManager.getTyp();
                     if (jobManager.getCron() != null && !type.equals("Node") ) {
-                        System.out.println(jobManager.getName()+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
                         scheduleJob(jobManager,  Constants.CRON);
                     }
                 }

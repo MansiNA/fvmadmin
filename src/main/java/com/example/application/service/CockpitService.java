@@ -74,8 +74,9 @@ public class CockpitService {
         Connection connection = null;
         DataSource dataSource = null;
         try {
-            connection = jdbcTemplate.getDataSource().getConnection();
-            dataSource = jdbcTemplate.getDataSource();
+            jdbcTemplate.getDataSource().getConnection().close();
+//            connection = jdbcTemplate.getDataSource().getConnection();
+//            dataSource = jdbcTemplate.getDataSource();
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
@@ -85,6 +86,9 @@ public class CockpitService {
 
                     if (dataSource instanceof HikariDataSource) {
                         ((HikariDataSource) dataSource).close();
+                    } else {
+                        dataSource.getConnection().close();
+                        System.out.println("DataSource closed..."+dataSource.getConnection().isClosed() +".....");
                     }
 
                 } catch (SQLException e) {
@@ -99,8 +103,9 @@ public class CockpitService {
         Connection connection = null;
         DataSource dataSource = null;
         try {
-            connection = jdbcTemplate.getDataSource().getConnection();
-            dataSource = jdbcTemplate.getDataSource();
+            jdbcTemplate.getDataSource().getConnection().close();
+//            connection = jdbcTemplate.getDataSource().getConnection();
+//            dataSource = jdbcTemplate.getDataSource();
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
@@ -110,6 +115,9 @@ public class CockpitService {
 
                     if (dataSource instanceof HikariDataSource) {
                         ((HikariDataSource) dataSource).close();
+                    } else {
+                        dataSource.getConnection().close();
+                        System.out.println("DataSource closed..."+dataSource.getConnection().isClosed() +".....");
                     }
 
                 } catch (SQLException e) {
@@ -131,7 +139,8 @@ public class CockpitService {
 //                "left outer join FVM_MONITOR_RESULT mr\n" +
 //                "on m.id=mr.id\n" +
 //                "and mr.is_active='1'";
-        connectWithDatabase(configuration);
+      //  connectWithDatabase(configuration);
+        getNewJdbcTemplateWithDatabase(configuration);
        // JdbcTemplate  jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         String sql = "SELECT m.ID,m.PID, m.Bereich, RETENTIONTIME, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
                 ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent" +
@@ -154,11 +163,11 @@ public class CockpitService {
         //    System.out.println("FVM_Monitoring eingelesen");
 
         } catch (Exception e) {
-            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        //    Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             System.out.println("Exception: " + e.getMessage());
         } finally {
             // Ensure database connection is properly closed
-            connectionClose();
+            connectionClose(jdbcTemplate);
         }
 
         return fvmMonitorings;
@@ -206,7 +215,8 @@ public class CockpitService {
 
         String tableName = "FVM_MONITOR_ALERTING";
         try {
-            connectWithDatabase(configuration);
+          //  connectWithDatabase(configuration);
+            getNewJdbcTemplateWithDatabase(configuration);
             String dbType = "oracle";
             if(configuration.getName().contains("SQLServer")) {
                 dbType = "sqlserver";
@@ -244,7 +254,7 @@ public class CockpitService {
             System.out.println("Exception: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            connectionClose();
+            connectionClose(jdbcTemplate);
         }
     }
 
@@ -274,8 +284,8 @@ public class CockpitService {
         MonitorAlerting monitorAlerting = new MonitorAlerting();
         try {
             System.out.println(configuration.getName()+",,,,,,,,,,,,,,,,,,,,,,,,,,,");
-            connectWithDatabase(configuration);
-
+         //   connectWithDatabase(configuration);
+            getNewJdbcTemplateWithDatabase(configuration);
             // Query to get the existing configuration
             String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE FROM FVM_MONITOR_ALERTING";
 
@@ -309,14 +319,14 @@ public class CockpitService {
          //   Notification.show("Failed to load configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed
-            connectionClose();
+            connectionClose(jdbcTemplate);
         }
         return null;
     }
     public boolean saveEmailConfiguration(MonitorAlerting monitorAlerting, Configuration configuration) {
         try {
-            connectWithDatabase(configuration);
-
+             // connectWithDatabase(configuration);
+            getNewJdbcTemplateWithDatabase(configuration);
             // Check if there is any existing data in the table
             String checkQuery = "SELECT COUNT(*) FROM FVM_MONITOR_ALERTING";
             Integer count = jdbcTemplate.queryForObject(checkQuery, Integer.class);
@@ -375,14 +385,15 @@ public class CockpitService {
             Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed
-            connectionClose();
+            connectionClose(jdbcTemplate);
         }
         return false;
     }
 
     public boolean saveBackgoundJobConfiguration(MonitorAlerting monitorAlerting, Configuration configuration) {
         try {
-            connectWithDatabase(configuration);
+            // connectWithDatabase(configuration);
+            getNewJdbcTemplateWithDatabase(configuration);
 
             // Check if there is any existing data in the table
             String checkQuery = "SELECT COUNT(*) FROM FVM_MONITOR_ALERTING";
@@ -440,14 +451,16 @@ public class CockpitService {
          //   Notification.show("Failed to save configuration: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed
-            connectionClose();
+            connectionClose(jdbcTemplate);
         }
         return false;
     }
 
     public boolean updateIsActive(int isActive, Configuration configuration) {
         try {
-            connectWithDatabase(configuration);
+         //   connectWithDatabase(configuration);
+            getNewJdbcTemplateWithDatabase(configuration);
+
             String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET IS_ACTIVE = ?";
 
             // Update the database with the new configuration
@@ -457,14 +470,15 @@ public class CockpitService {
             e.printStackTrace();
         } finally {
             // Ensure database connection is properly closed
-            connectionClose();
+            connectionClose(jdbcTemplate);
         }
         return false;
     }
 
     public boolean updateIsBackJobActive(int isActive, Configuration configuration) {
         try {
-            connectWithDatabase(configuration);
+         //   connectWithDatabase(configuration);
+            getNewJdbcTemplateWithDatabase(configuration);
             String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET isBackJobActive = ?";
 
             // Update the database with the new configuration
@@ -474,14 +488,15 @@ public class CockpitService {
             e.printStackTrace();
         } finally {
             // Ensure database connection is properly closed
-            connectionClose();
+            connectionClose(jdbcTemplate);
         }
         return false;
     }
 
     public void updateLastAlertTimeInDatabase(MonitorAlerting monitorAlerting, Configuration configuration) {
         try {
-            connectWithDatabase(configuration);
+          //  connectWithDatabase(configuration);
+            getNewJdbcTemplateWithDatabase(configuration);
             String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET LAST_ALERT_TIME = ?";
             jdbcTemplate.update(updateQuery, LocalDateTime.now());
             System.out.println("Updated last alert time in database.");
@@ -490,13 +505,14 @@ public class CockpitService {
             Notification.show("Error while updating last alert in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed
-            connectionClose();
+            connectionClose(jdbcTemplate);
         }
     }
 
     public void updateLastAlertCheckTimeInDatabase(MonitorAlerting monitorAlerting, Configuration configuration) {
         try {
-            connectWithDatabase(configuration);
+          //  connectWithDatabase(configuration);
+            getNewJdbcTemplateWithDatabase(configuration);
             String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET LAST_ALERT_CHECKTIME = ?";
             jdbcTemplate.update(updateQuery, LocalDateTime.now());
 
@@ -506,14 +522,15 @@ public class CockpitService {
             Notification.show("Error while updating last alert check time in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed
-            connectionClose();
+            connectionClose(jdbcTemplate);
         }
     }
 
     public void deleteLastAlertTimeInDatabase(Configuration configuration) {
         try {
             // Establish a connection to the database using the provided configuration
-            connectWithDatabase(configuration);
+        //    connectWithDatabase(configuration);
+            getNewJdbcTemplateWithDatabase(configuration);
 
             // SQL query to set LAST_ALERT_TIME to NULL, effectively deleting the timestamp
             String deleteQuery = "UPDATE FVM_MONITOR_ALERTING SET LAST_ALERT_TIME = NULL";
@@ -529,7 +546,7 @@ public class CockpitService {
             Notification.show("Error while deleting last alert in DB: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             // Ensure database connection is properly closed
-            connectionClose();
+            connectionClose(jdbcTemplate);
         }
     }
 
@@ -585,7 +602,8 @@ public class CockpitService {
 
         System.out.println("Deleting entry with ID: " + monitor.getID());
 
-        connectWithDatabase(configuration);
+      //  connectWithDatabase(configuration);
+        getNewJdbcTemplateWithDatabase(configuration);
 
         try {
             int rowsAffected = jdbcTemplate.update(sql, monitor.getID());
@@ -602,7 +620,7 @@ public class CockpitService {
             System.out.println("Exception during delete: " + e.getMessage());
         } finally {
             // Ensure database connection is properly closed
-            connectionClose();
+            connectionClose(jdbcTemplate);
         }
     }
 }
