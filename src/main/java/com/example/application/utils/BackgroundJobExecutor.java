@@ -43,6 +43,7 @@ public class BackgroundJobExecutor implements Job {
     private Configuration configuration;
     public static boolean stopJob = false;
     private static final Logger logger = LoggerFactory.getLogger(BackgroundJobExecutor.class);
+    private static int count = 0;
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         startType = context.getMergedJobDataMap().getString("startType");
@@ -279,16 +280,18 @@ public class BackgroundJobExecutor implements Job {
         hikariConfig.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         // Set maxLifetime to 2 minutes (120000 ms), after which connections are closed
-        hikariConfig.setMaxLifetime(60000); // 2 minutes
+        hikariConfig.setMaxLifetime(30000); // 2 minutes
 
         // Set idleTimeout to 1 minute (60000 ms) to close connections that are idle for over 1 minute
         hikariConfig.setIdleTimeout(30000); // 1 minute
 
         // Set the maximum pool size to control the number of open connections
         hikariConfig.setMaximumPoolSize(10); // Customize as needed
+        hikariConfig.setPoolName("DB-pool");
+        count = count + 1;
 
         // Optionally set minimumIdle to keep fewer connections open during low usage periods
-        hikariConfig.setMinimumIdle(1); // Maintain at least 1 connection
+        hikariConfig.setMinimumIdle(5); // Maintain at least 1 connection
 
         // Set connection timeout for how long to wait for an available connection
         hikariConfig.setConnectionTimeout(30000);
@@ -348,10 +351,16 @@ public class BackgroundJobExecutor implements Job {
         DataSource dataSource = null;
         try {
             jdbcTemplate.getDataSource().getConnection().close();
-           // logger.info(connection.getMetaData().getUserName()+": Connection close........");
+            if (jdbcTemplate.getDataSource() instanceof HikariDataSource) {
+                ((HikariDataSource) jdbcTemplate.getDataSource()).close();
+            } else {
+                jdbcTemplate.setDataSource(null);
+            }
+            jdbcTemplate.setDataSource(null);
+            // logger.info(connection.getMetaData().getUserName()+": Connection close........");
        //     connection = jdbcTemplate.getDataSource().getConnection();
        //     dataSource = jdbcTemplate.getDataSource();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
             if (connection != null) {
@@ -359,11 +368,11 @@ public class BackgroundJobExecutor implements Job {
                     connection.close();
 
                    // System.out.println("connection closed..."+connection.isClosed() +".....");
-                    if (dataSource instanceof HikariDataSource) {
-                        ((HikariDataSource) dataSource).close();
-                    } else {
-                        dataSource.getConnection().close();
-                    }
+                        if (dataSource instanceof HikariDataSource) {
+                            ((HikariDataSource) dataSource).close();
+                        } else {
+                            dataSource.getConnection().close();
+                        }
 
                 } catch (SQLException e) {
 

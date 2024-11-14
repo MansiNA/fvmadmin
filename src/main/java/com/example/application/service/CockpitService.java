@@ -5,6 +5,7 @@ import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.views.CockpitView;
 import com.vaadin.flow.component.notification.Notification;
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.ConnectionCallback;
@@ -70,6 +71,35 @@ public class CockpitService {
         }
         return null;
     }
+    public JdbcTemplate getNewJdbcTemplateWithDatabaseold(Configuration conf) {
+        // Create HikariConfig object
+        HikariConfig hikariConfig = new HikariConfig();
+
+        // Set database connection parameters
+        hikariConfig.setJdbcUrl(conf.getDb_Url());
+        hikariConfig.setUsername(conf.getUserName());
+        hikariConfig.setPassword(Configuration.decodePassword(conf.getPassword()));
+
+        // Set maxLifetime to 2 minutes (120000 ms), after which connections are closed
+        hikariConfig.setMaxLifetime(30000); // 2 minutes
+
+        // Set idleTimeout to 1 minute (60000 ms) to close connections that are idle for over 1 minute
+        hikariConfig.setIdleTimeout(30000); // 1 minute
+
+        // Set the maximum pool size to control the number of open connections
+        hikariConfig.setMaximumPoolSize(10); // Customize as needed
+        hikariConfig.setPoolName("DB-pool");
+
+        // Optionally set minimumIdle to keep fewer connections open during low usage periods
+        hikariConfig.setMinimumIdle(1); // Maintain at least 1 connection
+
+        // Set connection timeout for how long to wait for an available connection
+        hikariConfig.setConnectionTimeout(30000);
+        // Create HikariDataSource from HikariConfig
+        HikariDataSource dataSource = new HikariDataSource(hikariConfig);
+
+        return new JdbcTemplate(dataSource);
+    }
     public void connectionClose() {
         Connection connection = null;
         DataSource dataSource = null;
@@ -104,6 +134,12 @@ public class CockpitService {
         DataSource dataSource = null;
         try {
             jdbcTemplate.getDataSource().getConnection().close();
+            if (jdbcTemplate.getDataSource() instanceof HikariDataSource) {
+                ((HikariDataSource) jdbcTemplate.getDataSource()).close();
+            } else {
+                jdbcTemplate.setDataSource(null);
+            }
+            jdbcTemplate.setDataSource(null);
 //            connection = jdbcTemplate.getDataSource().getConnection();
 //            dataSource = jdbcTemplate.getDataSource();
         } catch (SQLException e) {
@@ -140,7 +176,7 @@ public class CockpitService {
 //                "on m.id=mr.id\n" +
 //                "and mr.is_active='1'";
       //  connectWithDatabase(configuration);
-        jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+        JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
        // JdbcTemplate  jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         String sql = "SELECT m.ID,m.PID, m.Bereich, RETENTIONTIME, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
                 ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent" +
@@ -185,7 +221,7 @@ public class CockpitService {
         }
     }
 
-    private boolean tableExists(String tableName, String databaseType) {
+    private boolean tableExists(String tableName, String databaseType, JdbcTemplate jdbcTemplate) {
         try {
             String checkTableSql;
             // Switch based on the database type
@@ -214,9 +250,10 @@ public class CockpitService {
     public void createFvmMonitorAlertingTable(Configuration configuration) {
 
         String tableName = "FVM_MONITOR_ALERTING";
+        JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         try {
           //  connectWithDatabase(configuration);
-            jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+
             String dbType = "oracle";
             if(configuration.getName().contains("SQLServer")) {
                 dbType = "sqlserver";
@@ -227,7 +264,7 @@ public class CockpitService {
 //            String dropTableSQL = "DROP TABLE \"" + schema + "\".\"" + tableName.toUpperCase() + "\"";
 //            jdbcTemplate.execute(dropTableSQL);
 
-            if (!tableExists(tableName, dbType)) {
+            if (!tableExists(tableName, dbType, jdbcTemplate)) {
                 System.out.println("Creating table: " + tableName);
 
                 String createTableSQL = "CREATE TABLE FVM_MONITOR_ALERTING ("
@@ -281,11 +318,12 @@ public class CockpitService {
     }
 
     public MonitorAlerting fetchEmailConfiguration(Configuration configuration) {
+        JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         MonitorAlerting monitorAlerting = new MonitorAlerting();
         try {
             System.out.println(configuration.getName()+",,,,,,,,,,,,,,,,,,,,,,,,,,,");
          //   connectWithDatabase(configuration);
-            jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+        //    jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
             // Query to get the existing configuration
             String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE FROM FVM_MONITOR_ALERTING";
 
@@ -324,9 +362,10 @@ public class CockpitService {
         return null;
     }
     public boolean saveEmailConfiguration(MonitorAlerting monitorAlerting, Configuration configuration) {
+        JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         try {
              // connectWithDatabase(configuration);
-            jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+         //   jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
             // Check if there is any existing data in the table
             String checkQuery = "SELECT COUNT(*) FROM FVM_MONITOR_ALERTING";
             Integer count = jdbcTemplate.queryForObject(checkQuery, Integer.class);
@@ -391,9 +430,10 @@ public class CockpitService {
     }
 
     public boolean saveBackgoundJobConfiguration(MonitorAlerting monitorAlerting, Configuration configuration) {
+        JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         try {
             // connectWithDatabase(configuration);
-            jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+          //  jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
 
             // Check if there is any existing data in the table
             String checkQuery = "SELECT COUNT(*) FROM FVM_MONITOR_ALERTING";
@@ -457,9 +497,10 @@ public class CockpitService {
     }
 
     public boolean updateIsActive(int isActive, Configuration configuration) {
+        JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         try {
          //   connectWithDatabase(configuration);
-            jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+         //   jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
 
             String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET IS_ACTIVE = ?";
 
@@ -476,9 +517,10 @@ public class CockpitService {
     }
 
     public boolean updateIsBackJobActive(int isActive, Configuration configuration) {
+        JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         try {
          //   connectWithDatabase(configuration);
-            jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+         //   jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
             String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET isBackJobActive = ?";
 
             // Update the database with the new configuration
@@ -494,9 +536,10 @@ public class CockpitService {
     }
 
     public void updateLastAlertTimeInDatabase(MonitorAlerting monitorAlerting, Configuration configuration) {
+        JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         try {
           //  connectWithDatabase(configuration);
-            jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+         //   jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
             String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET LAST_ALERT_TIME = ?";
             jdbcTemplate.update(updateQuery, LocalDateTime.now());
             System.out.println("Updated last alert time in database.");
@@ -510,9 +553,10 @@ public class CockpitService {
     }
 
     public void updateLastAlertCheckTimeInDatabase(MonitorAlerting monitorAlerting, Configuration configuration) {
+        JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         try {
           //  connectWithDatabase(configuration);
-            jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+         //   jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
             String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET LAST_ALERT_CHECKTIME = ?";
             jdbcTemplate.update(updateQuery, LocalDateTime.now());
 
@@ -527,10 +571,11 @@ public class CockpitService {
     }
 
     public void deleteLastAlertTimeInDatabase(Configuration configuration) {
+        JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         try {
             // Establish a connection to the database using the provided configuration
         //    connectWithDatabase(configuration);
-            jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+        //    jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
 
             // SQL query to set LAST_ALERT_TIME to NULL, effectively deleting the timestamp
             String deleteQuery = "UPDATE FVM_MONITOR_ALERTING SET LAST_ALERT_TIME = NULL";
@@ -603,7 +648,7 @@ public class CockpitService {
         System.out.println("Deleting entry with ID: " + monitor.getID());
 
       //  connectWithDatabase(configuration);
-        jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
+        JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
 
         try {
             int rowsAffected = jdbcTemplate.update(sql, monitor.getID());
