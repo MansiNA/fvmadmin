@@ -15,6 +15,7 @@ import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.theme.Theme;
+import com.zaxxer.hikari.HikariDataSource;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.event.EventListener;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -71,13 +73,38 @@ public class Application implements AppShellConfigurator {
             System.out.println("");
             allCronJobStart();
         }
-
+        initializePools();
         allMonitorCronStart();
         allBackGroundCronStart();
 //        if ("On".equals(emailAlertingAutostart)) {
 //            System.out.println("---------------yyyyyyyyyyyyyyyy-------------------");
 //            allMonitorCronStart();
 //        }
+    }
+
+    private void initializePools() {
+        List<Configuration> configurations = configurationService.findMessageConfigurations();
+
+        for (Configuration config : configurations) {
+            managePoolForConfiguration(config);
+        }
+        System.out.println("pooll.........."+configurationService.getActivePools().size());
+        for (Map.Entry<Long, HikariDataSource> entry : configurationService.getActivePools().entrySet()) {
+            HikariDataSource dataSource = entry.getValue();
+            String poolName = dataSource.getPoolName();
+            System.out.println("Pool ID: " + entry.getKey() + ", Pool Name: " + poolName);
+        }
+    }
+
+    /**
+     * Start or stop a HikariCP connection pool based on the 'Is_Monitoring' flag.
+     */
+    public void managePoolForConfiguration(Configuration config) {
+        if (config.getIsMonitoring() == 1) {
+            configurationService.startPool(config);
+        } else {
+            configurationService.stopPool(config.getId());
+        }
     }
 
     private void allBackGroundCronStart() {

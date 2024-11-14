@@ -3,6 +3,7 @@ package com.example.application.utils;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
+import com.example.application.data.service.ConfigurationService;
 import com.example.application.service.CockpitService;
 import com.example.application.views.CockpitView;
 import com.example.application.views.MainLayout;
@@ -39,6 +40,7 @@ public class BackgroundJobExecutor implements Job {
 
     //  private JdbcTemplate jdbcTemplate;
     private CockpitService cockpitService;
+    private ConfigurationService configurationService;
     private String startType;
     private Configuration configuration;
     public static boolean stopJob = false;
@@ -49,6 +51,7 @@ public class BackgroundJobExecutor implements Job {
         startType = context.getMergedJobDataMap().getString("startType");
 
         cockpitService = SpringContextHolder.getBean(CockpitService.class);
+        configurationService = SpringContextHolder.getBean(ConfigurationService.class);
         transactionTemplate = SpringContextHolder.getBean(TransactionTemplate.class); // Retrieve TransactionTemplate
         String jobDefinitionString = context.getMergedJobDataMap().getString("configuration");
 
@@ -254,7 +257,7 @@ public class BackgroundJobExecutor implements Job {
         }
     }
 
-    public JdbcTemplate getNewJdbcTemplateWithDatabase(Configuration conf) {
+    public JdbcTemplate getNewJdbcTemplateWithDatabaseold(Configuration conf) {
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
@@ -264,6 +267,16 @@ public class BackgroundJobExecutor implements Job {
             logger.info(conf.getUserName()+": Connection open........");
 
             return new JdbcTemplate(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
+
+    public JdbcTemplate getNewJdbcTemplateWithDatabase(Configuration conf) {
+
+        try {
+            return new JdbcTemplate(configurationService.getActivePools().get(conf.getId()));
         } catch (Exception e) {
             e.getMessage();
         }
@@ -347,39 +360,39 @@ public class BackgroundJobExecutor implements Job {
     }
 
     public void connectionClose(JdbcTemplate jdbcTemplate) {
-        Connection connection = null;
-        DataSource dataSource = null;
-        try {
-            jdbcTemplate.getDataSource().getConnection().close();
-            if (jdbcTemplate.getDataSource() instanceof HikariDataSource) {
-                ((HikariDataSource) jdbcTemplate.getDataSource()).close();
-            } else {
-                jdbcTemplate.setDataSource(null);
-            }
-            jdbcTemplate.setDataSource(null);
-            // logger.info(connection.getMetaData().getUserName()+": Connection close........");
-       //     connection = jdbcTemplate.getDataSource().getConnection();
-       //     dataSource = jdbcTemplate.getDataSource();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-
-                   // System.out.println("connection closed..."+connection.isClosed() +".....");
-                        if (dataSource instanceof HikariDataSource) {
-                            ((HikariDataSource) dataSource).close();
-                        } else {
-                            dataSource.getConnection().close();
-                        }
-
-                } catch (SQLException e) {
-
-                    e.printStackTrace();
-                }
-            }
-        }
+//        Connection connection = null;
+//        DataSource dataSource = null;
+//        try {
+//            jdbcTemplate.getDataSource().getConnection().close();
+//            if (jdbcTemplate.getDataSource() instanceof HikariDataSource) {
+//                ((HikariDataSource) jdbcTemplate.getDataSource()).close();
+//            } else {
+//                jdbcTemplate.setDataSource(null);
+//            }
+//            jdbcTemplate.setDataSource(null);
+//            // logger.info(connection.getMetaData().getUserName()+": Connection close........");
+//       //     connection = jdbcTemplate.getDataSource().getConnection();
+//       //     dataSource = jdbcTemplate.getDataSource();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        } finally {
+//            if (connection != null) {
+//                try {
+//                    connection.close();
+//
+//                   // System.out.println("connection closed..."+connection.isClosed() +".....");
+//                        if (dataSource instanceof HikariDataSource) {
+//                            ((HikariDataSource) dataSource).close();
+//                        } else {
+//                            dataSource.getConnection().close();
+//                        }
+//
+//                } catch (SQLException e) {
+//
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
     }
 
 }

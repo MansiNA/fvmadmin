@@ -3,6 +3,7 @@ package com.example.application.service;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
+import com.example.application.data.service.ConfigurationService;
 import com.example.application.views.CockpitView;
 import com.vaadin.flow.component.notification.Notification;
 import com.zaxxer.hikari.HikariConfig;
@@ -28,11 +29,13 @@ import java.util.stream.Collectors;
 public class CockpitService {
 
     private JdbcTemplate jdbcTemplate;
+    private ConfigurationService configurationService;
   //  List<fvm_monitoring> listOfMonitores;
 
 
-    public CockpitService(JdbcTemplate jdbcTemplate){
+    public CockpitService(JdbcTemplate jdbcTemplate, ConfigurationService configurationService){
         this.jdbcTemplate = jdbcTemplate;
+        this.configurationService = configurationService;
     }
 
     private void connectWithDatabase(Configuration conf) {
@@ -59,7 +62,7 @@ public class CockpitService {
         }
         return null;
     }
-    public JdbcTemplate getNewJdbcTemplateWithDatabase(Configuration conf) {
+    public JdbcTemplate getNewJdbcTemplateWithDatabaseold(Configuration conf) {
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
@@ -71,7 +74,17 @@ public class CockpitService {
         }
         return null;
     }
-    public JdbcTemplate getNewJdbcTemplateWithDatabaseold(Configuration conf) {
+    public JdbcTemplate getNewJdbcTemplateWithDatabase(Configuration conf) {
+
+        try {
+            return new JdbcTemplate(configurationService.getActivePools().get(conf.getId()));
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
+
+    public JdbcTemplate getNewJdbcTemplateWithDatabasenew(Configuration conf) {
         // Create HikariConfig object
         HikariConfig hikariConfig = new HikariConfig();
 
@@ -101,67 +114,67 @@ public class CockpitService {
         return new JdbcTemplate(dataSource);
     }
     public void connectionClose() {
-        Connection connection = null;
-        DataSource dataSource = null;
-        try {
-            jdbcTemplate.getDataSource().getConnection().close();
-//            connection = jdbcTemplate.getDataSource().getConnection();
-//            dataSource = jdbcTemplate.getDataSource();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-
-                    if (dataSource instanceof HikariDataSource) {
-                        ((HikariDataSource) dataSource).close();
-                    } else {
-                        dataSource.getConnection().close();
-                        System.out.println("DataSource closed..."+dataSource.getConnection().isClosed() +".....");
-                    }
-
-                } catch (SQLException e) {
-
-                    e.printStackTrace();
-                }
-            }
-        }
+//        Connection connection = null;
+//        DataSource dataSource = null;
+//        try {
+//            jdbcTemplate.getDataSource().getConnection().close();
+////            connection = jdbcTemplate.getDataSource().getConnection();
+////            dataSource = jdbcTemplate.getDataSource();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        } finally {
+//            if (connection != null) {
+//                try {
+//                    connection.close();
+//
+//                    if (dataSource instanceof HikariDataSource) {
+//                        ((HikariDataSource) dataSource).close();
+//                    } else {
+//                        dataSource.getConnection().close();
+//                        System.out.println("DataSource closed..."+dataSource.getConnection().isClosed() +".....");
+//                    }
+//
+//                } catch (SQLException e) {
+//
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
     }
 
     public void connectionClose(JdbcTemplate jdbcTemplate) {
-        Connection connection = null;
-        DataSource dataSource = null;
-        try {
-            jdbcTemplate.getDataSource().getConnection().close();
-            if (jdbcTemplate.getDataSource() instanceof HikariDataSource) {
-                ((HikariDataSource) jdbcTemplate.getDataSource()).close();
-            } else {
-                jdbcTemplate.setDataSource(null);
-            }
-            jdbcTemplate.setDataSource(null);
-//            connection = jdbcTemplate.getDataSource().getConnection();
-//            dataSource = jdbcTemplate.getDataSource();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            if (connection != null) {
-                try {
-                    connection.close();
-
-                    if (dataSource instanceof HikariDataSource) {
-                        ((HikariDataSource) dataSource).close();
-                    } else {
-                        dataSource.getConnection().close();
-                        System.out.println("DataSource closed..."+dataSource.getConnection().isClosed() +".....");
-                    }
-
-                } catch (SQLException e) {
-
-                    e.printStackTrace();
-                }
-            }
-        }
+//        Connection connection = null;
+//        DataSource dataSource = null;
+//        try {
+//            jdbcTemplate.getDataSource().getConnection().close();
+//            if (jdbcTemplate.getDataSource() instanceof HikariDataSource) {
+//                ((HikariDataSource) jdbcTemplate.getDataSource()).close();
+//            } else {
+//                jdbcTemplate.setDataSource(null);
+//            }
+//            jdbcTemplate.setDataSource(null);
+////            connection = jdbcTemplate.getDataSource().getConnection();
+////            dataSource = jdbcTemplate.getDataSource();
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//        } finally {
+//            if (connection != null) {
+//                try {
+//                    connection.close();
+//
+//                    if (dataSource instanceof HikariDataSource) {
+//                        ((HikariDataSource) dataSource).close();
+//                    } else {
+//                        dataSource.getConnection().close();
+//                        System.out.println("DataSource closed..."+dataSource.getConnection().isClosed() +".....");
+//                    }
+//
+//                } catch (SQLException e) {
+//
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
     }
 
     public List<fvm_monitoring> getMonitoring(Configuration configuration) {
