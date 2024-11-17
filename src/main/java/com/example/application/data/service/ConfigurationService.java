@@ -145,6 +145,7 @@ public class ConfigurationService {
             // Set maxLifetime to 3 minutes (180,000 ms)
 //            hikariConfig.setMaxLifetime(1800000); // 3 minutes
 //            hikariConfig.setIdleTimeout(1800000); // 30 minutes
+            //hikariConfig.setIdleTimeout(30000); // 30 Sekunden
 //            hikariConfig.setValidationTimeout(5000); // 5 seconds
 //            hikariConfig.setKeepaliveTime(600000);   // 10 minutes
 //            hikariConfig.setValidationTimeout(5000);

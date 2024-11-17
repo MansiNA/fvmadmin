@@ -88,7 +88,7 @@ public class Application implements AppShellConfigurator {
         for (Configuration config : configurations) {
             managePoolForConfiguration(config);
         }
-        System.out.println("pooll.........."+configurationService.getActivePools().size());
+        System.out.println("Count Hikari Pools: " + configurationService.getActivePools().size());
         for (Map.Entry<Long, HikariDataSource> entry : configurationService.getActivePools().entrySet()) {
             HikariDataSource dataSource = entry.getValue();
             String poolName = dataSource.getPoolName();

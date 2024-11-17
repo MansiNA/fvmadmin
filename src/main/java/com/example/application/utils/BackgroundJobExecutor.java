@@ -18,12 +18,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.support.JdbcUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -110,7 +112,7 @@ public class BackgroundJobExecutor implements Job {
                 logger.info("Start CHECK-SQL ID=" + monitoring.getID());
 
                 try {
-                    //cleanUpOldResults(monitoring.getRetentionTime(), configuration, monitoring.getID());
+                    cleanUpOldResults(monitoring.getRetentionTime(), configuration, monitoring.getID());
 
                     JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
 
@@ -142,7 +144,7 @@ public class BackgroundJobExecutor implements Job {
 
                             // step 3.
                             logger.info("Execute Query: \"" + monitoring.getSQL() + "\"");
-                            logger.info("Connection: " + jdbcTemplate.getDataSource().getConnection().getSchema().toString());
+                           // logger.info("Connection: " + jdbcTemplate.getDataSource().getConnection().getSchema().toString());
                             executorService.submit(() -> {
                                 executeMonitoringTask(monitoring, jdbcTemplate);
                             });
@@ -166,7 +168,7 @@ public class BackgroundJobExecutor implements Job {
     }
 
     private void executeMonitoringTask(fvm_monitoring monitoring, JdbcTemplate jdbcTemplate) {
-        logger.info("==>executeMonitoringTask");
+        logger.info("Method executeMonitoringTask called");
         try {
             if (stopJob) {
                 return; // Exit if the job is stopped
@@ -176,7 +178,7 @@ public class BackgroundJobExecutor implements Job {
                 try {
                     String sqlQuery = monitoring.getSQL();
                     String result = jdbcTemplate.queryForObject(sqlQuery, String.class);
-                    String username = jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName();
+        //            String username = jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName();
                     logger.info("Store result for ID " + monitoring.getID() + ": "+ result);
                     Integer activeRowCount = jdbcTemplate.queryForObject(
                             "SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE IS_ACTIVE = 1 AND ID = ?",
@@ -195,8 +197,8 @@ public class BackgroundJobExecutor implements Job {
                             1, // Mark as active
                             result,
                             "Query executed successfully");
-                    username = jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName();
-
+          //          username = jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName();
+                    connectionClose(jdbcTemplate);
 
                 } catch (Exception ex) {
                     status.setRollbackOnly();
@@ -218,14 +220,18 @@ public class BackgroundJobExecutor implements Job {
                             null, // No result on error
                             ex.getMessage()); // Store error message
                     logger.info(monitoring.getID() + "----query error result store: " + monitoring.getSQL().toString());
-                    try {
-                        throw ex;
-                    } catch (SQLException e) {
-                        throw new RuntimeException(e);
-                    }
+            //        connectionClose(jdbcTemplate);
                 }
-
+                 finally {
+                    // step 4.
+                    synchronized (threadLock) {
+                        currentThreads--;
+                        globalStatus.remove(monitoring.getID());
+                    }
+              //      connectionClose(jdbcTemplate);
+                }
                 return null;
+
             });
 
         } catch (Exception e) {
@@ -238,7 +244,7 @@ public class BackgroundJobExecutor implements Job {
                 currentThreads--;
                 globalStatus.remove(monitoring.getID());
             }
-            connectionClose(jdbcTemplate);
+            //connectionClose(jdbcTemplate);
         }
     }
 
@@ -360,7 +366,7 @@ public class BackgroundJobExecutor implements Job {
                 monitorAlerting.setIsBackJobActive(rs.getInt("ISBACKJOBACTIVE"));
             });
 
-            return monitorAlerting;
+
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Executing fetchEmailConfiguration: from"+ configuration.getUserName());
@@ -368,15 +374,32 @@ public class BackgroundJobExecutor implements Job {
         } finally {
             // Ensure database connection is properly closed
             connectionClose(jdbcTemplate);
+            return monitorAlerting;
         }
-        return null;
+
     }
 
     public void connectionClose(JdbcTemplate jdbcTemplate) {
 //        Connection connection = null;
 //        DataSource dataSource = null;
+//        Statement stmt = null;
+
 //        try {
+            
+//            logger.info("try closing Connection!");
+
+//            jdbcTemplate.getDataSource().getConnection().endRequest();
 //            jdbcTemplate.getDataSource().getConnection().close();
+
+//            Connection con=jdbcTemplate.getDataSource().getConnection();
+            //stmt=jdbcTemplate.getDataSource().
+
+  //          dataSource = jdbcTemplate.getDataSource();
+  //          JdbcUtils.closeStatement(stmt);
+
+
+//            Thread.sleep(2000);
+//            logger.info("Connection isClosed: " + jdbcTemplate.getDataSource().getConnection().isClosed());
 //            if (jdbcTemplate.getDataSource() instanceof HikariDataSource) {
 //                ((HikariDataSource) jdbcTemplate.getDataSource()).close();
 //            } else {
@@ -386,8 +409,8 @@ public class BackgroundJobExecutor implements Job {
 //            // logger.info(connection.getMetaData().getUserName()+": Connection close........");
 //       //     connection = jdbcTemplate.getDataSource().getConnection();
 //       //     dataSource = jdbcTemplate.getDataSource();
-//        } catch (Exception e) {
-//            e.printStackTrace();
+  //      } catch (Exception e) {
+   //         e.printStackTrace();
 //        } finally {
 //            if (connection != null) {
 //                try {
@@ -405,7 +428,7 @@ public class BackgroundJobExecutor implements Job {
 //                    e.printStackTrace();
 //                }
 //            }
-//        }
+  //      }
     }
 
 }

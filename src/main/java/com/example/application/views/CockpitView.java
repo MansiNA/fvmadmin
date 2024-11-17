@@ -1419,7 +1419,7 @@ public class CockpitView extends VerticalLayout{
                             new Object[]{monitoring.getID()},
                             Integer.class
                     );
-                    logger.info("Connection: " + jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName() );
+                //    logger.info("Connection: " + jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName() );
                     logger.info("Execute SQL: SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE ID =" + monitoring.getID() + "; Result: >" +result +"<") ;
 
                     if (count != null ) {
