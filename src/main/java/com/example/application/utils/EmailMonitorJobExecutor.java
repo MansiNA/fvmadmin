@@ -75,7 +75,7 @@ public class EmailMonitorJobExecutor implements Job {
 
         // Check each monitoring entry
         for (fvm_monitoring monitoring : monitorings) {
-            if (!monitoring.getIS_ACTIVE().equals("1")) {
+            if (!monitoring.getIS_ACTIVE().equals("1") || monitoring.getPid() == 0) {
                 System.out.println(monitoring.getTitel() + "------------skip-----------" + monitoring.getIS_ACTIVE());
                 continue; // Skip non-active entries
             }

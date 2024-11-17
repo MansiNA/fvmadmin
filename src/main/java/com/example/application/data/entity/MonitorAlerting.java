@@ -18,8 +18,11 @@ public class MonitorAlerting {
   //  private Integer intervall;
     private String cron;
     private Integer isActive;
+    private Integer isBackJobActive;
     private LocalDateTime lastAlertTime;
     private LocalDateTime lastALertCheckTime;
+    private int retentionTime;
+    private int maxParallelCheck;
 
     // Default constructor
     public MonitorAlerting() {}

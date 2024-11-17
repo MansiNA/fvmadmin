@@ -13,11 +13,9 @@ import com.vaadin.flow.server.VaadinSession;
 import java.io.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A simple SFTP client using JSCH http://www.jcraft.com/jsch/
@@ -291,10 +289,11 @@ public final class SftpClient {
                 session.disconnect();
             }
             //  System.out.println(line);
-            updateLog(line,logTextArea);
-            UI.getCurrent().access(() -> {
-                tailTextArea.setValue(logTextArea.toString());  // Update the UI with new log content
-            });
+            updateLog(line,logTextArea, tailTextArea);
+           // generateLogEntries(logTextArea);
+//            UI.getCurrent().access(() -> {
+//                tailTextArea.setValue(logTextArea.toString());  // Update the UI with new log content
+//            });
         }
 
         sftpChannel.exit();
@@ -354,7 +353,7 @@ public final class SftpClient {
     }*/
 
 
-    public void ReadRemoteLogFile(UI ui, StringBuilder logTextArea, String FileName) throws JSchException, IOException, SftpException {
+    public void ReadRemoteLogFile(UI ui, StringBuilder logTextArea, String FileName, TextArea tailTextArea) throws JSchException, IOException, SftpException {
 
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
@@ -395,7 +394,7 @@ public final class SftpClient {
                 throw new RuntimeException(e);
             }
             //  System.out.println(line);
-            updateLog(line,logTextArea);
+            updateLog(line,logTextArea, tailTextArea);
         }
 
         //####################
@@ -425,6 +424,7 @@ public final class SftpClient {
 
     /*
         updateLog("###################### TAIL -300 ##############################",logTextArea);
+        updateLog("###################### TAIL -300 ##############################",logTextArea, tailTextArea);
         while (true) {
             try {
                 line = reader.readLine();
@@ -433,7 +433,7 @@ public final class SftpClient {
                 throw new RuntimeException(e);
             }
             //  System.out.println(line);
-            updateLog(line,logTextArea);
+            updateLog(line,logTextArea, tailTextArea);
         }
 */
 
@@ -448,13 +448,36 @@ public final class SftpClient {
 
     }
 
+    // Simulated method to generate new log entries every 2 seconds
+//    private void generateLogEntries(StringBuilder tailTextArea) {
+//        Timer timer = new Timer();
+//        timer.schedule(new TimerTask() {
+//            @Override
+//            public void run() {
+//                // Simulate a new log entry
+//                String newLogLine = "Log entry at " + LocalTime.now();
+//
+//                // Add the new log line and scroll automatically
+//                updateLog(newLogLine, tailTextArea, tailTextArea);
+//            }
+//        }, 0, 2000); // Repeat every 2 seconds
+//    }
 
-    private void updateLog(String line, StringBuilder tailTextArea) {
-        if(tailTextArea.isEmpty()) {
-            tailTextArea.append("").append(line);
+    private void updateLog(String line, StringBuilder tailTextAreaContent, TextArea tailTextArea) {
+        if (tailTextArea.isEmpty()) {
+            tailTextAreaContent.append("").append(line);
         } else {
-            tailTextArea.append("\n").append(line);
+            tailTextAreaContent.append("\n").append(line);
         }
+        UI.getCurrent().access(() -> {
+            tailTextArea.setValue(tailTextAreaContent.toString());  // Update the UI with new log content
+            tailTextArea.getElement().executeJs("this._inputField.scrollTop = this._inputField.scrollHeight - this._inputField.clientHeight;");
+        });
+
+        // Scroll to the bottom of the TextArea after the new content is added
+//        VaadinSession.getCurrent().lock();
+//        tailTextArea.getElement().executeJs("this.inputElement.scrollTop = this.inputElement.scrollHeight;");
+//        VaadinSession.getCurrent().unlock();
 //        VaadinSession.getCurrent().lock();
 //
 //        tailTextArea.getElement().executeJs(

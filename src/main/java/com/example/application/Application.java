@@ -15,6 +15,7 @@ import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.theme.Theme;
+import com.zaxxer.hikari.HikariDataSource;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.event.EventListener;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -71,12 +73,54 @@ public class Application implements AppShellConfigurator {
             System.out.println("");
             allCronJobStart();
         }
-
+        initializePools();
         allMonitorCronStart();
+        allBackGroundCronStart();
 //        if ("On".equals(emailAlertingAutostart)) {
 //            System.out.println("---------------yyyyyyyyyyyyyyyy-------------------");
 //            allMonitorCronStart();
 //        }
+    }
+
+    private void initializePools() {
+        List<Configuration> configurations = configurationService.findMessageConfigurations();
+
+        for (Configuration config : configurations) {
+            managePoolForConfiguration(config);
+        }
+        System.out.println("pooll.........."+configurationService.getActivePools().size());
+        for (Map.Entry<Long, HikariDataSource> entry : configurationService.getActivePools().entrySet()) {
+            HikariDataSource dataSource = entry.getValue();
+            String poolName = dataSource.getPoolName();
+            System.out.println("Pool ID: " + entry.getKey() + ", Pool Name: " + poolName);
+        }
+    }
+
+    /**
+     * Start or stop a HikariCP connection pool based on the 'Is_Monitoring' flag.
+     */
+    public void managePoolForConfiguration(Configuration config) {
+        if (config.getIsMonitoring() == 1) {
+            configurationService.startPool(config);
+        } else {
+            configurationService.stopPool(config.getId());
+        }
+    }
+
+    private void allBackGroundCronStart() {
+        List<Configuration> configList = configurationService.findMessageConfigurations();
+        List<Configuration> monitoringConfigs = configList.stream()
+                .filter(config -> config.getIsMonitoring() != null && config.getIsMonitoring() == 1)
+                .collect(Collectors.toList());
+        //  for(Configuration configuration)
+        // Fetch email configurations
+        for(Configuration configuration : monitoringConfigs) {
+            try {
+                scheduleBackgroundJob(configuration);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void allMonitorCronStart() {
@@ -118,7 +162,7 @@ public class Application implements AppShellConfigurator {
             jobDataMap.put("startType", "cron");
 
             JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
-                    .withIdentity("job-alert-cron-" + configuration.getId(), "group2")
+                    .withIdentity("job-alert-cron-" + configuration.getId(), "Email_group")
                     .usingJobData(jobDataMap)
                     .build();
 
@@ -132,13 +176,53 @@ public class Application implements AppShellConfigurator {
             String cronExpression = monitorAlerting.getCron();
 
             Trigger trigger = TriggerBuilder.newTrigger()
-                    .withIdentity("trigger-alert-cron-" + configuration.getId(), "group2")
+                    .withIdentity("trigger-alert-cron-" + configuration.getId(), "Email_group")
                     .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                     .forJob(jobDetail)
                     .build();
 
             scheduler.scheduleJob(jobDetail, trigger);
         }
+    }
+
+    public void scheduleBackgroundJob(Configuration configuration) throws SchedulerException {
+
+        MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
+        cockpitService.updateIsBackJobActive(1, configuration);
+//        if(monitorAlerting.getIsBackJobActive() != null && monitorAlerting.getIsBackJobActive() == 1) {
+            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+            scheduler.start();
+
+            JobDataMap jobDataMap = new JobDataMap();
+            try {
+                jobDataMap.put("configuration", JobDefinitionUtils.serializeJobDefinition(configuration));
+            } catch (JsonProcessingException e) {
+                Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                return;
+            }
+
+            jobDataMap.put("startType", "cron");
+
+            JobDetail jobDetail = JobBuilder.newJob(BackgroundJobExecutor.class)
+                    .withIdentity("job-background-cron-" + configuration.getId(), "Chek_group")
+                    .usingJobData(jobDataMap)
+                    .build();
+
+            if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+                System.out.println("No interval set for the configuration. Job will not be scheduled.");
+                return;
+            }
+
+            String cronExpression = monitorAlerting.getCron();
+
+            Trigger trigger = TriggerBuilder.newTrigger()
+                    .withIdentity("trigger-background -cron-" + configuration.getId(), "Chek_group")
+                    .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
+                    .forJob(jobDetail)
+                    .build();
+
+            scheduler.scheduleJob(jobDetail, trigger);
+       // }
     }
 
     private String createCronExpression(int interval) {
@@ -154,11 +238,9 @@ public class Application implements AppShellConfigurator {
         JobManagerView.notifySubscribers("start running all...");
         for (JobManager jobManager : filterJobsList) {
             try {
-                System.out.println(jobManager.getName()+"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm");
                 if(jobManager.getAktiv() == 1) {
                     String type = jobManager.getTyp();
                     if (jobManager.getCron() != null && !type.equals("Node") ) {
-                        System.out.println(jobManager.getName()+"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
                         scheduleJob(jobManager,  Constants.CRON);
                     }
                 }

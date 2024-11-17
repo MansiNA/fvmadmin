@@ -130,7 +130,7 @@ public class MainLayout extends AppLayout {
         jobDataMap.put("startType", "cron");
 
         JobDetail jobDetail = JobBuilder.newJob(EmailMonitorJobExecutor.class)
-                .withIdentity("job-alert-cron-" + configuration.getId(), "group2")
+                .withIdentity("job-alert-cron-" + configuration.getId(), "Email_group")
                 .usingJobData(jobDataMap)
                 .build();
 
@@ -146,7 +146,7 @@ public class MainLayout extends AppLayout {
         String cronExpression = monitorAlerting.getCron();
 
         Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-alert-cron-" + configuration.getId(), "group2")
+                .withIdentity("trigger-alert-cron-" + configuration.getId(), "Email_group")
                 .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                 .forJob(jobDetail)
                 .build();

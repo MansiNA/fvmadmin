@@ -38,6 +38,7 @@ import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
@@ -51,7 +52,10 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+import javax.sql.DataSource;
 import java.io.*;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -562,18 +566,18 @@ public class MetadatenView extends VerticalLayout {
 
         System.out.println("Filter EKP.Metadaten (MetadatenView.java) auf " + searchTerm );
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-        conf = comboBox.getValue();
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//        conf = comboBox.getValue();
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         try {
 
-            jdbcTemplate.setDataSource(ds);
-
+//            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
             metadaten = jdbcTemplate.query(
                     sql,
                     new BeanPropertyRowMapper(Metadaten.class));
@@ -584,6 +588,8 @@ public class MetadatenView extends VerticalLayout {
 
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
         return metadaten;
@@ -644,18 +650,18 @@ public class MetadatenView extends VerticalLayout {
         System.out.println("Abfrage EKP.Metadaten (MetadatenView.java) auf oldMsg: ");
         System.out.println(sql);
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-        conf = comboBox.getValue();
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//        conf = comboBox.getValue();
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         try {
 
-            jdbcTemplate.setDataSource(ds);
-
+//            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
             metadaten = jdbcTemplate.query(
                     sql,
                     new BeanPropertyRowMapper(Metadaten.class));
@@ -666,6 +672,8 @@ public class MetadatenView extends VerticalLayout {
 
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
         return metadaten;
@@ -770,17 +778,18 @@ public class MetadatenView extends VerticalLayout {
 
         System.out.println(sql);
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-        conf = comboBox.getValue();
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//        conf = comboBox.getValue();
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         try {
 
-            jdbcTemplate.setDataSource(ds);
+//            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
             metadaten = jdbcTemplate.query(
                     sql,
@@ -803,6 +812,8 @@ public class MetadatenView extends VerticalLayout {
 
 
 
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
         return metadaten;
@@ -823,17 +834,18 @@ public class MetadatenView extends VerticalLayout {
 
         System.out.println("Filter EKP.Ablaufdaten (MetadatenView.java) auf " + nachrichtidintern );
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-        conf = comboBox.getValue();
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//        conf = comboBox.getValue();
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         try {
 
-            jdbcTemplate.setDataSource(ds);
+//            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
             ablaufdaten = jdbcTemplate.query(
                     sql,
@@ -845,6 +857,8 @@ public class MetadatenView extends VerticalLayout {
 
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
         return ablaufdaten;
@@ -868,17 +882,18 @@ public class MetadatenView extends VerticalLayout {
 
         System.out.println("(MetadatenView.java) Hole Journal Einträge für  " + nachrichtidextern );
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-        conf = comboBox.getValue();
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//        conf = comboBox.getValue();
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         try {
 
-            jdbcTemplate.setDataSource(ds);
+//            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
             journal = jdbcTemplate.query(
                     sql,
@@ -890,6 +905,8 @@ public class MetadatenView extends VerticalLayout {
 
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
         return journal;
@@ -1042,4 +1059,42 @@ public class MetadatenView extends VerticalLayout {
         workbook.close();
     }
 
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(com.example.application.data.entity.Configuration conf) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
+        try {
+            jdbcTemplate.setDataSource(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
+
+    public void connectionClose(JdbcTemplate jdbcTemplate) {
+        Connection connection = null;
+        DataSource dataSource = null;
+        try {
+            jdbcTemplate.getDataSource().getConnection().close();
+//            connection = jdbcTemplate.getDataSource().getConnection();
+//            dataSource = jdbcTemplate.getDataSource();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+
+                    if (dataSource instanceof HikariDataSource) {
+                        ((HikariDataSource) dataSource).close();
+                    }
+
+                } catch (SQLException e) {
+
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 }

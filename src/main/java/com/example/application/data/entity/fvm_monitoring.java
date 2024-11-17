@@ -1,8 +1,6 @@
 package com.example.application.data.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import java.sql.Date;
 
@@ -10,7 +8,9 @@ import java.sql.Date;
 @Table(name ="fvm_monitoring", schema="ekp")
 public class fvm_monitoring {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-generates ID via trigger in Oracle
     private Integer ID;
+    private Integer Pid;
     private String SQL;
     private String SQL_Detail;
     private String Titel;
@@ -22,7 +22,9 @@ public class fvm_monitoring {
     private Integer Error_Schwellwert;
     private Double Error_Prozent;
     private String IS_ACTIVE;
+    private String bereich;
     private Date Zeitpunkt ;
+    private Integer retentionTime;
     public String getIS_ACTIVE() {
         return IS_ACTIVE;
     }
@@ -77,6 +79,14 @@ public class fvm_monitoring {
     public void setID(Integer ID) {
         this.ID = ID;
     }
+    public Integer getPid() {
+        return Pid;
+    }
+
+    public void setPid(Integer pid) {
+        this.Pid = pid;
+    }
+
 
     public String getSQL() {
         return SQL;
@@ -132,6 +142,31 @@ public class fvm_monitoring {
 
     public void setSQL_Detail(String SQL_Detail) {
         this.SQL_Detail = SQL_Detail;
+    }
+
+    public int getRetentionTime() {
+        if(retentionTime == null) {
+            return 0;
+        }
+        return retentionTime;
+    }
+
+    public void setRetentionTime(Integer retentionTime) {
+        this.retentionTime = retentionTime;
+        if(retentionTime == null) {
+            this.retentionTime = 0;
+        }
+    }
+
+    public String getBereich() {
+        if(bereich == null) {
+            return bereich = "";
+        }
+        return bereich;
+    }
+
+    public void setBereich(String bereich) {
+        this.bereich = bereich;
     }
 
 }

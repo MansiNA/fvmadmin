@@ -21,6 +21,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +31,14 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.support.lob.DefaultLobHandler;
 import org.springframework.jdbc.support.lob.LobHandler;
 
+import javax.sql.DataSource;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -373,20 +377,21 @@ public class MessageExportView extends VerticalLayout {
 
         System.out.println("SQL: " + sql);
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-        conf=comboBox.getValue();
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//        conf=comboBox.getValue();
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//
+//        //ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
+//        //ds.setUsername("SYSTEM");
+//        //ds.setPassword("Michael123");
+//
+//
+//        jdbcTemplate.setDataSource(ds);
 
-        //ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
-        //ds.setUsername("SYSTEM");
-        //ds.setPassword("Michael123");
-
-
-        jdbcTemplate.setDataSource(ds);
-
+        getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
         LobHandler lobHandler = new DefaultLobHandler();
         List<ValueBlob> values = new ArrayList<>();
@@ -396,6 +401,8 @@ public class MessageExportView extends VerticalLayout {
         }
         catch(Exception e) {
             System.out.println("Exception: " + e.getMessage());
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
 
@@ -481,5 +488,42 @@ public class MessageExportView extends VerticalLayout {
     private String infoText() {
         return String.format("Exportiere NachrichtID: %s ", textField.getValue());
     }
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(com.example.application.data.entity.Configuration conf) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
+        try {
+            jdbcTemplate.setDataSource(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
 
+    public void connectionClose(JdbcTemplate jdbcTemplate) {
+        Connection connection = null;
+        DataSource dataSource = null;
+        try {
+            jdbcTemplate.getDataSource().getConnection().close();
+//            connection = jdbcTemplate.getDataSource().getConnection();
+//            dataSource = jdbcTemplate.getDataSource();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+
+                    if (dataSource instanceof HikariDataSource) {
+                        ((HikariDataSource) dataSource).close();
+                    }
+
+                } catch (SQLException e) {
+
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 }

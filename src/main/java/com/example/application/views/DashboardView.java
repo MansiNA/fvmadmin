@@ -23,6 +23,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -32,6 +33,9 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.util.concurrent.ListenableFuture;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalTime;
@@ -548,11 +552,11 @@ public class DashboardView extends VerticalLayout{
 
         System.out.println("Info: Abfrage EKP.Metadaten");
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
 
         if (jdbcTemplate == null)
         {
@@ -573,7 +577,8 @@ public class DashboardView extends VerticalLayout{
 
 
 
-            jdbcTemplate.setDataSource(ds);
+       //     jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
             dl = jdbcTemplate.query(
                     sql,
@@ -584,6 +589,8 @@ public class DashboardView extends VerticalLayout{
 
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
 
@@ -608,6 +615,47 @@ public class DashboardView extends VerticalLayout{
 
     }
 
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(com.example.application.data.entity.Configuration conf) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
+        try {
+            jdbcTemplate.setDataSource(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
+
+    public void connectionClose(JdbcTemplate jdbcTemplate) {
+        Connection connection = null;
+        DataSource dataSource = null;
+        try {
+            jdbcTemplate.getDataSource().getConnection().close();
+            //     connection = jdbcTemplate.getDataSource().getConnection();
+            //     dataSource = jdbcTemplate.getDataSource();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+
+                    // System.out.println("connection closed..."+connection.isClosed() +".....");
+                    if (dataSource instanceof HikariDataSource) {
+                        ((HikariDataSource) dataSource).close();
+                    } else {
+                        dataSource.getConnection().close();
+                    }
+
+                } catch (SQLException e) {
+
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
     private Chart build_chart(Integer wert) {
 
         Chart chart = new Chart();
@@ -852,16 +900,17 @@ public class DashboardView extends VerticalLayout{
 
         System.out.println("Info: Abfrage EKP.Metadaten");
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
 
 
         try {
 
-            jdbcTemplate.setDataSource(ds);
+//            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
             dl = jdbcTemplate.query(
                     sql,
@@ -872,6 +921,8 @@ public class DashboardView extends VerticalLayout{
 
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
         return AsyncResult.forValue(dl);

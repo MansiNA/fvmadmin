@@ -151,6 +151,15 @@ public class CronInfoView extends VerticalLayout {
                                 System.out.println("JobManager not found for job: " + configuration.getName());
                             }
 
+                    }else if (jobId.contains("background")) {
+                        jobId = jobId.replace("job-background-cron-", "");
+                        Configuration configuration = configurationService.findByIdConfiguration(Long.valueOf(jobId));
+                        if (configuration != null) {
+                            runningJobs.add(new CronInfo(configuration.getName(), jobGroup, nextFireTime));
+                        } else {
+                            System.out.println("JobManager not found for job: " + configuration.getName());
+                        }
+
                     } else {
                         jobId = jobId.replace("job-cron-", "");
                         JobManager jobManager = jobDefinitionService.getJobManagerById(Integer.valueOf(jobId));

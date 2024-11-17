@@ -21,14 +21,15 @@ import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.poi.hssf.usermodel.HSSFFont;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -37,6 +38,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import javax.sql.DataSource;
 import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
@@ -57,25 +59,27 @@ public class QuarantaeneView extends VerticalLayout {
     JdbcTemplate jdbcTemplate;
     private ConfigurationService service;
     static ComboBox<Configuration> comboBox;
-
     Button button = new Button("Refresh");
     Integer ret = 0;
     Grid<Quarantine> qgrid = new Grid<>(Quarantine.class, false);
 
-    List<Quarantine> lq = new ArrayList<>();
-    private String exportPath;
-    private Anchor anchor = new Anchor(getStreamResource("quaran.xls", "default content"), "click to download");
-    private Button smallButton = new Button("Export");
+    List<Quarantine> listOfQuarantine = new ArrayList<>();
+    private Button downloadButton = new Button("Download");
     ComboBox FehlertypCB;
+    UI ui;
 
 
-    public QuarantaeneView( ConfigurationService service) {
+    public QuarantaeneView(JdbcTemplate jdbcTemplate, ConfigurationService service) {
         this.service = service;
+        this.jdbcTemplate = jdbcTemplate;
 
         Paragraph paragraph = new Paragraph("Hier erfolgt eine Auflistung von aktuellen EGVP-E Quarantäne-Nachrichten");
         paragraph.setMaxHeight("400px");
 
+        ui = UI.getCurrent();
+
         comboBox = new ComboBox<>("Verbindung");
+        
         List<Configuration> configList = service.findMessageConfigurations();
         if (configList != null && !configList.isEmpty()) {
             comboBox.setItems(configList);
@@ -83,15 +87,101 @@ public class QuarantaeneView extends VerticalLayout {
             comboBox.setValue(configList.get(0));
         }
 
+        comboBox.addValueChangeListener(event -> {
+                    updateGrid();
+        });
+
         List<String> errorList = List.of("MESSAGE_INCOMPLETE", "CHECK_FILENAMES", "SERVER_NOT_REACHABLE","RECEIVERID_NOT_FOUND");
 
         FehlertypCB = new ComboBox<>("Fehlertyp");
         FehlertypCB.setItems(errorList);
+        FehlertypCB.setValue(errorList.get(0));
         FehlertypCB.setWidth("200px");
+        FehlertypCB.addValueChangeListener(event -> {
+            updateGrid();
+        });
+        
+        configureQuarantaeneGrid();
+        updateGrid();
+        
+        HorizontalLayout hl = new HorizontalLayout();
+        hl.add(comboBox, FehlertypCB, button);
+        hl.setAlignItems(Alignment.BASELINE);
+        setSizeFull();
 
-        anchor.getElement().setAttribute("download",true);
-        anchor.setEnabled(false);
+        add(hl, downloadButton, qgrid);
 
+        button.addClickListener(clickEvent -> {
+
+        //    Notification.show("hole Daten...",2000, Notification.Position.TOP_END);
+        //    qgrid.setItems();
+
+            // Instruct client side to poll for changes and show spinner
+            ui.setPollInterval(500);
+            // Start background task
+            CompletableFuture.runAsync(() -> {
+
+                // Do some long running task
+                try {
+                    System.out.println("Hole Quarantäne Infos");
+
+                    updateGrid();
+                 //   listOfQuarantine = getQuarantaene(ui);
+
+                    //Thread.sleep(2000); //2 Sekunden warten
+                    Thread.sleep(20); //2 Sekunden warten
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                // Need to use access() when running from background thread
+                ui.access(() -> {
+                    // Stop polling and hide spinner
+                    ui.setPollInterval(-1);
+
+                    if (ret != 0) {
+                        System.out.println("Keine Quarantäne Infos gefunden!");
+
+                        return;
+                    }
+                  //  qgrid.setItems(listOfQuarantine);
+
+                    refreshGrid();
+                });
+            });
+
+
+        });
+
+
+        downloadButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
+        downloadButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
+        downloadButton.addClickListener(clickEvent -> {
+            Notification.show("Exportiere Liste ");
+            try {
+
+                generateExcel( "quarantaene_export.xlsx");
+
+            } catch (Exception e) {
+                e.getMessage();
+            }
+
+        });
+
+    }
+
+    private void updateGrid() {
+        listOfQuarantine = getQuarantaene(ui);
+        if (listOfQuarantine != null) {
+            downloadButton.setEnabled(true);
+            qgrid.setItems(listOfQuarantine);
+        } else {
+            downloadButton.setEnabled(false);
+        }
+    }
+
+    private void configureQuarantaeneGrid() {
 
         qgrid.addColumn(createNachrichtIDRenderer()).setKey("ID").setHeader("Nachricht-ID").setAutoWidth(true).setSortable(true).setResizable(true).setComparator(Quarantine::getID).setFooter("Anzahl Einträge: 0");
         qgrid.addColumn(Quarantine::getEXCEPTIONCODE).setHeader("Exception-Code").setAutoWidth(true).setResizable(true).setSortable(true);
@@ -111,104 +201,15 @@ public class QuarantaeneView extends VerticalLayout {
         //qgrid.addColumn(Quarantine::getRECEIVERNAME).setHeader("Receiver-Name").setAutoWidth(true).setResizable(true).setSortable(true);
         //qgrid.addColumn(Quarantine::getSENDERID).setHeader("Sender-ID").setAutoWidth(true).setResizable(true).setSortable(true);
         //qgrid.addColumn(Quarantine::getSENDERNAME).setHeader("Sender-Name").setAutoWidth(true).setResizable(true).setSortable(true);
-     //   qgrid.addColumn(Quarantine::getART).setHeader("ART").setAutoWidth(true).setResizable(true).setSortable(true);
+        //   qgrid.addColumn(Quarantine::getART).setHeader("ART").setAutoWidth(true).setResizable(true).setSortable(true);
         qgrid.addColumn(Quarantine::getFEHLERTAG).setHeader("Im FH").setAutoWidth(true).setResizable(true).setSortable(true);
-      //  qgrid.addColumn(Quarantine::getVERARBEITET).setHeader("Verarbeitet").setAutoWidth(true).setResizable(true).setSortable(true);
-      //  qgrid.addColumn(Quarantine::getLOESCHTAG).setHeader("Löschtag").setAutoWidth(true).setResizable(true).setSortable(true);
+        //  qgrid.addColumn(Quarantine::getVERARBEITET).setHeader("Verarbeitet").setAutoWidth(true).setResizable(true).setSortable(true);
+        //  qgrid.addColumn(Quarantine::getLOESCHTAG).setHeader("Löschtag").setAutoWidth(true).setResizable(true).setSortable(true);
 
         qgrid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         qgrid.setColumnReorderingAllowed(true);
-
-        HorizontalLayout hl = new HorizontalLayout();
-        hl.add(comboBox,button);
-        hl.setAlignItems(Alignment.BASELINE);
-        setSizeFull();
-      //  add(comboBox, button, paragraph, qgrid);
-        add(hl,FehlertypCB,smallButton,anchor, qgrid);
-
-        button.addClickListener(clickEvent -> {
-
-        //    Notification.show("hole Daten...",2000, Notification.Position.TOP_END);
-            qgrid.setItems();
-
-            UI ui = UI.getCurrent();
-
-            // Instruct client side to poll for changes and show spinner
-            ui.setPollInterval(500);
-            // Start background task
-            CompletableFuture.runAsync(() -> {
-
-                // Do some long running task
-                try {
-                    System.out.println("Hole Quarantäne Infos");
-
-                    lq = getQuarantaene(ui);
-
-                    //Thread.sleep(2000); //2 Sekunden warten
-                    Thread.sleep(20); //2 Sekunden warten
-
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                // Need to use access() when running from background thread
-                ui.access(() -> {
-                    // Stop polling and hide spinner
-                    ui.setPollInterval(-1);
-
-                    if (ret != 0) {
-                        System.out.println("Keine Quarantäne Infos gefunden!");
-
-                        return;
-                    }
-                    qgrid.setItems(lq);
-
-                    refreshGrid();
-
-                });
-            });
-
-
-        });
-
-
-        smallButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
-        smallButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
-        smallButton.addClickListener(clickEvent -> {
-            Notification.show("Exportiere Liste ");
-            //System.out.println("aktuelle_SQL:" + aktuelle_SQL);
-
-            String sql = "select EXCEPTIONCODE, ID, RECEIVERID, receivername, SENDERID, Sendername, entrancedate, creationdate  from egvp.quarantine@egvp q";
-
-            try {
-
-                if (!FehlertypCB.isEmpty()){
-                    sql = sql + " where EXCEPTIONCODE='" + FehlertypCB.getValue() + "' and q.CREATIONDATE > sysdate-5";
-                }
-                else {
-                    sql = sql + " where q.CREATIONDATE > sysdate-5";
-                }
-
-                System.out.println("aktuelle_SQL:" + sql);
-
-                generateExcel( "quarantaene_export.xls",sql);
-
-                File file= new File( "quarantaene_export.xls");
-                StreamResource streamResource = new StreamResource(file.getName(),()->getStream(file));
-
-                anchor.setHref(streamResource);
-                //anchor = new Anchor(streamResource, String.format("%s (%d KB)", file.getName(), (int) file.length() / 1024));
-
-                anchor.setEnabled(true);
-                smallButton.setVisible(false);
-                //      download("c:\\tmp\\" + aktuelle_Tabelle + ".xls");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-        });
-
     }
+
     private InputStream getStream(File file) {
         FileInputStream stream = null;
         try {
@@ -220,134 +221,70 @@ public class QuarantaeneView extends VerticalLayout {
         return stream;
     }
 
-    private static void generateExcel(String file, String query) throws IOException {
-        Configuration conf;
-        conf = comboBox.getValue();
+    private void generateExcel(String fileName) {
 
-        try {
-            //String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
-            //String user="SYSTEM";
-            //String password="Michael123";
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Quarantine Data");
 
-            Class.forName("oracle.jdbc.driver.OracleDriver");
-            String password = Configuration.decodePassword(conf.getPassword());
-            //    Connection conn=DriverManager.getConnection(url, user, password);
-            Connection conn= DriverManager.getConnection(conf.getDb_Url(), conf.getUserName(), password);
+            // Create the header row
+            Row headerRow = sheet.createRow(0);
+            headerRow.createCell(0).setCellValue("ID");
+            headerRow.createCell(1).setCellValue("NACHRICHTIDINTERN");
+            headerRow.createCell(2).setCellValue("ENTRANCEDATE");
+            headerRow.createCell(3).setCellValue("CREATIONDATE");
+            headerRow.createCell(4).setCellValue("POBOX");
+            headerRow.createCell(5).setCellValue("EXCEPTIONCODE");
+            headerRow.createCell(6).setCellValue("RECEIVERID");
+            headerRow.createCell(7).setCellValue("RECEIVERNAME");
+            headerRow.createCell(8).setCellValue("SENDERID");
+            headerRow.createCell(9).setCellValue("SENDERNAME");
+            headerRow.createCell(10).setCellValue("ART");
+            headerRow.createCell(11).setCellValue("FEHLERTAG");
+            headerRow.createCell(12).setCellValue("VERARBEITET");
+            headerRow.createCell(13).setCellValue("LOESCHTAG");
 
-            //   DriverManager.registerDriver(new oracle.jdbc.driver.OracleDriver());
-
-
-            PreparedStatement stmt=null;
-            //Workbook
-            HSSFWorkbook workBook=new HSSFWorkbook();
-            HSSFSheet sheet1=null;
-
-            //Cell
-            Cell c=null;
-
-            CellStyle cs=workBook.createCellStyle();
-            HSSFFont f =workBook.createFont();
-            f.setBoldweight(HSSFFont.BOLDWEIGHT_BOLD);
-            f.setFontHeightInPoints((short) 12);
-            cs.setFont(f);
-
-
-            sheet1=workBook.createSheet("Sheet1");
-
-
-            // String query="select  EMPNO, ENAME, JOB, MGR, HIREDATE, SAL, COMM, DEPTNO, WORK_CITY, WORK_COUNTRY from APEX_040000.WWV_DEMO_EMP";
-            System.out.println("Query: " + query);
-            stmt=conn.prepareStatement(query);
-            ResultSet rs=stmt.executeQuery();
-
-            ResultSetMetaData metaData=rs.getMetaData();
-            int colCount=metaData.getColumnCount();
-
-            LinkedHashMap<Integer, TableInfo> hashMap=new LinkedHashMap<Integer, TableInfo>();
-
-
-            for(int i=0;i<colCount;i++){
-                TableInfo tableInfo=new TableInfo();
-                tableInfo.setFieldName(metaData.getColumnName(i+1).trim());
-                tableInfo.setFieldText(metaData.getColumnLabel(i+1));
-                tableInfo.setFieldSize(metaData.getPrecision(i+1));
-                tableInfo.setFieldDecimal(metaData.getScale(i+1));
-                tableInfo.setFieldType(metaData.getColumnType(i+1));
-                //     tableInfo.setCellStyle(getCellAttributes(workBook, c, tableInfo));
-
-                hashMap.put(i, tableInfo);
+            // Populate data rows
+            int rowIndex = 1;
+            for (Quarantine quarantine : listOfQuarantine) {
+                Row dataRow = sheet.createRow(rowIndex++);
+                dataRow.createCell(0).setCellValue(quarantine.getID());
+                dataRow.createCell(1).setCellValue(quarantine.getNACHRICHTIDINTERN() != null ? quarantine.getNACHRICHTIDINTERN() : 0);
+                dataRow.createCell(2).setCellValue(quarantine.getENTRANCEDATE());
+                dataRow.createCell(3).setCellValue(quarantine.getCREATIONDATE());
+                dataRow.createCell(4).setCellValue(quarantine.getPOBOX());
+                dataRow.createCell(5).setCellValue(quarantine.getEXCEPTIONCODE());
+                dataRow.createCell(6).setCellValue(quarantine.getRECEIVERID());
+                dataRow.createCell(7).setCellValue(quarantine.getRECEIVERNAME());
+                dataRow.createCell(8).setCellValue(quarantine.getSENDERID());
+                dataRow.createCell(9).setCellValue(quarantine.getSENDERNAME());
+                dataRow.createCell(10).setCellValue(quarantine.getART());
+                dataRow.createCell(11).setCellValue(quarantine.getFEHLERTAG());
+                dataRow.createCell(12).setCellValue(quarantine.getVERARBEITET());
+                dataRow.createCell(13).setCellValue(quarantine.getLOESCHTAG());
             }
 
-            //Row and Column Indexes
-            int idx=0;
-            int idy=0;
+            // Write workbook to output stream
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
 
-            HSSFRow row=sheet1.createRow(idx);
-            TableInfo tableInfo=new TableInfo();
+            // Create a StreamResource for downloading
+            StreamResource streamResource = new StreamResource(fileName,
+                    () -> new ByteArrayInputStream(outputStream.toByteArray()));
 
-            Iterator<Integer> iterator=hashMap.keySet().iterator();
+            // Create a hidden download anchor and trigger the download
+            Anchor downloadAnchor = new Anchor(streamResource, "Download Excel");
+            downloadAnchor.getElement().setAttribute("download", true);
+            downloadAnchor.getElement().getStyle().set("display", "none");
+            downloadAnchor.setHref(streamResource);
+            downloadAnchor.add(new Button("Download Excel"));
 
-            while(iterator.hasNext()){
-                Integer key=(Integer)iterator.next();
+            // Add the anchor to the UI and simulate a click
+            add(downloadAnchor);
+            downloadAnchor.getElement().callJsFunction("click");
 
-                tableInfo=hashMap.get(key);
-                c=row.createCell(idy);
-                c.setCellValue(tableInfo.getFieldText());
-                c.setCellStyle(cs);
-                if(tableInfo.getFieldSize() > tableInfo.getFieldText().trim().length()){
-                    sheet1.setColumnWidth(idy, (tableInfo.getFieldSize()* 10));
-                }
-                else {
-                    sheet1.setColumnWidth(idy, (tableInfo.getFieldText().trim().length() * 5));
-                }
-                idy++;
-            }
-
-            while (rs.next()) {
-
-                idx++;
-                row = sheet1.createRow(idx);
-                //  System.out.println(idx);
-                for (int i = 0; i < colCount; i++) {
-
-                    c = row.createCell(i);
-                    tableInfo = hashMap.get(i);
-
-                    switch (tableInfo.getFieldType()) {
-                        case 1:
-                            c.setCellValue(rs.getString(i+1));
-                            break;
-                        case 2:
-                            c.setCellValue(rs.getDouble(i+1));
-                            break;
-                        case 3:
-                            c.setCellValue(rs.getDouble(i+1));
-                            break;
-                        default:
-                            c.setCellValue(rs.getString(i+1));
-                            break;
-                    }
-                    c.setCellStyle(tableInfo.getCellStyle());
-                }
-
-            }
-            rs.close();
-            stmt.close();
-            conn.close();
-
-            // String path="c:\\tmp\\test.xls";
-
-            FileOutputStream fileOut = new FileOutputStream(file);
-
-            workBook.write(fileOut);
-            fileOut.close();
-
-
-        } catch (SQLException | FileNotFoundException e) {
-            System.out.println("Error in Method generateExcel(String file, String query) file: " + file + " query: "  + query);
+        } catch (IOException e) {
+            Notification.show("Error creating Excel file: " + e.getMessage());
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -404,13 +341,13 @@ public class QuarantaeneView extends VerticalLayout {
 
         Integer anz_MessageCheckFilenames = 0;
 
-        for ( Quarantine item: lq){
+        for ( Quarantine item: listOfQuarantine){
             if (item.getEXCEPTIONCODE().contains("CHECK_FILENAMES")){
                 anz_MessageCheckFilenames++;
             }
         }
 
-        qgrid.getFooterRows().get(0).getCell(qgrid.getColumnByKey("ID")).setText(String.format("Gesamt: %s", lq.size() ) + "  Anzahl CheckFilenames: " + anz_MessageCheckFilenames);
+        qgrid.getFooterRows().get(0).getCell(qgrid.getColumnByKey("ID")).setText(String.format("Gesamt: %s", listOfQuarantine.size() ) + "  Anzahl CheckFilenames: " + anz_MessageCheckFilenames);
 
 //        qgrid.getDataProvider().refreshAll();
         Notification.show("Daten wurden aktualisiert",3000, Notification.Position.TOP_END);
@@ -437,15 +374,15 @@ public class QuarantaeneView extends VerticalLayout {
 
         System.out.println("Abfrage EGVP-Quarantäne: " + sql);
 
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        Configuration conf;
-
-        conf = comboBox.getValue();
-
-
-        ds.setUrl(conf.getDb_Url());
-        ds.setUsername(conf.getUserName());
-        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        Configuration conf;
+//
+//        conf = comboBox.getValue();
+//
+//
+//        ds.setUrl(conf.getDb_Url());
+//        ds.setUsername(conf.getUserName());
+//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
 
         //ds.setUrl("jdbc:oracle:thin:@37.120.189.200:1521:xe");
         //ds.setUsername("SYSTEM");
@@ -453,9 +390,10 @@ public class QuarantaeneView extends VerticalLayout {
 
         try {
 
-            jdbcTemplate.setDataSource(ds);
+//            jdbcTemplate.setDataSource(ds);
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
-            lq = jdbcTemplate.query(
+            listOfQuarantine = jdbcTemplate.query(
                     sql,
                     new BeanPropertyRowMapper(Quarantine.class));
 
@@ -470,11 +408,52 @@ public class QuarantaeneView extends VerticalLayout {
             });
 
             return null;
+        } finally {
+            connectionClose(jdbcTemplate);
         }
-        return lq;
+        return listOfQuarantine;
     }
     public StreamResource getStreamResource(String filename, String content) {
         return new StreamResource(filename,
                 () -> new ByteArrayInputStream(content.getBytes()));
+    }
+
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(com.example.application.data.entity.Configuration conf) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
+        try {
+            jdbcTemplate.setDataSource(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
+
+    public void connectionClose(JdbcTemplate jdbcTemplate) {
+        Connection connection = null;
+        DataSource dataSource = null;
+        try {
+            jdbcTemplate.getDataSource().getConnection().close();
+//            connection = jdbcTemplate.getDataSource().getConnection();
+//            dataSource = jdbcTemplate.getDataSource();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (connection != null) {
+                try {
+                    connection.close();
+
+                    if (dataSource instanceof HikariDataSource) {
+                        ((HikariDataSource) dataSource).close();
+                    }
+
+                } catch (SQLException e) {
+
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }

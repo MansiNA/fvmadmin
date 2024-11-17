@@ -228,7 +228,7 @@ public class FileBrowserView extends VerticalLayout {
 
     private void handleEndTaskButtonClick() {
         stat.setActive(false);
-        EndTaskBtn.setVisible(false);
+        EndTaskBtn.setEnabled(false);
 
 //            ThreadUtils.dumpThreads();
 
@@ -293,6 +293,7 @@ public class FileBrowserView extends VerticalLayout {
                 System.out.println("Tail-Button gedrückt für: " + selectedPath + "/" + file.getName());
                 stat.setActive(false);
                 EndTaskBtn.setVisible(true);
+                EndTaskBtn.setEnabled(true);
                 grepButton.setEnabled(false);
                 filterTextField.setEnabled(false);
                 lineNumbersCheckbox.setEnabled(false);
@@ -519,8 +520,8 @@ public class FileBrowserView extends VerticalLayout {
 
         //cl.authPassword("7x24!admin4me");
         cl.authKey(selectedServerConfig.getSshKey(),"");
-        cl.ReadRemoteLogFile(ui, tailTextAreaContent, file);
-        tailTextArea.setValue(tailTextAreaContent.toString());
+        cl.ReadRemoteLogFile(ui, tailTextAreaContent, file, tailTextArea);
+     //   tailTextArea.setValue(tailTextAreaContent.toString());
         Filelabel.setText(stat.getLogfile());
     }
 

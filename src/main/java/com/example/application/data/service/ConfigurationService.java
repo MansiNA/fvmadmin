@@ -1,18 +1,24 @@
 package com.example.application.data.service;
 
 import com.example.application.data.entity.Configuration;
-import com.example.application.data.entity.ServerConfiguration;
 import com.example.application.data.repository.ConfigurationRepository;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import jakarta.transaction.Transactional;
+import lombok.Getter;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class ConfigurationService {
 
     private ConfigurationRepository configurationRepository;
+    @Getter
+    private Map<Long, HikariDataSource> activePools = new HashMap<>();
 
     public ConfigurationService(ConfigurationRepository configurationRepository) {
 
@@ -32,6 +38,13 @@ public class ConfigurationService {
             return null;
         }
         return configurationRepository.findById(id).get();
+    }
+    public Optional<Configuration> findById(Long id) {
+        if (id == null) {
+            System.err.println("ID is null!");
+            return null;
+        }
+        return configurationRepository.findById(id);
     }
 
     public List<Configuration> findMessageConfigurations(){
@@ -63,8 +76,13 @@ public class ConfigurationService {
             System.out.println("New Configuration saved with ID: " + config.getId());
         } else {
             Optional<Configuration> existingConfigOptional = configurationRepository.findById(config.getId());
+
             if (existingConfigOptional.isPresent()) {
                 Configuration existingConfig = existingConfigOptional.get();
+                if (existingConfig != null && !existingConfig.getIsMonitoring().equals(config.getIsMonitoring())) {
+                    updatePoolStatus(config);
+                }
+
                 System.out.println("password existing = " + existingConfig.getPassword());
                 boolean passwordChanged = !config.getPassword().equals(existingConfig.getPassword());
                 System.out.println("password new updated = " + config.getPassword());
@@ -106,5 +124,58 @@ public class ConfigurationService {
         }
 
         configurationRepository.deleteById(config.getId());
+    }
+
+
+    /**
+     * Start HikariCP pool for a specific configuration.
+     */
+    public void startPool(Configuration config) {
+        if (!activePools.containsKey(config.getId())) {
+            HikariConfig hikariConfig = new HikariConfig();
+            hikariConfig.setJdbcUrl(config.getDb_Url());
+            hikariConfig.setUsername(config.getUserName());
+            hikariConfig.setPassword(Configuration.decodePassword(config.getPassword()));
+
+            String poolName = "CP_" + config.getName();
+            hikariConfig.setPoolName(poolName);
+//            hikariConfig.setMaximumPoolSize(20);  // Adjust for your concurrency needs
+//            hikariConfig.setConnectionTimeout(60000); // 60 seconds
+
+            // Set maxLifetime to 3 minutes (180,000 ms)
+//            hikariConfig.setMaxLifetime(1800000); // 3 minutes
+//            hikariConfig.setIdleTimeout(1800000); // 30 minutes
+//            hikariConfig.setValidationTimeout(5000); // 5 seconds
+//            hikariConfig.setKeepaliveTime(600000);   // 10 minutes
+//            hikariConfig.setValidationTimeout(5000);
+
+            HikariDataSource dataSource = new HikariDataSource(hikariConfig);
+            activePools.put((config.getId()), dataSource);
+
+            System.out.println("Started pool: " + poolName);
+        }
+    }
+
+    /**
+     * Stop HikariCP pool for a specific configuration.
+     */
+    public void stopPool(Long configId) {
+        HikariDataSource dataSource = activePools.remove(configId);
+        if (dataSource != null) {
+            dataSource.close();
+            System.out.println("Stopped pool for config ID: " + configId);
+        }
+    }
+
+
+    /**
+     * Update pool status based on changes in the 'Is_Monitoring' flag.
+     */
+    public void updatePoolStatus(Configuration config) {
+        if (config.getIsMonitoring() == 1 && !activePools.containsKey(config.getId())) {
+            startPool(config);
+        } else if (config.getIsMonitoring() == 0 && activePools.containsKey(config.getId())) {
+            stopPool(config.getId());
+        }
     }
 }
