@@ -87,7 +87,7 @@ public class BackgroundJobExecutor implements Job {
         int retentionTime = (monitorAlerting.getRetentionTime() > 0) ? monitorAlerting.getRetentionTime() : 1;
 
         List<fvm_monitoring> monitorings = cockpitService.getMonitoring(configuration);
-        logger.info("monitorings list size = "+monitorings.size());
+        logger.info("Count QS-Checks: " + monitorings.size());
 
         // Initialize executor service with a fixed thread pool based on maxParallelChecks
         ExecutorService executorService = Executors.newFixedThreadPool(maxParallelChecks);
@@ -96,15 +96,21 @@ public class BackgroundJobExecutor implements Job {
         // cleanUpOldResults(retentionTime, configuration);
 
         if(monitorings.size() == 0) {
-            logger.info("Global retention time used");
-            cleanUpOldResults(retentionTime, configuration, null);
+
+
+            logger.info("No active QS-Checks found");
+            return;
+            //logger.info("Global retention time used");
+            //cleanUpOldResults(retentionTime, configuration, null);
         }
 
         for (fvm_monitoring monitoring : monitorings) {
             if (monitoring.getIS_ACTIVE().equals("1") && monitoring.getPid() != 0) {
+                logger.info("#########################");
+                logger.info("Start CHECK-SQL ID=" + monitoring.getID());
 
                 try {
-                    cleanUpOldResults(monitoring.getRetentionTime(), configuration, monitoring.getID());
+                    //cleanUpOldResults(monitoring.getRetentionTime(), configuration, monitoring.getID());
 
                     JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
 
@@ -115,11 +121,16 @@ public class BackgroundJobExecutor implements Job {
                             Timestamp.class
                     );
 
+                    logger.info("Last Checktime of QS-ID: " + monitoring.getID() + ": " + lastCheck);
+
                     long timeSinceLastCheck = (lastCheck != null) ?
                             Duration.between(lastCheck.toLocalDateTime(), LocalDateTime.now()).toMinutes() :
                             Long.MAX_VALUE;
 
                     synchronized (threadLock) {
+                        logger.info("TimeSinceLastCheck of QS-ID " + monitoring.getID() + " = " + timeSinceLastCheck + " Min. CheckInterval is " + monitoring.getCheck_Intervall() + " Min.");
+                        logger.info("CurrentThreads " + currentThreads + " Max Threads: " + maxParallelChecks );
+
                         if (timeSinceLastCheck >= monitoring.getCheck_Intervall()
                                 && currentThreads <= maxParallelChecks
                                 && !globalStatus.contains(monitoring.getID())) {
@@ -127,8 +138,11 @@ public class BackgroundJobExecutor implements Job {
                             // step 2.
                             currentThreads++;
                             globalStatus.add(monitoring.getID());
+                            logger.info("Requirements met, add Thread. CurrentThreads now: " + currentThreads);
 
                             // step 3.
+                            logger.info("Execute Query: \"" + monitoring.getSQL() + "\"");
+                            logger.info("Connection: " + jdbcTemplate.getDataSource().getConnection().getSchema().toString());
                             executorService.submit(() -> {
                                 executeMonitoringTask(monitoring, jdbcTemplate);
                             });
@@ -152,7 +166,7 @@ public class BackgroundJobExecutor implements Job {
     }
 
     private void executeMonitoringTask(fvm_monitoring monitoring, JdbcTemplate jdbcTemplate) {
-        logger.info("Executing executeMonitoringTask");
+        logger.info("==>executeMonitoringTask");
         try {
             if (stopJob) {
                 return; // Exit if the job is stopped
@@ -163,8 +177,7 @@ public class BackgroundJobExecutor implements Job {
                     String sqlQuery = monitoring.getSQL();
                     String result = jdbcTemplate.queryForObject(sqlQuery, String.class);
                     String username = jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName();
-                    logger.info(monitoring.getID() + ": username"+ username +"------query executed: " + monitoring.getSQL().toString());
-
+                    logger.info("Store result for ID " + monitoring.getID() + ": "+ result);
                     Integer activeRowCount = jdbcTemplate.queryForObject(
                             "SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE IS_ACTIVE = 1 AND ID = ?",
                             Integer.class,
@@ -183,7 +196,7 @@ public class BackgroundJobExecutor implements Job {
                             result,
                             "Query executed successfully");
                     username = jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName();
-                    logger.info(monitoring.getID() + ": username"+ username +"----query result store: " + monitoring.getSQL().toString());
+
 
                 } catch (Exception ex) {
                     status.setRollbackOnly();

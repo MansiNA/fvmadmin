@@ -139,7 +139,7 @@ public class ConfigurationService {
 
             String poolName = "CP_" + config.getName();
             hikariConfig.setPoolName(poolName);
-//            hikariConfig.setMaximumPoolSize(20);  // Adjust for your concurrency needs
+            hikariConfig.setMaximumPoolSize(20);  // Adjust for your concurrency needs
 //            hikariConfig.setConnectionTimeout(60000); // 60 seconds
 
             // Set maxLifetime to 3 minutes (180,000 ms)

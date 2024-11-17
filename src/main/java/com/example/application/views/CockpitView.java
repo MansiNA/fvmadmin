@@ -1409,7 +1409,7 @@ public class CockpitView extends VerticalLayout{
     public void executeImmediateSQLCheck(fvm_monitoring monitoring) {
         UI ui = UI.getCurrent();
         executorService.submit(() -> {
-            if (monitoring.getIS_ACTIVE().equals("1")) {
+        //    if (monitoring.getIS_ACTIVE().equals("1")) {
                 try {
                     jdbcTemplate = cockpitService.getNewJdbcTemplateWithDatabase(comboBox.getValue());
                     String sqlQuery = monitoring.getSQL();
@@ -1419,28 +1419,31 @@ public class CockpitView extends VerticalLayout{
                             new Object[]{monitoring.getID()},
                             Integer.class
                     );
-                //    System.out.println("count########" + count+".............."+jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName());
-                    if (count != null && count > 0) {
+                    logger.info("Connection: " + jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName() );
+                    logger.info("Execute SQL: SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE ID =" + monitoring.getID() + "; Result: >" +result +"<") ;
+
+                    if (count != null ) {
                         jdbcTemplate.update(
                                 "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
                                 monitoring.getID());
-                    }
 
-                    jdbcTemplate.update(
-                            "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
-                            monitoring.getID(),
-                            Timestamp.valueOf(LocalDateTime.now()),
-                            1, // Mark as active
-                            result,
-                            "Query executed successfully");
+                        jdbcTemplate.update(
+                                "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
+                                monitoring.getID(),
+                                Timestamp.valueOf(LocalDateTime.now()),
+                                1, // Mark as active
+                                result,
+                                "Query executed successfully");
+                    }
                     if (ui != null) {
                         ui.access(() -> {
-                            Notification.show("refresh : sql check...." + monitoring.getID(), 5000, Notification.Position.MIDDLE);
+                            Notification.show("refresh : sql check ID: " + monitoring.getID() + " reult: "+ result, 5000, Notification.Position.MIDDLE);
                         });
                     }
-                    System.out.println("refresh...sql check...." + monitoring.getID() + "----------------------query executed: " + monitoring.getSQL().toString());
+
                 } catch (Exception ex) {
-                    System.out.println("Erorr: while " + monitoring.getID() + "----------------------query executed: " + monitoring.getSQL().toString());
+                    logger.error(ex.getMessage());
+                    //System.out.println("Erorr: while " + monitoring.getID() + "----------------------query executed: " + monitoring.getSQL().toString());
                     if (ui != null) {
                         ui.access(() -> {
                             Notification.show("Erorr: while sql-check: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
@@ -1450,7 +1453,7 @@ public class CockpitView extends VerticalLayout{
                     }
                 } finally {
                     cockpitService.connectionClose(jdbcTemplate);
-                }
+                //}
             }
         });
     }
@@ -1653,7 +1656,7 @@ public class CockpitView extends VerticalLayout{
         dialog.setDraggable(true);
         dialog.setResizable(true);
         dialog.setWidth("1000px");
-        dialog.setHeight("400px");
+        dialog.setHeight("600px");
 
         if(context.equals("New")){
             if(monitor != null) {
