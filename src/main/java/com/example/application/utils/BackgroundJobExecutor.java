@@ -106,18 +106,21 @@ public class BackgroundJobExecutor implements Job {
             //cleanUpOldResults(retentionTime, configuration, null);
         }
 
+        logger.info("#########################");
         for (fvm_monitoring monitoring : monitorings) {
             if (monitoring.getIS_ACTIVE().equals("1") && monitoring.getPid() != 0) {
-                logger.info("#########################");
-                logger.info("Start CHECK-SQL ID=" + monitoring.getID());
-                if (currentThreads > maxParallelChecks){
+
+                logger.info("##### Start CHECK-SQL ID=" + monitoring.getID() + " #####");
+                while (currentThreads > maxParallelChecks){
+                    logger.info("Actually Threads:" + currentThreads + " => too many threads, sleep 2 Sec.");
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(2000);
                     }
                     catch (Exception e)
                     {  e.getMessage();
                     }
                 }
+
                 try {
                     cleanUpOldResults(monitoring.getRetentionTime(), configuration, monitoring.getID());
 
@@ -176,7 +179,7 @@ public class BackgroundJobExecutor implements Job {
 
     private void executeMonitoringTask(fvm_monitoring monitoring, JdbcTemplate jdbcTemplate) {
         logger.info("Method executeMonitoringTask called");
-        logger.info("Value of stopJob:" + stopJob);
+        logger.info("Value of stopJob: " + stopJob);
         try {
             if (stopJob) {
                 return; // Exit if the job is stopped
