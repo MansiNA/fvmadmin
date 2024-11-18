@@ -69,7 +69,7 @@ public class BackgroundJobExecutor implements Job {
     }
 
     // Global variables
-    private static int currentThreads = 0;
+    private static int currentThreads = 1;
     private static final Object threadLock = new Object(); // Lock for thread synchronization
     private static final Set<Integer> globalStatus = ConcurrentHashMap.newKeySet(); // Global status to track running IDs
 
@@ -110,7 +110,14 @@ public class BackgroundJobExecutor implements Job {
             if (monitoring.getIS_ACTIVE().equals("1") && monitoring.getPid() != 0) {
                 logger.info("#########################");
                 logger.info("Start CHECK-SQL ID=" + monitoring.getID());
-
+                if (currentThreads > maxParallelChecks){
+                    try {
+                        Thread.sleep(1000);
+                    }
+                    catch (Exception e)
+                    {  e.getMessage();
+                    }
+                }
                 try {
                     cleanUpOldResults(monitoring.getRetentionTime(), configuration, monitoring.getID());
 
@@ -241,10 +248,10 @@ public class BackgroundJobExecutor implements Job {
             logger.error("Executing executeMonitoringTask: Error SQL for monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
         } finally {
             // step 4.
-            synchronized (threadLock) {
-                currentThreads--;
-                globalStatus.remove(monitoring.getID());
-            }
+//            synchronized (threadLock) {
+//                currentThreads--;
+//                globalStatus.remove(monitoring.getID());
+//            }
             //connectionClose(jdbcTemplate);
         }
     }
