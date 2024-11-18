@@ -409,6 +409,7 @@ public class CockpitView extends VerticalLayout{
 
     public void scheduleBackgroundJob(Configuration configuration) throws SchedulerException {
         logger.info("Starting scheduleBackgroundJob");
+        BackgroundJobExecutor.stopJob = false;
         Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
         scheduler.start();
 
