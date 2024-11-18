@@ -169,6 +169,7 @@ public class BackgroundJobExecutor implements Job {
 
     private void executeMonitoringTask(fvm_monitoring monitoring, JdbcTemplate jdbcTemplate) {
         logger.info("Method executeMonitoringTask called");
+        logger.info("Value of stopJob:" + stopJob);
         try {
             if (stopJob) {
                 return; // Exit if the job is stopped
@@ -198,7 +199,7 @@ public class BackgroundJobExecutor implements Job {
                             result,
                             "Query executed successfully");
           //          username = jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName();
-                    connectionClose(jdbcTemplate);
+             //       connectionClose(jdbcTemplate);
 
                 } catch (Exception ex) {
                     status.setRollbackOnly();
