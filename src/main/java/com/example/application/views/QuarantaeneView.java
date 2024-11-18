@@ -14,6 +14,7 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.LitRenderer;
@@ -65,7 +66,7 @@ public class QuarantaeneView extends VerticalLayout {
 
     List<Quarantine> listOfQuarantine = new ArrayList<>();
     private Button downloadButton = new Button("Download");
-    ComboBox FehlertypCB;
+    ComboBox<String> FehlertypCB = new ComboBox<>("Fehlertyp");
     UI ui;
 
 
@@ -88,16 +89,36 @@ public class QuarantaeneView extends VerticalLayout {
         }
 
         comboBox.addValueChangeListener(event -> {
-                    updateGrid();
+            updateGrid();
         });
 
-        List<String> errorList = List.of("MESSAGE_INCOMPLETE", "CHECK_FILENAMES", "SERVER_NOT_REACHABLE","RECEIVERID_NOT_FOUND");
-
+    //    List<String> errorList = List.of("MESSAGE_INCOMPLETE", "CHECK_FILENAMES", "SERVER_NOT_REACHABLE","RECEIVERID_NOT_FOUND");
+        List<String> errorList = new ArrayList<>();
         FehlertypCB = new ComboBox<>("Fehlertyp");
         FehlertypCB.setItems(errorList);
-        FehlertypCB.setValue(errorList.get(0));
+////        FehlertypCB.setValue(errorList.get(0));
         FehlertypCB.setWidth("200px");
+        FehlertypCB.setPlaceholder("add FehlertypCB");
+//        FehlertypCB.setAllowCustomValue(true);
+//        FehlertypCB.addCustomValueSetListener(event -> {
+//            String customValue = event.getdetail();
+//            System.out.println(customValue+"----");
+//        });
+//        ComboBox<String> comboBoxCLTVChargeName = new ComboBox<>();
+        FehlertypCB.setPlaceholder("select Charge Name");
+
+        FehlertypCB.setAllowCustomValue(true);
+        FehlertypCB.addCustomValueSetListener(e -> {
+            String customValue = e.getDetail();
+            System.out.println("FehlertypCB: "+ customValue);
+            errorList.add(customValue);
+            FehlertypCB.setItems(errorList);
+            FehlertypCB.setValue(customValue);
+            updateGrid();
+        });
+
         FehlertypCB.addValueChangeListener(event -> {
+            System.out.println("now FehlertypCB: "+event.getValue());
             updateGrid();
         });
         
