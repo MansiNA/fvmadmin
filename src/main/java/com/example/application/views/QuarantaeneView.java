@@ -98,6 +98,7 @@ public class QuarantaeneView extends VerticalLayout {
     //    List<String> errorList = List.of("MESSAGE_INCOMPLETE", "CHECK_FILENAMES", "SERVER_NOT_REACHABLE","RECEIVERID_NOT_FOUND");
         List<String> exceptionCodes = listOfQuarantine.stream()
                 .map(Quarantine::getEXCEPTIONCODE)
+                .distinct()
                 .collect(Collectors.toList());
         FehlertypCB = new ComboBox<>("Fehlertyp");
         if(exceptionCodes != null) {
@@ -108,7 +109,18 @@ public class QuarantaeneView extends VerticalLayout {
 
         FehlertypCB.addValueChangeListener(event -> {
             System.out.println("now FehlertypCB: "+event.getValue());
-            updateGrid();
+            String selectedValue = event.getValue();
+            if (selectedValue != null) {
+                // Filter listOfQuarantine by selected EXCEPTIONCODE
+                List<Quarantine> filteredList = listOfQuarantine.stream()
+                        .filter(q -> selectedValue.equals(q.getEXCEPTIONCODE()))
+                        .collect(Collectors.toList());
+                // Update Grid with filtered data
+                qgrid.setItems(filteredList);
+            } else {
+                // If no selection, reset Grid to original data
+                qgrid.setItems(listOfQuarantine);
+            }
         });
         
         HorizontalLayout hl = new HorizontalLayout();
@@ -374,10 +386,10 @@ public class QuarantaeneView extends VerticalLayout {
                 "order by egvp.creationdate desc, egvp.entrancedate desc\n";*/
 
         String sql= "select * from ekp.v_egvp_quarantaene";
-
-        if (!FehlertypCB.isEmpty()){
-            sql = sql + " where EXCEPTIONCODE='" + FehlertypCB.getValue() + "'";
-        }
+//
+//        if (!FehlertypCB.isEmpty()){
+//            sql = sql + " where EXCEPTIONCODE='" + FehlertypCB.getValue() + "'";
+//        }
 
         System.out.println("Abfrage EGVP-Quarantäne: " + sql);
 
