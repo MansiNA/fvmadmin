@@ -122,6 +122,14 @@ public class QuarantaeneView extends VerticalLayout {
                 qgrid.setItems(listOfQuarantine);
             }
         });
+
+
+
+
+
+
+
+
         
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox, FehlertypCB, button);
@@ -144,8 +152,8 @@ public class QuarantaeneView extends VerticalLayout {
                 try {
                     System.out.println("Hole Quarantäne Infos");
 
-                    updateGrid();
-                 //   listOfQuarantine = getQuarantaene(ui);
+                    // updateGrid();
+                    listOfQuarantine = getQuarantaene(ui);
 
                     //Thread.sleep(2000); //2 Sekunden warten
                     Thread.sleep(20); //2 Sekunden warten
@@ -164,7 +172,7 @@ public class QuarantaeneView extends VerticalLayout {
 
                         return;
                     }
-                  //  qgrid.setItems(listOfQuarantine);
+                    qgrid.setItems(listOfQuarantine);
 
                     refreshGrid();
                 });
