@@ -171,7 +171,8 @@ public class EmailMonitorJobExecutor implements Job {
             String fileName = "ExceedEntries.xlsx";
             emailService.sendAttachMessage(config.getMailEmpfaenger(), config.getMailCCEmpfaenger(), config.getMailBetreff(), config.getMailText(), fileName, resource);
          //   emailService.sendAttachMessage(config.getMailEmpfaenger(), config.getMailCCEmpfaenger(), config.getMailBetreff(), config.getMailText());
-            System.out.println("Email sent successfully!");
+
+            logger.info("Email send to " + config.getMailEmpfaenger());
         } catch (Exception e) {
             e.printStackTrace();
         }

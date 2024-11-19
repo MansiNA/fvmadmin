@@ -116,7 +116,7 @@ public class EmailServiceImpl implements EmailService {
             }
         };
 
-     //   emailSender.send(preparator);
+        emailSender.send(preparator);
     }
 
 }
