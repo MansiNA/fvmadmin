@@ -617,9 +617,10 @@ public class TableView extends VerticalLayout {
         if (queryString != null) {
             try {
                 Configuration conf = comboBox.getValue();
-                String password = Configuration.decodePassword(conf.getPassword());
-                DataSource dataSource = getDataSourceUsingParameter(conf.getDb_Url(), conf.getUserName(), password);
-                jdbcTemplate = new JdbcTemplate(dataSource);
+//                String password = Configuration.decodePassword(conf.getPassword());
+//                DataSource dataSource = getDataSourceUsingParameter(conf.getDb_Url(), conf.getUserName(), password);
+//                jdbcTemplate = new JdbcTemplate(dataSource);
+                getJdbcTemplateWithDBConnetion(conf);
                 rows = jdbcTemplate.queryForList(queryString);
                 connectionClose(jdbcTemplate);
                 return rows;
@@ -923,6 +924,18 @@ public class TableView extends VerticalLayout {
         throw new RuntimeException("Database connection not found: " + dbUser);
     }
 
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(com.example.application.data.entity.Configuration conf) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
+        try {
+            jdbcTemplate.setDataSource(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
     public void connectionClose(JdbcTemplate jdbcTemplate) {
         Connection connection = null;
         DataSource dataSource = null;
