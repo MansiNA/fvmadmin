@@ -7,6 +7,7 @@ import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.JobDefinitionService;
 import com.example.application.service.CockpitService;
 import com.example.application.utils.*;
+import com.example.application.views.CockpitView;
 import com.example.application.views.JobManagerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.dependency.NpmPackage;
@@ -18,6 +19,8 @@ import com.vaadin.flow.theme.Theme;
 import com.zaxxer.hikari.HikariDataSource;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
@@ -60,19 +63,21 @@ public class Application implements AppShellConfigurator {
 
     @Autowired
     private CockpitService cockpitService;
-
+    public static HashMap<Long, Integer> maxPoolsizeMap = new HashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(CockpitView.class);
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
-
+        logger.info("main(): Application Starting");
     }
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
 
         if (cronAutostart) {
-            System.out.println("");
+            logger.info("onApplicationReady(): cronAutostart = "+cronAutostart);
             allCronJobStart();
         }
+
         initializePools();
         allMonitorCronStart();
         allBackGroundCronStart();
@@ -83,9 +88,13 @@ public class Application implements AppShellConfigurator {
     }
 
     private void initializePools() {
+        logger.info("initializePools(): initialize confifuration hikari-pools");
         List<Configuration> configurations = configurationService.findMessageConfigurations();
 
         for (Configuration config : configurations) {
+            int maximumPoolSize  = cockpitService.fetchMaxParallel(config);
+            maximumPoolSize = ( maximumPoolSize > 0) ? maximumPoolSize : 1;
+            maxPoolsizeMap.put(config.getId(), maximumPoolSize);
             managePoolForConfiguration(config);
         }
         System.out.println("Count Hikari Pools: " + configurationService.getActivePools().size());
@@ -100,14 +109,16 @@ public class Application implements AppShellConfigurator {
      * Start or stop a HikariCP connection pool based on the 'Is_Monitoring' flag.
      */
     public void managePoolForConfiguration(Configuration config) {
+        logger.info("managePoolForConfiguration(Configuration config) : manage pool of"+ config.getUserName());
         if (config.getIsMonitoring() == 1) {
-            configurationService.startPool(config);
+          configurationService.startPool(config);
         } else {
             configurationService.stopPool(config.getId());
         }
     }
 
     private void allBackGroundCronStart() {
+        logger.info("allBackGroundCronStart(): all background job schedule");
         List<Configuration> configList = configurationService.findMessageConfigurations();
         List<Configuration> monitoringConfigs = configList.stream()
                 .filter(config -> config.getIsMonitoring() != null && config.getIsMonitoring() == 1)
@@ -124,6 +135,7 @@ public class Application implements AppShellConfigurator {
     }
 
     private void allMonitorCronStart() {
+        logger.info("allBackGroundCronStart(): all Email Monitor job schedule");
         List<Configuration> configList = configurationService.findMessageConfigurations();
         List<Configuration> monitoringConfigs = configList.stream()
                 .filter(config -> config.getIsMonitoring() != null && config.getIsMonitoring() == 1)
@@ -144,6 +156,7 @@ public class Application implements AppShellConfigurator {
     }
 
     public void scheduleEmailMonitorJob(Configuration configuration) throws SchedulerException {
+        logger.info("scheduleEmailMonitorJob(Configuration configuration): start emailAlert job schedule");
         // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
         if(monitorAlerting.getIsActive() != null && monitorAlerting.getIsActive() == 1) {
@@ -186,7 +199,7 @@ public class Application implements AppShellConfigurator {
     }
 
     public void scheduleBackgroundJob(Configuration configuration) throws SchedulerException {
-
+        logger.info("scheduleBackgroundJob(Configuration configuration): start background job schedule");
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
         cockpitService.updateIsBackJobActive(1, configuration);
 //        if(monitorAlerting.getIsBackJobActive() != null && monitorAlerting.getIsBackJobActive() == 1) {
@@ -230,6 +243,7 @@ public class Application implements AppShellConfigurator {
         return "0 0/" + interval + " * * * ?";
     }
     private void  allCronJobStart(){
+        logger.info("allCronJobStart(): all jobmanager jobs schedule");
         System.out.println("all cron start");
         jobDefinitionService = SpringContextHolder.getBean(JobDefinitionService.class);
 
@@ -262,6 +276,7 @@ public class Application implements AppShellConfigurator {
         return count;
     }
     public void scheduleJob(JobManager jobManager, String startType) throws SchedulerException {
+        logger.info(" scheduleJob(JobManager jobManager, String startType): jobmanager job schedule");
         Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
         scheduler.start();
         //  notifySubscribers(",,"+jobManager.getId());

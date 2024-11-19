@@ -1,7 +1,10 @@
 package com.example.application.data.service;
 
+import com.example.application.Application;
 import com.example.application.data.entity.Configuration;
+import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.repository.ConfigurationRepository;
+import com.example.application.service.CockpitService;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.transaction.Transactional;
@@ -17,6 +20,7 @@ import java.util.Optional;
 public class ConfigurationService {
 
     private ConfigurationRepository configurationRepository;
+
     @Getter
     private Map<Long, HikariDataSource> activePools = new HashMap<>();
 
@@ -132,14 +136,16 @@ public class ConfigurationService {
      */
     public void startPool(Configuration config) {
         if (!activePools.containsKey(config.getId())) {
+
             HikariConfig hikariConfig = new HikariConfig();
             hikariConfig.setJdbcUrl(config.getDb_Url());
             hikariConfig.setUsername(config.getUserName());
             hikariConfig.setPassword(Configuration.decodePassword(config.getPassword()));
 
+            int maximumPoolSize = Application.maxPoolsizeMap.get(config.getId());
             String poolName = "CP_" + config.getName();
             hikariConfig.setPoolName(poolName);
-            hikariConfig.setMaximumPoolSize(20);  // Adjust for your concurrency needs
+            hikariConfig.setMaximumPoolSize(maximumPoolSize);  // Adjust for your concurrency needs
 //            hikariConfig.setConnectionTimeout(60000); // 60 seconds
 
             // Set maxLifetime to 3 minutes (180,000 ms)

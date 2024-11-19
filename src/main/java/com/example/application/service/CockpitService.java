@@ -330,6 +330,23 @@ public class CockpitService {
         });
     }
 
+    public int fetchMaxParallel(Configuration configuration) {
+        int maxParallel = 0;
+        JdbcTemplate jdbcTemplate = getJdbcTemplateWithDBConnetion(configuration);
+        try {
+            
+            String sql = "SELECT MAX_PARALLEL_CHECKS FROM FVM_MONITOR_ALERTING";
+
+            maxParallel = jdbcTemplate.queryForObject(sql, Integer.class);
+
+            return maxParallel;
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            connectionClose(jdbcTemplate);
+        }
+        return 1;
+    }
     public MonitorAlerting fetchEmailConfiguration(Configuration configuration) {
         JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
         MonitorAlerting monitorAlerting = new MonitorAlerting();
