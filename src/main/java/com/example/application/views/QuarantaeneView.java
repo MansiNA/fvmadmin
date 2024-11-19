@@ -47,6 +47,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import static com.example.application.security.ApplicationUserRole.PF_ADMIN;
 import static org.apache.xmlbeans.impl.store.Public2.getStream;
@@ -92,38 +93,23 @@ public class QuarantaeneView extends VerticalLayout {
             updateGrid();
         });
 
+        configureQuarantaeneGrid();
+        updateGrid();
     //    List<String> errorList = List.of("MESSAGE_INCOMPLETE", "CHECK_FILENAMES", "SERVER_NOT_REACHABLE","RECEIVERID_NOT_FOUND");
-        List<String> errorList = new ArrayList<>();
+        List<String> exceptionCodes = listOfQuarantine.stream()
+                .map(Quarantine::getEXCEPTIONCODE)
+                .collect(Collectors.toList());
         FehlertypCB = new ComboBox<>("Fehlertyp");
-        FehlertypCB.setItems(errorList);
-////        FehlertypCB.setValue(errorList.get(0));
+        if(exceptionCodes != null) {
+            FehlertypCB.setItems(exceptionCodes);
+        }
         FehlertypCB.setWidth("200px");
-        FehlertypCB.setPlaceholder("add FehlertypCB");
-//        FehlertypCB.setAllowCustomValue(true);
-//        FehlertypCB.addCustomValueSetListener(event -> {
-//            String customValue = event.getdetail();
-//            System.out.println(customValue+"----");
-//        });
-//        ComboBox<String> comboBoxCLTVChargeName = new ComboBox<>();
-        FehlertypCB.setPlaceholder("select Charge Name");
-
-        FehlertypCB.setAllowCustomValue(true);
-        FehlertypCB.addCustomValueSetListener(e -> {
-            String customValue = e.getDetail();
-            System.out.println("FehlertypCB: "+ customValue);
-            errorList.add(customValue);
-            FehlertypCB.setItems(errorList);
-            FehlertypCB.setValue(customValue);
-            updateGrid();
-        });
+        FehlertypCB.setPlaceholder("select Fehlertyp");
 
         FehlertypCB.addValueChangeListener(event -> {
             System.out.println("now FehlertypCB: "+event.getValue());
             updateGrid();
         });
-        
-        configureQuarantaeneGrid();
-        updateGrid();
         
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox, FehlertypCB, button);
