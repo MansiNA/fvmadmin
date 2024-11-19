@@ -3,6 +3,7 @@ package com.example.application.utils;
 import com.example.application.data.entity.*;
 import com.example.application.service.CockpitService;
 import com.example.application.service.EmailService;
+import com.example.application.views.CockpitView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -11,6 +12,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -32,6 +35,8 @@ public class EmailMonitorJobExecutor implements Job {
     private CockpitService cockpitService;
     private String startType;
     private Configuration configuration;
+
+    private static final Logger logger = LoggerFactory.getLogger(CockpitView.class);
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
@@ -56,6 +61,7 @@ public class EmailMonitorJobExecutor implements Job {
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
 
         if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+            logger.info("EMail-Check: Exit because no configuration or interval is set");
             return; // Exit if no configuration or interval is set
         }
 
@@ -65,7 +71,8 @@ public class EmailMonitorJobExecutor implements Job {
         // Check the last alert time to ensure 60 minutes have passed
         LocalDateTime lastAlertTimeFromDB = cockpitService.fetchEmailConfiguration(configuration).getLastAlertTime();
         if (lastAlertTimeFromDB != null && lastAlertTimeFromDB.plusMinutes(60).isAfter(LocalDateTime.now())) {
-            System.out.println("60 minutes have not passed since the last alert. Skipping alert.");
+           // System.out.println("60 minutes have not passed since the last alert. Skipping alert.");
+            logger.info("EMail-Check: 60 minutes have not passed since the last alert. Skipping alert.");
             return;
         }
 
@@ -76,7 +83,8 @@ public class EmailMonitorJobExecutor implements Job {
         // Check each monitoring entry
         for (fvm_monitoring monitoring : monitorings) {
             if (!monitoring.getIS_ACTIVE().equals("1") || monitoring.getPid() == 0) {
-                System.out.println(monitoring.getTitel() + "------------skip-----------" + monitoring.getIS_ACTIVE());
+                //System.out.println(monitoring.getTitel() + "------------skip-----------" + monitoring.getIS_ACTIVE());
+                logger.info("EMail-Check: skip CheckID " + monitoring.getID() + "(isActive= " + monitoring.getIS_ACTIVE() + ")");
                 continue; // Skip non-active entries
             }
 
@@ -87,6 +95,7 @@ public class EmailMonitorJobExecutor implements Job {
 
         // If any entry exceeds the threshold, send an email with an Excel attachment
         if (!exceededEntries.isEmpty()) {
+            logger.info("EMail-Check: Count entries exceeded the threshold:" + exceededEntries.size());
             // Generate the Excel file with exceeded entries
             ByteArrayResource xlsxAttachment = generateExcelAttachment(exceededEntries);
 
@@ -96,7 +105,7 @@ public class EmailMonitorJobExecutor implements Job {
             monitorAlerting.setLastAlertTime(lastAlertTime);
             cockpitService.updateLastAlertTimeInDatabase(monitorAlerting, configuration);
         } else {
-            System.out.println("No entries exceeded the threshold.");
+            logger.info("EMail-Check: No entries exceeded the threshold.");
         }
 
     }
