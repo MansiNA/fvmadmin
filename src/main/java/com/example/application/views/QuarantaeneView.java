@@ -2,9 +2,7 @@ package com.example.application.views;
 
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.Quarantine;
-import com.example.application.data.entity.TableInfo;
 import com.example.application.data.service.ConfigurationService;
-import com.example.application.security.ApplicationUserRole;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -14,7 +12,6 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.LitRenderer;
@@ -24,33 +21,20 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.StreamResource;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
-import org.apache.commons.compress.utils.Lists;
-import org.apache.poi.hssf.usermodel.HSSFFont;
-import org.apache.poi.hssf.usermodel.HSSFRow;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.security.access.annotation.Secured;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import javax.sql.DataSource;
 import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-
-import static com.example.application.security.ApplicationUserRole.PF_ADMIN;
-import static org.apache.xmlbeans.impl.store.Public2.getStream;
 
 @PageTitle("Quarantäne Verwaltung")
 @Route(value = "quarantaene", layout= MainLayout.class)
@@ -110,27 +94,10 @@ public class QuarantaeneView extends VerticalLayout {
         FehlertypCB.addValueChangeListener(event -> {
             System.out.println("now FehlertypCB: "+event.getValue());
             String selectedValue = event.getValue();
-            if (selectedValue != null) {
-                // Filter listOfQuarantine by selected EXCEPTIONCODE
-                List<Quarantine> filteredList = listOfQuarantine.stream()
-                        .filter(q -> selectedValue.equals(q.getEXCEPTIONCODE()))
-                        .collect(Collectors.toList());
-                // Update Grid with filtered data
-                qgrid.setItems(filteredList);
-            } else {
-                // If no selection, reset Grid to original data
-                qgrid.setItems(listOfQuarantine);
-            }
+            gridUpdateWithFilter(selectedValue);
         });
 
 
-
-
-
-
-
-
-        
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox, FehlertypCB, button);
         hl.setAlignItems(Alignment.BASELINE);
@@ -174,6 +141,7 @@ public class QuarantaeneView extends VerticalLayout {
                     }
                     qgrid.setItems(listOfQuarantine);
 
+                    gridUpdateWithFilter(FehlertypCB.getValue());
                     refreshGrid();
                 });
             });
@@ -196,6 +164,20 @@ public class QuarantaeneView extends VerticalLayout {
 
         });
 
+    }
+
+    private void gridUpdateWithFilter(String selectedValue) {
+        if (selectedValue != null) {
+            // Filter listOfQuarantine by selected EXCEPTIONCODE
+            List<Quarantine> filteredList = listOfQuarantine.stream()
+                    .filter(q -> selectedValue.equals(q.getEXCEPTIONCODE()))
+                    .collect(Collectors.toList());
+            // Update Grid with filtered data
+            qgrid.setItems(filteredList);
+        } else {
+            // If no selection, reset Grid to original data
+            qgrid.setItems(listOfQuarantine);
+        }
     }
 
     private void updateGrid() {
