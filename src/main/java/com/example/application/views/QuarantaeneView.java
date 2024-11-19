@@ -104,7 +104,7 @@ public class QuarantaeneView extends VerticalLayout {
         if(exceptionCodes != null) {
             FehlertypCB.setItems(exceptionCodes);
         }
-        FehlertypCB.setWidth("200px");
+        FehlertypCB.setWidth("400px");
         FehlertypCB.setPlaceholder("select Fehlertyp");
 
         FehlertypCB.addValueChangeListener(event -> {
