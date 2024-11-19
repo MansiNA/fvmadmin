@@ -392,7 +392,8 @@ public class CockpitView extends VerticalLayout{
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
    //     System.out.println("---------------------------------------"+monitorAlerting.getMailEmpfaenger()+"--------------------------------------");
         if (monitorAlerting == null || monitorAlerting.getCron() == null) {
-            System.out.println("No interval set for the configuration. Job will not be scheduled.");
+            //System.out.println("No interval set for the configuration. Job will not be scheduled.");
+            logger.error("No interval set for the configuration. Job will not be scheduled.");
             return;
         }
 
@@ -719,14 +720,14 @@ public class CockpitView extends VerticalLayout{
         treeGrid = new TreeGrid<>();
         logger.info("configureTreeGrid");
         // Add the hierarchy column for displaying the hierarchical data
-        treeGrid.addHierarchyColumn(fvm_monitoring::getBereich).setHeader("Bereich").setAutoWidth(true).setResizable(true);
+        treeGrid.addHierarchyColumn(fvm_monitoring::getBereich).setHeader("Bereich").setWidth("80px").setResizable(true);
 
         Grid.Column<fvm_monitoring> idColumn = treeGrid.addColumn((fvm_monitoring::getID)).setHeader("ID")
                 .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
         Grid.Column<fvm_monitoring> pidColumn = treeGrid.addColumn((fvm_monitoring::getPid)).setHeader("PID")
                 .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
         treeGrid.addColumn(fvm_monitoring::getTitel).setHeader("Titel")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+                .setWidth("350px").setResizable(true).setSortable(true);
       /*  grid.addColumn(fvm_monitoring::getCheck_Intervall).setHeader("Intervall")
                 .setAutoWidth(true).setResizable(true).setSortable(true); */
 //        grid.addColumn(fvm_monitoring::getWarning_Schwellwert).setHeader("Warning Schwellwert")
@@ -736,9 +737,9 @@ public class CockpitView extends VerticalLayout{
         Grid.Column<fvm_monitoring> retentionColumn = treeGrid.addColumn((fvm_monitoring::getRetentionTime)).setHeader("Retention Time")
                 .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
         treeGrid.addColumn(fvm_monitoring::getError_Schwellwert ).setHeader("Error Schwellwert")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+                .setWidth("30px").setResizable(true).setSortable(true);
         treeGrid.addColumn(fvm_monitoring::getAktueller_Wert).setHeader("Aktuell")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+                .setWidth("30px").setResizable(true).setSortable(true);
         //  grid.addColumn(fvm_monitoring::getBeschreibung).setHeader("Beschreibung")
         //          .setAutoWidth(true).setResizable(true).setSortable(true);
         //  grid.addColumn(fvm_monitoring::getHandlungs_INFO).setHeader("Handlungsinfo")
@@ -760,10 +761,10 @@ public class CockpitView extends VerticalLayout{
             hl.add(t,progressBar);
 
             return hl;
-        })).setHeader("Auslastung").setWidth("150px").setResizable(true);
+        })).setHeader("Auslastung").setWidth("100px").setResizable(true);
 
         treeGrid.addColumn(fvm_monitoring::getIS_ACTIVE).setHeader("Aktiv")
-                .setAutoWidth(true).setResizable(true).setSortable(true);
+                .setWidth("30px").setResizable(true).setSortable(true);
 
 
         treeGrid.setItemDetailsRenderer(createPersonDetailsRenderer());
@@ -1038,6 +1039,7 @@ public class CockpitView extends VerticalLayout{
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
 
         if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+            logger.error("E-Mail Alerting not configured!");
             return; // Exit if no configuration or interval is set
         }
 
@@ -1047,7 +1049,7 @@ public class CockpitView extends VerticalLayout{
         // Check the last alert time to ensure 60 minutes have passed
         LocalDateTime lastAlertTimeFromDB = cockpitService.fetchEmailConfiguration(comboBox.getValue()).getLastAlertTime();
         if (lastAlertTimeFromDB != null && lastAlertTimeFromDB.plusMinutes(60).isAfter(LocalDateTime.now())) {
-            System.out.println("60 minutes have not passed since the last alert. Skipping alert.");
+            logger.info("60 minutes have not passed since the last alert. Skipping alert.");
             return;
         }
 
@@ -1057,13 +1059,14 @@ public class CockpitView extends VerticalLayout{
         for (fvm_monitoring monitoring : monitorings) {
 
             if (!monitoring.getIS_ACTIVE().equals("1")) {
-                System.out.println(monitoring.getTitel() + "------------skip-----------"+monitoring.getIS_ACTIVE());
+                logger.info("Skip check entry " + monitoring.getTitel() + " active= " + monitoring.getIS_ACTIVE());
+
                 continue; // Skip non-active entries
             }
-            System.out.println(monitoring.getTitel() + "shouldSendAlert(monitoring) = "+shouldSendAlert(monitoring));
+            logger.info("ShouldSendAlert(monitoring) for ID " +monitoring.getID() + ": " + shouldSendAlert(monitoring));
             if (shouldSendAlert(monitoring)) {
            //     if (shouldSendEmail(monitorAlerting)) {
-                  //  sendAlertEmail(monitorAlerting, monitoring);
+                    sendAlertEmail(monitorAlerting, monitoring);
                     lastAlertTime = LocalDateTime.now(); // Update last alert time
                     monitorAlerting.setLastAlertTime(lastAlertTime);
                     updateLastAlertTimeInDatabase(monitorAlerting); // Update the DB with the current time
