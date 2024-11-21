@@ -23,6 +23,8 @@ import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -53,9 +55,10 @@ public class QuarantaeneView extends VerticalLayout {
     private Button downloadButton = new Button("Download");
     ComboBox<String> FehlertypCB = new ComboBox<>("Fehlertyp");
     UI ui;
-
+    private static final Logger logger = LoggerFactory.getLogger(QuarantaeneView.class);
 
     public QuarantaeneView(JdbcTemplate jdbcTemplate, ConfigurationService service) {
+        logger.info("Starting QuarantaeneView");
         this.service = service;
         this.jdbcTemplate = jdbcTemplate;
 
@@ -74,6 +77,7 @@ public class QuarantaeneView extends VerticalLayout {
         }
 
         comboBox.addValueChangeListener(event -> {
+            logger.info(" comboBox.addValueChangeListener: Verbindung = "+ event.getValue());
             updateGrid();
         });
 
@@ -92,7 +96,8 @@ public class QuarantaeneView extends VerticalLayout {
         FehlertypCB.setPlaceholder("select Fehlertyp");
 
         FehlertypCB.addValueChangeListener(event -> {
-            System.out.println("now FehlertypCB: "+event.getValue());
+            logger.info("FehlertypCB.addValueChangeListener: FehlertypCB = "+ event.getValue());
+          //  System.out.println("now FehlertypCB: "+event.getValue());
             String selectedValue = event.getValue();
             gridUpdateWithFilter(selectedValue);
         });
@@ -117,8 +122,8 @@ public class QuarantaeneView extends VerticalLayout {
 
                 // Do some long running task
                 try {
-                    System.out.println("Hole Quarantäne Infos");
-
+                   // System.out.println("Hole Quarantäne Infos");
+                    logger.info("Refresh button.addClickListener: Hole Quarantäne Infos");
                     // updateGrid();
                     listOfQuarantine = getQuarantaene(ui);
 
@@ -155,10 +160,11 @@ public class QuarantaeneView extends VerticalLayout {
         downloadButton.addClickListener(clickEvent -> {
             Notification.show("Exportiere Liste ");
             try {
-
+                logger.info("downloadButton.addClickListener: Exportiere Liste");
                 generateExcel( "quarantaene_export.xlsx");
 
             } catch (Exception e) {
+                logger.info("downloadButton.addClickListener:Error "+e.getMessage());
                 e.getMessage();
             }
 
@@ -168,6 +174,7 @@ public class QuarantaeneView extends VerticalLayout {
 
     private void gridUpdateWithFilter(String selectedValue) {
         if (selectedValue != null) {
+            logger.info("gridUpdateWithFilter: grid filter with "+ selectedValue);
             // Filter listOfQuarantine by selected EXCEPTIONCODE
             List<Quarantine> filteredList = listOfQuarantine.stream()
                     .filter(q -> selectedValue.equals(q.getEXCEPTIONCODE()))
@@ -176,6 +183,7 @@ public class QuarantaeneView extends VerticalLayout {
             qgrid.setItems(filteredList);
         } else {
             // If no selection, reset Grid to original data
+            logger.info("gridUpdateWithFilter: grid reset ");
             qgrid.setItems(listOfQuarantine);
         }
     }
@@ -183,15 +191,17 @@ public class QuarantaeneView extends VerticalLayout {
     private void updateGrid() {
         listOfQuarantine = getQuarantaene(ui);
         if (listOfQuarantine != null) {
+            logger.info("updateGrid: Quarantine grid Items "+listOfQuarantine.size());
             downloadButton.setEnabled(true);
             qgrid.setItems(listOfQuarantine);
         } else {
+            logger.info("updateGrid: No grid Items "+listOfQuarantine.size());
             downloadButton.setEnabled(false);
         }
     }
 
     private void configureQuarantaeneGrid() {
-
+        logger.info("configureQuarantaeneGrid(): configure Quarantaene grid");
         qgrid.addColumn(createNachrichtIDRenderer()).setKey("ID").setHeader("Nachricht-ID").setAutoWidth(true).setSortable(true).setResizable(true).setComparator(Quarantine::getID).setFooter("Anzahl Einträge: 0");
         qgrid.addColumn(Quarantine::getEXCEPTIONCODE).setHeader("Exception-Code").setAutoWidth(true).setResizable(true).setSortable(true);
         qgrid.addColumn(createDateRenderer()).setHeader("Date").setAutoWidth(true).setSortable(true).setResizable(true).setComparator(Quarantine::getENTRANCEDATE);
@@ -231,7 +241,7 @@ public class QuarantaeneView extends VerticalLayout {
     }
 
     private void generateExcel(String fileName) {
-
+        logger.info("generateExcel: fileName = "+fileName);
         try (Workbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Quarantine Data");
 
@@ -292,12 +302,14 @@ public class QuarantaeneView extends VerticalLayout {
             downloadAnchor.getElement().callJsFunction("click");
 
         } catch (IOException e) {
+            logger.error("generateExcel: Error: fileName = "+fileName);
             Notification.show("Error creating Excel file: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     private static Renderer<Quarantine> createNachrichtIDRenderer() {
+        logger.info("createNachrichtIDRenderer()");
         return LitRenderer.<Quarantine> of(
                    "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
                                 + "    <span> ${item.NachrichtIDExtern} </span>"
@@ -311,6 +323,7 @@ public class QuarantaeneView extends VerticalLayout {
 
 
     private static Renderer<Quarantine> createDateRenderer() {
+        logger.info("createDateRenderer()");
         return LitRenderer.<Quarantine> of(
                         "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
                                 + "    <span> ${item.EntranceDate} </span>"
@@ -323,6 +336,7 @@ public class QuarantaeneView extends VerticalLayout {
     }
 
     private static Renderer<Quarantine> createReceiverRenderer() {
+        logger.info("createReceiverRenderer()");
         return LitRenderer.<Quarantine> of(
                         "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
                                 + "    <span> ${item.ReceiverName} </span>"
@@ -335,6 +349,7 @@ public class QuarantaeneView extends VerticalLayout {
     }
 
     private static Renderer<Quarantine> createSenderRenderer() {
+        logger.info("createSenderRenderer()");
         return LitRenderer.<Quarantine> of(
                         "  <vaadin-vertical-layout style=\"line-height: var(--lumo-line-height-m);\">"
                                 + "    <span> ${item.SenderName} </span>"
@@ -347,7 +362,7 @@ public class QuarantaeneView extends VerticalLayout {
     }
 
     private void refreshGrid(){
-
+        logger.info("refreshGrid()");
         Integer anz_MessageCheckFilenames = 0;
 
         for ( Quarantine item: listOfQuarantine){
@@ -381,8 +396,8 @@ public class QuarantaeneView extends VerticalLayout {
 //            sql = sql + " where EXCEPTIONCODE='" + FehlertypCB.getValue() + "'";
 //        }
 
-        System.out.println("Abfrage EGVP-Quarantäne: " + sql);
-
+        // System.out.println("Abfrage EGVP-Quarantäne: " + sql);
+        logger.info("getQuarantaene(): Abfrage EGVP-Quarantäne:" + sql);
 //        DriverManagerDataSource ds = new DriverManagerDataSource();
 //        Configuration conf;
 //
@@ -408,9 +423,10 @@ public class QuarantaeneView extends VerticalLayout {
 
 
 
-            System.out.println("EGVP-Quarantäne eingelesen");
-
+          //  System.out.println("EGVP-Quarantäne eingelesen");
+            logger.info("getQuarantaene(): EGVP-Quarantäne eingelesen");
         } catch (Exception e) {
+            logger.info("getQuarantaene(): Error "+e.getMessage());
             System.out.println("Exception: " + e.getMessage());
             ui.access(() -> {
                 Notification.show("Fehler: " + e.getMessage(),4000, Notification.Position.MIDDLE);
@@ -433,6 +449,7 @@ public class QuarantaeneView extends VerticalLayout {
         ds.setUsername(conf.getUserName());
         ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
         try {
+            logger.info("getJdbcTemplateWithDBConnetion(): "+ conf.getUserName());
             jdbcTemplate.setDataSource(ds);
         } catch (Exception e) {
             e.getMessage();

@@ -1,5 +1,6 @@
 package com.example.application.views;
 
+import com.example.application.Application;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.JobManager;
 import com.example.application.data.entity.SqlDefinition;
@@ -39,6 +40,8 @@ import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -83,9 +86,11 @@ public class TableView extends VerticalLayout {
     private static String url;
     private static String user;
     private static String password;
+    private static final Logger logger = LoggerFactory.getLogger(TableView.class);
 
     public TableView(ConfigurationService service, SqlDefinitionService sqlDefinitionService, JdbcTemplate jdbcTemplate) throws SQLException, IOException {
         //add(new H1("Table View"));
+        logger.info("Starting TableView");
         this.sqlDefinitionService = sqlDefinitionService;
         this.jdbcTemplate = jdbcTemplate;
 
@@ -95,6 +100,7 @@ public class TableView extends VerticalLayout {
         comboBox = new ComboBox<>("Verbindung");
         
         try {
+            logger.info("TableView: get configList");
             List<Configuration> configList = service.findMessageConfigurations();
             if (configList != null && !configList.isEmpty()) {
                 comboBox.setItems(configList);
@@ -104,11 +110,13 @@ public class TableView extends VerticalLayout {
 
         } catch (Exception e) {
             // Display the error message to the user
+            logger.error("TableView: Error getting configList"+ e.getMessage());
             Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
         //  comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
         // Add value change listener to comboBox
         comboBox.addValueChangeListener(event -> {
+            logger.info("comboBox.addValueChangeListener configuration = "+ event.getValue());
             if (event.getValue() != null) {
                 runButton.setEnabled(true);
             }
@@ -116,6 +124,7 @@ public class TableView extends VerticalLayout {
 
         Button configureButton = new Button("Configure", VaadinIcon.COG.create());
         configureButton.addClickListener(event -> {
+            logger.info("configureButton.addClickListener: ConfigurationView open");
             UI.getCurrent().navigate(ConfigurationView.class);
         });
         configureButton.setVisible(false);
@@ -135,12 +144,13 @@ public class TableView extends VerticalLayout {
         exportButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
         exportButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
         exportButton.addClickListener(clickEvent -> {
-
+            logger.info("exportButton.addClickListener: Export query.xlsx");
             Notification.show("Exportiere Daten" );
             generateExcelFile(rows, "query.xlsx");
         });
 
         runButton.addClickListener(clickEvent -> {
+
             try {
                 show_grid(sqlTextField.getValue());
                 exportButton.setVisible(true);
@@ -191,7 +201,7 @@ public class TableView extends VerticalLayout {
      */
 
     private VerticalLayout createSQLTextField() {
-
+        logger.info("createSQLTextField for sqldefinition");
         VerticalLayout vl = new VerticalLayout();
 
         sqlTextField = new TextArea("SQL:");
@@ -228,6 +238,7 @@ public class TableView extends VerticalLayout {
         return vl;
     }
     private TreeGrid createTreeGrid() {
+        logger.info("createTreeGrid for sqldefinition");
         treeGrid = new TreeGrid<>();
         treeGrid.setItems(sqlDefinitionService.getRootProjects(), sqlDefinitionService ::getChildProjects);
         treeGrid.addHierarchyColumn(SqlDefinition::getName);
@@ -284,6 +295,7 @@ public class TableView extends VerticalLayout {
                //if (listOfJobManager != null && !listOfJobManager.isEmpty()) {
 
             contextMenu.addItem("Edit", event -> {
+                logger.info("contextMenu.addItem: Edit sqldefinition");
                 Optional<SqlDefinition> selectedItem = event.getItem();
                 if (selectedItem.isPresent()) {
                     showEditAndNewDialog(event.getItem().get(), "Edit");
@@ -294,7 +306,8 @@ public class TableView extends VerticalLayout {
                 }
             });
 
-            contextMenu.addItem("Delete", event -> {
+           contextMenu.addItem("Delete", event -> {
+                logger.info("contextMenu.addItem: Delete sqldefinition");
                 Optional<SqlDefinition> selectedItem = event.getItem();
                 if (selectedItem.isPresent() ) {
                     deleteTreeGridItem(event.getItem().get());
@@ -307,6 +320,7 @@ public class TableView extends VerticalLayout {
 
             // "New" option is always available
             contextMenu.addItem("New", event -> {
+                logger.info("contextMenu.addItem: New sqldefinition");
                 Optional<SqlDefinition> selectedItem = event.getItem();
                 if (selectedItem.isPresent()) {
                     System.out.println("------------with parent");
@@ -334,6 +348,7 @@ public class TableView extends VerticalLayout {
     }
 
     private VerticalLayout showEditAndNewDialog(SqlDefinition sqlDefinition, String context){
+        logger.info("showEditAndNewDialog: edit and new dialog");
         VerticalLayout dialogLayout = new VerticalLayout();
         Dialog dialog = new Dialog();
         SqlDefinition newSqlDefinition = new SqlDefinition();
@@ -362,8 +377,10 @@ public class TableView extends VerticalLayout {
         saveButton.addClickListener(saveEvent -> {
             System.out.println("saved data....");
             if(context.equals("New")) {
+                logger.info(" saveButton.addClickListener(saveEvent : add new sqldefination");
                 saveSqlDefinition(newSqlDefinition);
             } else {
+                logger.info(" saveButton.addClickListener(saveEvent : add edit sqldefination");
                 saveSqlDefinition(sqlDefinition);
             }
             sqlDefinitionService.getAllSqlDefinitions();
@@ -380,6 +397,7 @@ public class TableView extends VerticalLayout {
     }
 
     private Component editSqlDefination(SqlDefinition sqlDefinition, boolean isNew) {
+        logger.info("editSqlDefination : edit or new sqldefination");
         VerticalLayout content = new VerticalLayout();
 
         TextField name = new TextField("NAME");
@@ -454,7 +472,7 @@ public class TableView extends VerticalLayout {
     }
 
     private Component deleteTreeGridItem(SqlDefinition sqlDefinition) {
-
+        logger.info("deleteTreeGridItem : delete sqldefination");
         VerticalLayout dialogLayout = new VerticalLayout();
         Dialog dialog = new Dialog();
         dialog.setDraggable(true);
@@ -566,8 +584,8 @@ public class TableView extends VerticalLayout {
 
 
     private void show_grid(String sql) throws SQLException, IOException {
-
-        System.out.println("Execute SQL: " + sql );
+        logger.info("show_grid : sql result get and set in grid");
+     //   System.out.println("Execute SQL: " + sql );
 
         // Create the grid and set its items
         //Grid<LinkedHashMap<String, Object>> grid2 = new Grid<>();
@@ -613,6 +631,7 @@ public class TableView extends VerticalLayout {
     }
 
     public List<Map<String,Object>> retrieveRows(String queryString) {
+        logger.info("retrieveRows : sql execute");
         List<Map<String, Object>> rows;
         if (queryString != null) {
             try {
@@ -622,9 +641,11 @@ public class TableView extends VerticalLayout {
 //                jdbcTemplate = new JdbcTemplate(dataSource);
                 getJdbcTemplateWithDBConnetion(conf);
                 rows = jdbcTemplate.queryForList(queryString);
+                logger.info("retrieveRows : sql result =" +rows.size());
                 connectionClose(jdbcTemplate);
                 return rows;
             } catch (Exception e) {
+                logger.error("retrieveRows :Error sql execute " +e.getMessage());
                 e.printStackTrace();
                 Notification.show(e.getCause().getMessage(), 5000, Notification.Position.MIDDLE);
             }
@@ -634,6 +655,7 @@ public class TableView extends VerticalLayout {
     }
 
     public void saveSqlDefinition(SqlDefinition sqlDefinition) {
+        logger.info("saveSqlDefinition : save sqlDefination");
         sqlDefinitionService.saveSqlDefinition(sqlDefinition);
     }
 
@@ -716,6 +738,7 @@ public class TableView extends VerticalLayout {
     }
 
     private void generateExcelFile(List<Map<String, Object>> rows, String fileName) {
+        logger.info("generateExcelFile : export excel "+ fileName);
         // Create a new Excel workbook and sheet
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("Sheet1");
@@ -771,6 +794,7 @@ public class TableView extends VerticalLayout {
             add(anchor);
             UI.getCurrent().getPage().executeJs("arguments[0].click()", anchor);
         } catch (IOException e) {
+            logger.error("generateExcelFile : Error generating "+fileName);
             e.printStackTrace();
         }
     }
@@ -930,13 +954,16 @@ public class TableView extends VerticalLayout {
         ds.setUsername(conf.getUserName());
         ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
         try {
+            logger.info("getJdbcTemplateWithDBConnetion : "+ conf.getUserName());
             jdbcTemplate.setDataSource(ds);
         } catch (Exception e) {
+            logger.error("getJdbcTemplateWithDBConnetion : Error "+ conf.getUserName());
             e.getMessage();
         }
         return null;
     }
     public void connectionClose(JdbcTemplate jdbcTemplate) {
+        logger.info("connectionClose : close connection");
         Connection connection = null;
         DataSource dataSource = null;
         try {

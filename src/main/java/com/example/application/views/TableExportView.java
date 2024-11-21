@@ -21,6 +21,8 @@ import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 import java.io.*;
@@ -42,12 +44,12 @@ public class TableExportView extends VerticalLayout {
     //private Environment env;
 
     CheckboxGroup<String> checkboxGroup = new CheckboxGroup<>();
-
-
+    private static final Logger logger = LoggerFactory.getLogger(TableView.class);
 
     //private String tables = env.getProperty("export.tables");
 
     public TableExportView() throws IOException {
+        logger.info("Starting TableExportView");
 
         add(new H1("Table Export"));
 
@@ -116,8 +118,9 @@ public class TableExportView extends VerticalLayout {
 
             for (String table : checkboxGroup.getSelectedItems())
             {
-                System.out.println("Start export von: " + table);
+              //  System.out.println("Start export von: " + table);
                 try {
+                    logger.info("Start export von: " + table);
                     File folder = getUploadFolder();
                  //   String file = folder.getPath() + "\\" + table + ".xls";
                     String file = folder.getPath() + "/" + table + ".xls";
@@ -125,7 +128,8 @@ public class TableExportView extends VerticalLayout {
                     generateExcel(file, "select * from " + table);
                     linksArea.refreshFileLinks();
                 } catch (IOException e) {
-                    System.out.println("Error: " + e.toString());
+                    logger.error("Error: " + e.getMessage());
+                 //   System.out.println("Error: " + e.toString());
                 }
             }
 
@@ -154,6 +158,7 @@ public class TableExportView extends VerticalLayout {
     }
 
     private static File getUploadFolder() {
+        logger.info("getUploadFolder(): get upload folder");
         File folder = new File("uploaded-files");
         if (!folder.exists()) {
             folder.mkdirs();
@@ -163,7 +168,7 @@ public class TableExportView extends VerticalLayout {
 
 
     private String infoText() {
-
+        logger.info("infoText(): get selected items ");
         if (checkboxGroup.getSelectedItems().isEmpty() )
         {
             return "";
@@ -174,6 +179,7 @@ public class TableExportView extends VerticalLayout {
 
     private static void generateExcel(String file, String query) throws IOException {
         try {
+            logger.info("generateExcel():  file "+file+ " query = "+query);
             String url="jdbc:oracle:thin:@37.120.189.200:1521:xe";
             String user="SYSTEM";
             String password="Michael123";
@@ -294,8 +300,10 @@ public class TableExportView extends VerticalLayout {
 
         } catch (SQLException | FileNotFoundException e) {
             // TODO Auto-generated catch block
+            logger.error("generateExcel():Error "+e.getMessage());
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
+            logger.error("generateExcel():Error "+e.getMessage());
             throw new RuntimeException(e);
         }
     }

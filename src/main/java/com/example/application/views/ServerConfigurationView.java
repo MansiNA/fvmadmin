@@ -17,6 +17,8 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 @PageTitle("Server Configuration")
@@ -29,8 +31,9 @@ public class ServerConfigurationView extends VerticalLayout {
 
     Grid<ServerConfiguration> grid = new Grid<>(ServerConfiguration.class);
     TextField filterText = new TextField();
-
+    private static final Logger logger = LoggerFactory.getLogger(ServerConfigurationView.class);
     public ServerConfigurationView(ServerConfigurationService service) {
+        logger.info("Starting ServerConfigurationView");
         this.service = service;
 
         addClassName("configuration-view");
@@ -56,6 +59,7 @@ public class ServerConfigurationView extends VerticalLayout {
     }
 
     private Component getContent() {
+        logger.info("starting getContent()");
         HorizontalLayout content = new HorizontalLayout(grid, cf);
         content.setFlexGrow(2, grid);
 
@@ -67,6 +71,7 @@ public class ServerConfigurationView extends VerticalLayout {
     }
 
     private void configureGrid() {
+        logger.info("configureGrid(): configure grid for ServerConfiguration");
         grid.addClassNames("configuration-grid");
         grid.setSizeFull();
         grid.setColumns("hostName", "hostAlias", "userName","pathList");
@@ -77,10 +82,12 @@ public class ServerConfigurationView extends VerticalLayout {
     }
 
     private void updateList() {
+        logger.info("updateList(): update grid Items");
         grid.setItems(service.findAllConfigurations());
     }
 
     private void configureForm() {
+        logger.info("configureForm(): add form for ServerConfiguration");
         cf = new ServerConfigForm();
         cf.setWidth("25em");
 
@@ -93,8 +100,10 @@ public class ServerConfigurationView extends VerticalLayout {
         try {
             String  result = service.saveConfiguration(event.getConfiguration());
             if(result.equals("Ok")) {
+                logger.info("saveConfig(): save ServerConfiguration");
                 Notification.show("Upload sceessfully", 3000, Notification.Position.MIDDLE);
             } else {
+                logger.error("saveConfig(): Error:"+result);
                 Notification.show(result,5000, Notification.Position.MIDDLE);
             }
             updateList();
@@ -105,17 +114,19 @@ public class ServerConfigurationView extends VerticalLayout {
     }
 
     private void deleteConfig(ServerConfigForm.DeleteEvent event) {
-
         try {
             service.deleteConfiguration(event.getConfiguration());
+            logger.info("deleteConfig(): delete ServerConfiguration");
             Notification.show("delete sceessfully", 3000, Notification.Position.MIDDLE);
             updateList();
             closeEditor();
         } catch (Exception e) {
+            logger.error("deleteConfig(): delete ServerConfiguration");
             Notification.show(e.getMessage(), 3000, Notification.Position.MIDDLE);
         }
     }
     private HorizontalLayout getToolbar() {
+        logger.info("getToolbar(): set toolbar layout");
         filterText.setPlaceholder("Filter by name...");
         filterText.setClearButtonVisible(true);
         filterText.setValueChangeMode(ValueChangeMode.LAZY);
@@ -130,6 +141,7 @@ public class ServerConfigurationView extends VerticalLayout {
     }
 
     private void addContact() {
+        logger.info("addContact(): add new ServerConfiguration");
         grid.asSingleSelect().clear();
         editConfig(new ServerConfiguration());
     }
@@ -146,6 +158,7 @@ public class ServerConfigurationView extends VerticalLayout {
         if(conf == null){
             closeEditor();
         } else {
+            logger.info("editConfig(): edit ServerConfiguration");
             cf.setConfiguration(conf);
             cf.setVisible(true);
             addClassName("editing");

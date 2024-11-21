@@ -46,6 +46,8 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -100,8 +102,10 @@ public class MetadatenView extends VerticalLayout {
     TextField searchField = new TextField();
 
     ConfirmDialog dialog = new ConfirmDialog();
+    private static final Logger logger = LoggerFactory.getLogger(QuarantaeneView.class);
 
     public MetadatenView (ConfigurationService service){
+        logger.info("Starting MetadatenView");
     //public MetadatenView (ConfigurationService service){
         this.service = service;
 
@@ -145,7 +149,6 @@ public class MetadatenView extends VerticalLayout {
 
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(comboBox,searchAttribut,startDateTimePicker, endDateTimePicker);
-
 
         add(hl);
 
@@ -316,6 +319,7 @@ public class MetadatenView extends VerticalLayout {
      //   smallButton.addThemeVariants(ButtonVariant.LUMO_SMALL);
         smallButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
         smallButton.addClickListener(clickEvent -> {
+            logger.info("smallButton.addClickListener: Exportiere ausgewählte Metadaten");
             Notification.show("Exportiere ausgewählte Metadaten");
             //System.out.println("aktuelle_SQL:" + aktuelle_SQL);
     //        try {
@@ -356,6 +360,7 @@ public class MetadatenView extends VerticalLayout {
 
 
             } catch (IOException e) {
+                logger.error("smallButton.addClickListener: Error "+e.getMessage());
                 throw new RuntimeException(e);
             }
             //    } catch (IOException e) {
@@ -397,15 +402,16 @@ public class MetadatenView extends VerticalLayout {
 
                 // Do some long running task
                 try {
-                    System.out.println("Hole Metadaten Infos");
-
+                 //   System.out.println("Hole Metadaten Infos");
+                    logger.info("searchBtn.addClickListener: Hole Metadaten Infos");
                     metadaten=getMetadaten(ui);
-
+                    logger.info("searchBtn.addClickListener: get Metadaten size = "+metadaten.size());
 
                     //Thread.sleep(2000); //2 Sekunden warten
                     Thread.sleep(20); //2 Sekunden warten
 
                 } catch (InterruptedException e) {
+                    logger.error("searchBtn.addClickListener: "+e.getMessage());
                     e.printStackTrace();
                 }
 
@@ -415,7 +421,8 @@ public class MetadatenView extends VerticalLayout {
                     ui.setPollInterval(-1);
 
                     if (ret != 0) {
-                        System.out.println("Keine Metadaten Infos gefunden!");
+                        logger.info("searchBtn.addClickListener: Keine Metadaten Infos gefunden!");
+                     //   System.out.println("Keine Metadaten Infos gefunden!");
                         dataView = grid.setItems();
                         dataView.refreshAll();
                         anchor.setEnabled(false);
@@ -452,16 +459,17 @@ public class MetadatenView extends VerticalLayout {
 
                 // Do some long running task
                 try {
-                    System.out.println("Hole Mailbox Infos");
-
+                   // System.out.println("Hole Mailbox Infos");
+                    logger.info("searchOldMsgBtn.addClickListener: Hole Mailbox Infos");
                     //metadaten=getMailboxes();
                     metadaten=getMailboxesoldMsg();
-
+                    logger.info("searchBtn.addClickListener: getMailboxesoldMsg - metadaten size = "+metadaten.size() );
 
                     //Thread.sleep(2000); //2 Sekunden warten
                     Thread.sleep(20); //2 Sekunden warten
 
                 } catch (InterruptedException e) {
+                    logger.error("searchOldMsgBtn.addClickListener: "+e.getMessage());
                     e.printStackTrace();
                 }
 
@@ -471,7 +479,8 @@ public class MetadatenView extends VerticalLayout {
                     ui.setPollInterval(-1);
 
                     if (ret != 0) {
-                        System.out.println("Keine Mailbox Infos gefunden!");
+                        logger.info("searchOldMsgBtn.addClickListener: Keine Mailbox Infos gefunden!");
+                      //  System.out.println("Keine Mailbox Infos gefunden!");
                         dataView = grid.setItems();
                         dataView.refreshAll();
 
@@ -523,7 +532,8 @@ public class MetadatenView extends VerticalLayout {
    // private void showAblaufdaten(ItemDoubleClickEvent<Metadaten> e) {
    private void showAblaufdaten(ItemClickEvent<Metadaten> e) {
 
-        System.out.println(("Aktualisiere Ablaufdaten Grid für NachrichtidIntern: " +  e.getItem().getNACHRICHTIDINTERN()));
+       logger.info("Aktualisiere Ablaufdaten Grid für NachrichtidIntern: " +  e.getItem().getNACHRICHTIDINTERN());
+     //   System.out.println(("Aktualisiere Ablaufdaten Grid für NachrichtidIntern: " +  e.getItem().getNACHRICHTIDINTERN()));
 
         try{
 
@@ -535,7 +545,8 @@ public class MetadatenView extends VerticalLayout {
         }
         catch(Exception exeption)
         {
-            System.out.println("ERROR: Konnte Ablaufdaten nicht ermitteln:" + exeption.getMessage());
+            logger.error("ERROR: Konnte Ablaufdaten nicht ermitteln:" + exeption.getMessage());
+          //  System.out.println("ERROR: Konnte Ablaufdaten nicht ermitteln:" + exeption.getMessage());
         }
 
     }
@@ -647,8 +658,9 @@ public class MetadatenView extends VerticalLayout {
                 "and eingangsdatumserver < sysdate -60\n" +
                 "or (eingangsdatumserver is null and timestampversion < sysdate -60)\n";
 
-        System.out.println("Abfrage EKP.Metadaten (MetadatenView.java) auf oldMsg: ");
-        System.out.println(sql);
+        logger.info("getMailboxesoldMsg: Abfrage EKP.Metadaten (MetadatenView.java) auf oldMsg: "+ sql);
+    //    System.out.println("Abfrage EKP.Metadaten (MetadatenView.java) auf oldMsg: ");
+    //    System.out.println(sql);
 
 //        DriverManagerDataSource ds = new DriverManagerDataSource();
 //        Configuration conf;
@@ -667,11 +679,11 @@ public class MetadatenView extends VerticalLayout {
                     new BeanPropertyRowMapper(Metadaten.class));
 
 
-
-            System.out.println("Metadaten eingelesen");
+            logger.error("getMailboxesoldMsg: Metadaten eingelesen ");
+         //   System.out.println("Metadaten eingelesen");
 
         } catch (Exception e) {
-            System.out.println("Exception: " + e.getMessage());
+            logger.error("getMailboxesoldMsg: Exception: " + e.getMessage());
         } finally {
             connectionClose(jdbcTemplate);
         }
@@ -739,7 +751,8 @@ public class MetadatenView extends VerticalLayout {
         }
         catch (Exception ex)
         {
-            System.out.println(ex.getMessage());
+            logger.error(ex.getMessage());
+         //   System.out.println(ex.getMessage());
         }
       //  java.sql.Date sqlfromDate = java.sql.Date.valueOf(String.valueOf(fromDate));
 
@@ -768,15 +781,18 @@ public class MetadatenView extends VerticalLayout {
 
 //                + "or nachrichtidintern=" + Search;
 
-        System.out.println("Abfrage EKP.Metadaten (MetadatenView.java): ");
-        System.out.println("Von: " + startDateTimePicker.getValue());
-        System.out.println("Bis: " + endDateTimePicker.getValue());
+        logger.info("getMetadaten: Abfrage EKP.Metadaten (MetadatenView.java): ");
+        logger.info("getMetadaten: Von: " + startDateTimePicker.getValue());
+        logger.info("getMetadaten: Bis: " + endDateTimePicker.getValue());
+//        System.out.println("Abfrage EKP.Metadaten (MetadatenView.java): ");
+//        System.out.println("Von: " + startDateTimePicker.getValue());
+//        System.out.println("Bis: " + endDateTimePicker.getValue());
 
 
      //   Notification notification = Notification.show("Abfgae gestartet!: ");
      //   notification.setPosition(Notification.Position.MIDDLE);
-
-        System.out.println(sql);
+        logger.info("getMetadaten: " + sql);
+     //   System.out.println(sql);
 
 //        DriverManagerDataSource ds = new DriverManagerDataSource();
 //        Configuration conf;
@@ -795,12 +811,11 @@ public class MetadatenView extends VerticalLayout {
                     sql,
                     new BeanPropertyRowMapper(Metadaten.class));
 
-
-
-            System.out.println("Metadaten eingelesen");
+            logger.info("getMetadaten: Metadaten eingelesen");
+        //    System.out.println("Metadaten eingelesen");
 
         } catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
+            logger.error("Error: " + e.getMessage());
             ui.access(() -> {
                 dialog.setText(new Html("<p>" + e.getMessage()+ "</p>"));
                 dialog.setWidth("800px");
@@ -832,7 +847,8 @@ public class MetadatenView extends VerticalLayout {
 
         String sql = "select * from EKP.Ablaufdaten where Nachrichtidintern ='" + nachrichtidintern +"'";
 
-        System.out.println("Filter EKP.Ablaufdaten (MetadatenView.java) auf " + nachrichtidintern );
+        logger.info("getAblaufdaten: Filter EKP.Ablaufdaten (MetadatenView.java) auf " + nachrichtidintern);
+    //    System.out.println("Filter EKP.Ablaufdaten (MetadatenView.java) auf " + nachrichtidintern );
 
 //        DriverManagerDataSource ds = new DriverManagerDataSource();
 //        Configuration conf;
@@ -852,11 +868,12 @@ public class MetadatenView extends VerticalLayout {
                     new BeanPropertyRowMapper(Ablaufdaten.class));
 
 
-
-            System.out.println("Ablaufdaten eingelesen");
+            logger.info("getAblaufdaten: Ablaufdaten eingelesen");
+          //  System.out.println("Ablaufdaten eingelesen");
 
         } catch (Exception e) {
-            System.out.println("Exception: " + e.getMessage());
+            logger.error("getAblaufdaten Exception: " + e.getMessage());
+          //  System.out.println("Exception: " + e.getMessage());
         } finally {
             connectionClose(jdbcTemplate);
         }
@@ -880,7 +897,8 @@ public class MetadatenView extends VerticalLayout {
                 "or MESSAGEID='" + nachrichtidextern + "'\n" +
                 "order by 1 desc\n";
 
-        System.out.println("(MetadatenView.java) Hole Journal Einträge für  " + nachrichtidextern );
+        logger.info("getJournal: (MetadatenView.java) Hole Journal Einträge für"+ nachrichtidextern);
+    //    System.out.println("(MetadatenView.java) Hole Journal Einträge für  " + nachrichtidextern );
 
 //        DriverManagerDataSource ds = new DriverManagerDataSource();
 //        Configuration conf;
@@ -900,11 +918,12 @@ public class MetadatenView extends VerticalLayout {
                     new BeanPropertyRowMapper(Journal.class));
 
 
-
-            System.out.println("Journal eingelesen");
+            logger.info("getJournal: Journal eingelesen");
+         //   System.out.println("Journal eingelesen");
 
         } catch (Exception e) {
-            System.out.println("Exception: " + e.getMessage());
+            logger.error("getJournal: Exception: " + e.getMessage());
+         //   System.out.println("Exception: " + e.getMessage());
         } finally {
             connectionClose(jdbcTemplate);
         }
@@ -947,6 +966,7 @@ public class MetadatenView extends VerticalLayout {
 
 
     public static void writeObjectsToXls(List<Metadaten> objects, ByteArrayOutputStream outputStream) throws IOException {
+        logger.info("writeObjectsToXls: create Metadata xls file");
         // Erstellen Sie ein Workbook-Objekt
         Workbook workbook = new HSSFWorkbook();
         // Erstellen Sie ein neues Arbeitsblatt im Workbook
@@ -1060,13 +1080,16 @@ public class MetadatenView extends VerticalLayout {
     }
 
     public JdbcTemplate getJdbcTemplateWithDBConnetion(com.example.application.data.entity.Configuration conf) {
+
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setUrl(conf.getDb_Url());
         ds.setUsername(conf.getUserName());
         ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
         try {
+            logger.info("getJdbcTemplateWithDBConnetion: connection open");
             jdbcTemplate.setDataSource(ds);
         } catch (Exception e) {
+            logger.error("getJdbcTemplateWithDBConnetion: "+e.getMessage());
             e.getMessage();
         }
         return null;
@@ -1076,6 +1099,7 @@ public class MetadatenView extends VerticalLayout {
         Connection connection = null;
         DataSource dataSource = null;
         try {
+            logger.info("connectionClose: closing connection");
             jdbcTemplate.getDataSource().getConnection().close();
 //            connection = jdbcTemplate.getDataSource().getConnection();
 //            dataSource = jdbcTemplate.getDataSource();

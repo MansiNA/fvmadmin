@@ -64,7 +64,7 @@ public class Application implements AppShellConfigurator {
     @Autowired
     private CockpitService cockpitService;
     public static HashMap<Long, Integer> maxPoolsizeMap = new HashMap<>();
-    private static final Logger logger = LoggerFactory.getLogger(CockpitView.class);
+    private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);

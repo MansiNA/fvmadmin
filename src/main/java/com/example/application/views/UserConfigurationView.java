@@ -37,6 +37,8 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.data.converter.Converter;
 import jakarta.annotation.security.RolesAllowed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -58,9 +60,10 @@ public class UserConfigurationView extends VerticalLayout {
     private Grid<User> userGrid;
     private Dialog dialog;
     private Dialog resetPasswordDialog;
+    private static final Logger logger = LoggerFactory.getLogger(UserConfigurationView.class);
 
     public UserConfigurationView(UserService userService) {
-
+        logger.info("Startirg UserConfigurationView");
         this.userService = userService;
 
         add(new H2("User Configuration"));
@@ -77,6 +80,7 @@ public class UserConfigurationView extends VerticalLayout {
     }
 
     private Component createNewUserDialog() {
+        logger.info("createNewUserDialog: create dialog");
         VerticalLayout content = new VerticalLayout();
         dialog = new Dialog();
         TextField name = new TextField("Name");
@@ -109,7 +113,7 @@ public class UserConfigurationView extends VerticalLayout {
         });
         Button addButton = new Button("set");
         addButton.addClickListener(e -> {
-
+            logger.info("createNewUserDialog: addButton.addClickListener adding new user");
             String nameValue = name.getValue();
             String usernameValue = username.getValue();
             String passwordValue = password.getValue();
@@ -159,10 +163,11 @@ public class UserConfigurationView extends VerticalLayout {
     }
 
     private boolean validateInputs(String name, String username, String password, String confirmPassword, Set<Role> roles) {
+        logger.info("validateInputs: check validation inputs");
         return !name.isEmpty() && !username.isEmpty() && !password.isEmpty() && !confirmPassword.isEmpty() && !roles.isEmpty();
     }
     private boolean validatePassword(String password, String confirmPassword) {
-
+        logger.info("validateInputs: check validation password");
         if (!password.equals(confirmPassword)) {
             Notification.show("Passwords do not match", 3000, Notification.Position.MIDDLE)
                     .addThemeVariants(NotificationVariant.LUMO_ERROR);
@@ -172,6 +177,7 @@ public class UserConfigurationView extends VerticalLayout {
     }
 
     private Component getUserConfigurationGrid() {
+        logger.info("getUserConfigurationGrid: user config grid");
         VerticalLayout content = new VerticalLayout();
         userCrud = new Crud<>(User.class, createUserEditor());
         setupUserGrid();
@@ -191,6 +197,7 @@ public class UserConfigurationView extends VerticalLayout {
         return content;
     }
     private void setupDataProviderEvent() {
+        logger.info("setupDataProviderEvent: set delete and save event");
         GenericDataProvider userdataProvider = new GenericDataProvider(getGenericCommentsDataProviderAllItems());
 
         userCrud.addDeleteListener(
@@ -210,19 +217,21 @@ public class UserConfigurationView extends VerticalLayout {
     }
 
     private List<User> getGenericCommentsDataProviderAllItems() {
+        logger.info("getGenericCommentsDataProviderAllItems: get data from grid");
         DataProvider<User, Void> existDataProvider = (DataProvider<User, Void>) userGrid.getDataProvider();
         List<User> listOfGenericComments = existDataProvider.fetch(new Query<>()).collect(Collectors.toList());
         return listOfGenericComments;
     }
 
     private void updateUserGrid() {
+        logger.info("updateUserGrid: update user grid");
         List<User> listOfUser = userService.getAllUsers();
         GenericDataProvider dataProvider = new GenericDataProvider(listOfUser);
         userGrid.setDataProvider(dataProvider);
     }
 
     private void setupUserGrid() {
-
+        logger.info("setupUserGrid: setup user grid");
         String ID = "id";
         String VERSION = "version";
         String USERNAME = "username";
@@ -272,6 +281,7 @@ public class UserConfigurationView extends VerticalLayout {
     }
 
     private Dialog resetPasswordDialog(User user) {
+        logger.info("resetPasswordDialog: user password reset dialog");
         VerticalLayout content = new VerticalLayout();
         resetPasswordDialog = new Dialog();
         PasswordField password = new PasswordField("Password");
@@ -292,10 +302,12 @@ public class UserConfigurationView extends VerticalLayout {
                 user.setHashedPassword(bCryptPassword);
                 try {
                     userService.update(user);
+                    logger.info("resetPasswordDialog: addButton.addClickListeneruser password reset");
                     Notification.show("Password reset successfuly", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                     resetPasswordDialog.close();
                 } catch (Exception ex) {
                     ex.getMessage();
+                    logger.error("Error - resetPasswordDialog: addButton.addClickListeneruser password reset");
                     Notification.show("Error: Password is not reset", 3000, Notification.Position.MIDDLE).addThemeVariants(NotificationVariant.LUMO_ERROR);
                 }
 
@@ -311,7 +323,7 @@ public class UserConfigurationView extends VerticalLayout {
     }
 
     private CrudEditor<User> createUserEditor() {
-
+        logger.info("createUserEditor: create crud editor for user");
         TextField username = new TextField("Username");
         TextField name = new TextField("Name");
         PasswordField hashedPassword = new PasswordField("Password");

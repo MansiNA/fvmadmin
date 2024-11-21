@@ -9,6 +9,8 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.time.Instant;
@@ -27,6 +29,7 @@ public final class SftpClient {
     private final JSch        jsch;
     private       ChannelSftp channel;
     private       Session     session;
+    private static final Logger logger = LoggerFactory.getLogger(SftpClient.class);
 
     /**
      * @param host     remote host
@@ -34,6 +37,7 @@ public final class SftpClient {
      * @param username remote username
      */
     public SftpClient(String host, int port, String username) {
+        logger.info("SftpClient(): host ="+host+" port = "+port+ " username = "+username);
         this.host     = host;
         this.port     = port;
         this.username = username;
@@ -71,6 +75,7 @@ public final class SftpClient {
 
 
     public void authKey(String key, String pass) throws JSchException {
+        logger.info("authKey(): key = "+key +" password = "+pass);
         try {
             byte[] privateKey = key.getBytes();
             jsch.addIdentity("identity_name", privateKey, null, pass != null ? pass.getBytes() : null);
@@ -86,10 +91,12 @@ public final class SftpClient {
             //   session.setTimeout(6000);
             channel = (ChannelSftp) session.openChannel("sftp");
             channel.connect();
-
+            logger.info("authKey(): chanel connect");
         } catch (JSchException e) {
+            logger.error("authKey(): Error during authentication or connection: " + e.getMessage());
             Notification.show("Error during authentication or connection: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } catch (Exception e) {
+            logger.error("authKey(): An unexpected error occurred: " + e.getMessage());
             Notification.show("An unexpected error occurred: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
@@ -106,7 +113,7 @@ public final class SftpClient {
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
         }
-        System.out.printf("Listing [%s]...%n", remoteDir);
+     //   System.out.printf("Listing [%s]...%n", remoteDir);
         channel.cd(remoteDir);
         Vector<ChannelSftp.LsEntry> files = channel.ls(".");
         for (ChannelSftp.LsEntry file : files) {
@@ -123,10 +130,11 @@ public final class SftpClient {
 
 
     public List<FTPFile> getFiles(String remoteDir, Long fromDate, Long toDate) throws SftpException, JSchException {
+        logger.info("getFiles(): Listing [%s]...%n", remoteDir);
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
         }
-        System.out.printf("Listing [%s]...%n", remoteDir);
+     //   System.out.printf("Listing [%s]...%n", remoteDir);
         channel.cd(remoteDir);
 
         List<FTPFile>_files=new ArrayList<FTPFile>();
@@ -187,7 +195,8 @@ public final class SftpClient {
      * @throws SftpException If there is any problem with downloading file related permissions etc
      */
     public void downloadFile(String remotePath, String localPath) throws SftpException {
-        System.out.printf("Downloading [%s] to [%s]...%n", remotePath, localPath);
+        logger.info("downloadFile(): Downloading [%s] to [%s]...%n", remotePath, localPath);
+     //   System.out.printf("Downloading [%s] to [%s]...%n", remotePath, localPath);
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
         }
@@ -201,7 +210,8 @@ public final class SftpClient {
      * @throws SftpException If there is any problem with deleting file related to permissions etc
      */
     public void delete(String remoteFile) throws SftpException {
-        System.out.printf("Deleting [%s]...%n", remoteFile);
+        logger.info("downloadFile(): Deleting [%s]...%n", remoteFile);
+     //   System.out.printf("Deleting [%s]...%n", remoteFile);
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
         }
@@ -210,8 +220,8 @@ public final class SftpClient {
 
 
     public byte[] readFile(String fileName) throws SftpException, IOException {
-
-        System.out.printf("get Bytes from File [%s]%n", fileName);
+        logger.info("readFile(): get Bytes from File [%s]%n", fileName);
+     //   System.out.printf("get Bytes from File [%s]%n", fileName);
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
         }
@@ -237,7 +247,7 @@ public final class SftpClient {
 
 
     public void TailRemoteLogFile(StringBuilder logTextArea, String FileName, TaskStatus stat, TextArea tailTextArea) throws JSchException, IOException, SftpException {
-
+        logger.info("TailRemoteLogFile(): tail -f file = " +FileName);
         VaadinSession vaadinSession = VaadinSession.getCurrent();
         VaadinService vaadinService = VaadinService.getCurrent();
         UI ui = UI.getCurrent();
@@ -284,7 +294,8 @@ public final class SftpClient {
                 if (line==null) break;
             } catch (IOException e) {
                 //throw new RuntimeException(e);
-                System.out.println("readLine-Abfrage in SftpClient unterbrochen " + e.getMessage() );
+              //  System.out.println("readLine-Abfrage in SftpClient unterbrochen " + e.getMessage() );
+                logger.info("readLine-Abfrage in SftpClient unterbrochen " + e.getMessage() );
                 sftpChannel.exit();
                 session.disconnect();
             }
@@ -354,7 +365,7 @@ public final class SftpClient {
 
 
     public void ReadRemoteLogFile(UI ui, StringBuilder logTextArea, String FileName, TextArea tailTextArea) throws JSchException, IOException, SftpException {
-
+        logger.info("ReadRemoteLogFile(): head -300 file = " +FileName);
         if (channel == null) {
             throw new IllegalArgumentException("Connection is not available");
         }
@@ -464,6 +475,7 @@ public final class SftpClient {
 //    }
 
     private void updateLog(String line, StringBuilder tailTextAreaContent, TextArea tailTextArea) {
+        logger.info("updateLog(): update log textarea " );
         if (tailTextArea.isEmpty()) {
             tailTextAreaContent.append("").append(line);
         } else {
@@ -488,6 +500,7 @@ public final class SftpClient {
     }
 
     private void clearLog(StringBuilder tailTextArea) {
+        logger.info("clearLog(): clear log area " );
         tailTextArea.setLength(0);
 //        VaadinSession.getCurrent().lock();
 //
