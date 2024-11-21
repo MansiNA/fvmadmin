@@ -738,7 +738,14 @@ public class CockpitView extends VerticalLayout{
                 .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
         treeGrid.addColumn(fvm_monitoring::getError_Schwellwert ).setHeader("Error Schwellwert")
                 .setWidth("30px").setResizable(true).setSortable(true);
-        treeGrid.addColumn(fvm_monitoring::getAktueller_Wert).setHeader("Aktuell")
+//        treeGrid.addColumn(fvm_monitoring::getAktueller_Wert).setHeader("Aktuell")
+//                .setWidth("30px").setResizable(true).setSortable(true);
+        treeGrid.addColumn(item -> {
+                    if (item.getPid() == 0) {
+                        return "";
+                    }
+                    return item.getAktueller_Wert();
+                }).setHeader("Aktuell")
                 .setWidth("30px").setResizable(true).setSortable(true);
         //  grid.addColumn(fvm_monitoring::getBeschreibung).setHeader("Beschreibung")
         //          .setAutoWidth(true).setResizable(true).setSortable(true);
@@ -747,6 +754,9 @@ public class CockpitView extends VerticalLayout{
 
         // Spalte für den Fortschritt mit ProgressBarRenderer
         treeGrid.addColumn(new ComponentRenderer<>(item -> {
+            if (item.getPid() == 0) {
+                return new Text("");
+            }
             ProgressBar progressBar = new ProgressBar();
 
             progressBar.setValue(item.getError_Prozent()); // Wert zwischen 0 und 1
@@ -763,9 +773,16 @@ public class CockpitView extends VerticalLayout{
             return hl;
         })).setHeader("Auslastung").setWidth("100px").setResizable(true);
 
-        treeGrid.addColumn(fvm_monitoring::getIS_ACTIVE).setHeader("Aktiv")
-                .setWidth("30px").setResizable(true).setSortable(true);
+//        treeGrid.addColumn(fvm_monitoring::getIS_ACTIVE).setHeader("Aktiv")
+//                .setWidth("30px").setResizable(true).setSortable(true);
 
+        treeGrid.addColumn(item -> {
+                    if (item.getPid() == 0) {
+                        return "";
+                    }
+                    return item.getIS_ACTIVE();
+                }).setHeader("Aktiv")
+                .setWidth("30px").setResizable(true).setSortable(true);
 
         treeGrid.setItemDetailsRenderer(createPersonDetailsRenderer());
         treeGrid.setSelectionMode(Grid.SelectionMode.NONE);
