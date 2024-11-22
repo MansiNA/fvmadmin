@@ -489,6 +489,7 @@ public class MainLayout extends AppLayout {
 
         RouterLink listView = new RouterLink("Info", ListView.class);
         RouterLink mailboxConfig = new RouterLink("Postfach Verwaltung", MailboxConfigView.class);
+        RouterLink mailboxwatcher = new RouterLink("Mailbox Watcher", MailboxWatcher.class);
         RouterLink messageExport = new RouterLink("Message Exporter", MessageExportView.class);
         RouterLink elaFavoriten = new RouterLink("ELA-Upload (geplant)", ElaFavoritenView.class);
         RouterLink tableExport = new RouterLink("Table Export", TableExportView.class);
@@ -518,6 +519,7 @@ public class MainLayout extends AppLayout {
                     metadatenView,
                     messageExport,
                     mailboxConfig,
+                    mailboxwatcher,
                     cockpitView,
                     fileBrowserView,
                     quarantaeneView,
@@ -528,6 +530,7 @@ public class MainLayout extends AppLayout {
                     userConfigView,
                     serverConfigView,
                     cronInfoView
+
             );
         }
 

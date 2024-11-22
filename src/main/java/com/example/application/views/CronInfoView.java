@@ -148,7 +148,7 @@ public class CronInfoView extends VerticalLayout {
                         if (configuration != null) {
                             runningJobs.add(new CronInfo(configuration.getName(), jobGroup, nextFireTime));
                             } else {
-                                System.out.println("JobManager not found for job: " + configuration.getName());
+                                System.out.println("email alert not found for job: " + configuration.getName());
                             }
 
                     }else if (jobId.contains("background")) {
@@ -157,9 +157,17 @@ public class CronInfoView extends VerticalLayout {
                         if (configuration != null) {
                             runningJobs.add(new CronInfo(configuration.getName(), jobGroup, nextFireTime));
                         } else {
-                            System.out.println("JobManager not found for job: " + configuration.getName());
+                            System.out.println("background not found for job: " + configuration.getName());
                         }
 
+                    } else if (jobId.contains("mbWatchdog")) {
+                        jobId = jobId.replace("job-mbWatchdog-cron-", "");
+                        Configuration configuration = configurationService.findByIdConfiguration(Long.valueOf(jobId));
+                        if (configuration != null) {
+                            runningJobs.add(new CronInfo(configuration.getName(), jobGroup, nextFireTime));
+                        } else {
+                            System.out.println("MBWatchdog not found for job: " + configuration.getName());
+                        }
                     } else {
                         jobId = jobId.replace("job-cron-", "");
                         JobManager jobManager = jobDefinitionService.getJobManagerById(Integer.valueOf(jobId));

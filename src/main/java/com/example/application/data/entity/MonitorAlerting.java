@@ -19,6 +19,7 @@ public class MonitorAlerting {
     private String cron;
     private Integer isActive;
     private Integer isBackJobActive;
+    private Integer isMBWatchdogActive;
     private LocalDateTime lastAlertTime;
     private LocalDateTime lastALertCheckTime;
     private int retentionTime;

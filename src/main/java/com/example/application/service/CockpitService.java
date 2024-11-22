@@ -291,7 +291,8 @@ public class CockpitService {
                         + "IS_ACTIVE INT, "
                         + "RETENTION_TIME INT,"
                         + "MAX_PARALLEL_CHECKS INT, "
-                        + "ISBACKJOBACTIVE INT"
+                        + "ISBACKJOBACTIVE INT, "
+                        + "ISMBWATCHDOGACTIVE INT "
                         + ")";
 
                 jdbcTemplate.execute(createTableSQL);
@@ -355,7 +356,7 @@ public class CockpitService {
          //   connectWithDatabase(configuration);
         //    jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
             // Query to get the existing configuration
-            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE FROM FVM_MONITOR_ALERTING";
+            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE FROM FVM_MONITOR_ALERTING";
 
             // Use jdbcTemplate to query and map results to MonitorAlerting object
             jdbcTemplate.query(sql, rs -> {
@@ -379,6 +380,7 @@ public class CockpitService {
                 }
                 monitorAlerting.setIsActive(rs.getInt("IS_ACTIVE"));
                 monitorAlerting.setIsBackJobActive(rs.getInt("ISBACKJOBACTIVE"));
+                monitorAlerting.setIsMBWatchdogActive(rs.getInt("ISMBWATCHDOGACTIVE"));
             });
 
             return monitorAlerting;
@@ -525,6 +527,7 @@ public class CockpitService {
         }
         return false;
     }
+
 
     public boolean updateIsActive(int isActive, Configuration configuration) {
         JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
