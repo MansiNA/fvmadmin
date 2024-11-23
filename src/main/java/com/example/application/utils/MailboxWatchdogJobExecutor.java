@@ -99,13 +99,8 @@ public class MailboxWatchdogJobExecutor implements Job {
 
         boolean exists = globalList.stream().anyMatch(m -> mb.getMailboxId().equals(m.getMailboxId()));
 
-      //  List<MailboxShutdown> ml = applicationContextStorage.getGlobalList();
-
-      //  boolean exists = ml.stream().anyMatch(m -> mb.getMailboxId().equals(m.getMailboxId()));
-
-        logger.info("MB exists in globalList? " + exists);
-
-        logger.info("globalList has {} entries.", globalList.stream().count());
+        //logger.info("MB exists in globalList? " + exists);
+        //logger.info("globalList has {} entries.", globalList.stream().count());
 
         // Check if mailbox needs to be disabled
 
