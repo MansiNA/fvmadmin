@@ -2,6 +2,7 @@ package com.example.application;
 
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.JobManager;
+import com.example.application.data.entity.MailboxShutdown;
 import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.JobDefinitionService;
@@ -29,6 +30,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.event.EventListener;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +67,8 @@ public class Application implements AppShellConfigurator {
     private CockpitService cockpitService;
     public static HashMap<Long, Integer> maxPoolsizeMap = new HashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
+
+    public static List<MailboxShutdown> globalList=new ArrayList<>();
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);

@@ -1,11 +1,15 @@
 package com.example.application.utils;
 
+import com.example.application.data.ApplicationContextStorage;
 import com.example.application.data.entity.MailboxShutdown;
 import com.example.application.data.service.MailboxService;
 import com.example.application.views.MailboxWatcher;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.example.application.data.entity.Configuration;
@@ -16,9 +20,14 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+
+import static com.example.application.Application.globalList;
 
 @Component
 public class MailboxWatchdogJobExecutor implements Job {
@@ -26,12 +35,16 @@ public class MailboxWatchdogJobExecutor implements Job {
     private MailboxService mailboxService;
     private ConfigurationService configurationService;
     private Configuration configuration;
-    private List<MailboxShutdown> affectedMailboxes;
+    private final List<MailboxShutdown> affectedMailboxes = Collections.synchronizedList(new ArrayList<>());
     private static final Logger logger = LoggerFactory.getLogger(MailboxWatchdogJobExecutor.class);
 
-    public MailboxWatchdogJobExecutor() {
-        affectedMailboxes = new ArrayList<>();
-    }
+
+    //private final ApplicationContextStorage applicationContextStorage;
+
+
+   // public MailboxWatchdogJobExecutor(ApplicationContextStorage applicationContextStorage) {
+   //     this.applicationContextStorage = applicationContextStorage;
+   // }
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
@@ -78,49 +91,73 @@ public class MailboxWatchdogJobExecutor implements Job {
         int inVerarbeitung = Integer.parseInt(mailbox.getAktuell_in_eKP_verarbeitet()); // Current "In Verarbeitung" value
         int maxMessageCount = Integer.parseInt(mailbox.getMAX_MESSAGE_COUNT()); // Maximum allowed message count
 
-        logger.info(mailbox.getNAME() + " Anzahl Nachrichten in Verarbeitung: " + inVerarbeitung);
-        logger.info(mailbox.getNAME() + " maxMessageCount: " + maxMessageCount);
+        logger.info("-----------Check MB " + mailbox.getNAME() + "---------------");
+        logger.info("Mailbox: {} : Count processing Messages: {} MaxMessageCount: {} ", mailbox.getNAME(), inVerarbeitung, maxMessageCount);
 
         MailboxShutdown mb = new MailboxShutdown();
-        mb.setMailboxId(mailbox.getNAME());
+        mb.setMailboxId(mailbox.getCOURT_ID());
+
+        boolean exists = globalList.stream().anyMatch(m -> mb.getMailboxId().equals(m.getMailboxId()));
+
+      //  List<MailboxShutdown> ml = applicationContextStorage.getGlobalList();
+
+      //  boolean exists = ml.stream().anyMatch(m -> mb.getMailboxId().equals(m.getMailboxId()));
+
+        logger.info("MB exists in globalList? " + exists);
+
+        logger.info("globalList has {} entries.", globalList.stream().count());
 
         // Check if mailbox needs to be disabled
-        if (inVerarbeitung > maxMessageCount && mailbox.getQUANTIFIER() == 1) {
+
+        if (inVerarbeitung > maxMessageCount && mailbox.getQUANTIFIER()==0)
+        {
+            logger.info("Mailbox {} allready disabled...", mailbox.getNAME());
+            return;
+        }
+
+        if (inVerarbeitung > maxMessageCount && mailbox.getQUANTIFIER()==1 && !exists) {
+            logger.info("Shutdown mailbox {} due to exceeding max message count!", mailbox.getNAME());
+
             String result = mailboxService.updateMessageBox(mailbox,"0", configuration);
-
             if(result.equals("Ok")) {
-                logger.info("Disabling mailbox {} due to exceeding max message count.", mailbox.getNAME());
 
+               // affectedMailboxes.add(mb);
+                globalList.add(mb);
 
-                affectedMailboxes.add(mb);
-                logger.info("Content of affectedMailboxes:");
-                affectedMailboxes.forEach(e -> logger.info(e.getMailboxId()));
+       //         applicationContextStorage.getGlobalList().add(mb);
+
+                logger.info("Add Mailbox to globalList. Entries now:" + globalList.stream().count());
 
             } else {
                 logger.error("Error Disabling mailbox "+ mailbox.getNAME()+": " + result );
             }
         } else {
-            logger.info("Re-enabling mailbox {} as processing count is within limits.", mailbox.getNAME());
-            //ToDo: check mailbox name in handled list, if in list then enable mailbox, otherwise do nothing
-
-            //show content of affectedMailboxes:
-            affectedMailboxes.forEach(e -> logger.info(e.getMailboxId()));
+            logger.info("Mailbox {} below max message count...", mailbox.getNAME());
 
 
-            if (affectedMailboxes.contains(mb))
-            {
-                logger.info(mailbox.getNAME() + " ist in affectedMailboxes enthalten => einschalten");
+
+            if (exists) {
+                logger.info("Mailbox wurde über Watchdog ausgeschaltet => wieder einschalten");
                 String result = mailboxService.updateMessageBox(mailbox,"1", configuration);
                 if(result.equals("Ok")) {
-                    logger.info("Disabling mailbox {} due to exceeding max message count.", mailbox.getNAME());
+                    logger.info("Enabled mailbox {} because it's fall below max message count.", mailbox.getNAME());
 
-                    affectedMailboxes.remove(mb);
+                  //  globalList.remove(mb);
+
+                    Iterator<MailboxShutdown> iterator = globalList.iterator();
+                    while (iterator.hasNext()){
+                        MailboxShutdown mbElement = iterator.next();
+                        if (mbElement.getMailboxId().equals(mailbox.getCOURT_ID()))
+                        {
+                            iterator.remove();
+                        }
+                    }
+
 
                 } else {
                     logger.error("Error Disabling mailbox "+ mailbox.getNAME()+": " + result );
                 }
-            };
-
+            }
 
 
         }
