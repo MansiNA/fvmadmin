@@ -3,8 +3,11 @@ package com.example.application.data.service;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.Mailbox;
 import com.example.application.data.entity.MonitorAlerting;
+import com.example.application.utils.MailboxWatchdogJobExecutor;
 import com.vaadin.flow.component.notification.Notification;
 import com.zaxxer.hikari.HikariDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -22,6 +25,8 @@ public class MailboxService {
     private JdbcTemplate jdbcTemplate;
     private ConfigurationService configurationService;
     //  List<fvm_monitoring> listOfMonitores;
+
+    private static final Logger logger = LoggerFactory.getLogger(MailboxWatchdogJobExecutor.class);
 
     public MailboxService(JdbcTemplate jdbcTemplate, ConfigurationService configurationService){
         this.jdbcTemplate = jdbcTemplate;
@@ -319,6 +324,7 @@ public class MailboxService {
 
             //    jdbcTemplate.setDataSource(ds);
             getJdbcTemplateWithDBConnetion(configuration);
+            logger.info("set Quantifier of " + mb.getNAME() + " to " + i);
 
             jdbcTemplate.execute("update EKP.MAILBOX_CONFIG set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
 
