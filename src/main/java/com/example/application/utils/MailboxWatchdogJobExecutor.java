@@ -92,7 +92,7 @@ public class MailboxWatchdogJobExecutor implements Job {
         int maxMessageCount = Integer.parseInt(mailbox.getMAX_MESSAGE_COUNT()); // Maximum allowed message count
 
         logger.info("-----------Check MB " + mailbox.getNAME() + "---------------");
-        logger.info("Mailbox: {} : Count processing Messages: {} MaxMessageCount: {} ", mailbox.getNAME(), inVerarbeitung, maxMessageCount);
+        logger.info("Mailbox {} (with maxMessageCount {}) has active Messages: {}", mailbox.getNAME(), maxMessageCount, inVerarbeitung);
 
         MailboxShutdown mb = new MailboxShutdown();
         mb.setMailboxId(mailbox.getCOURT_ID());
@@ -109,6 +109,7 @@ public class MailboxWatchdogJobExecutor implements Job {
             logger.info("Mailbox {} allready disabled...", mailbox.getNAME());
             return;
         }
+
 
         if (inVerarbeitung > maxMessageCount && mailbox.getQUANTIFIER()==1 && !exists) {
             logger.info("Shutdown mailbox {} due to exceeding max message count!", mailbox.getNAME());
@@ -129,16 +130,19 @@ public class MailboxWatchdogJobExecutor implements Job {
         } else {
             logger.info("Mailbox {} below max message count...", mailbox.getNAME());
 
-
+            if (mailbox.getQUANTIFIER()==1)
+            {
+                logger.info("Mailbox {} already active...", mailbox.getNAME());
+                return;
+            }
 
             if (exists) {
-                logger.info("Mailbox wurde über Watchdog ausgeschaltet => wieder einschalten");
+                logger.info("Mailbox stopped by watchdog => switch back to active");
                 String result = mailboxService.updateMessageBox(mailbox,"1", configuration);
                 if(result.equals("Ok")) {
-                    logger.info("Enabled mailbox {} because it's fall below max message count.", mailbox.getNAME());
+                    logger.info("Mailbox {} enabled successfully.", mailbox.getNAME());
 
-                  //  globalList.remove(mb);
-
+                    //remove Mailbox from internal list
                     Iterator<MailboxShutdown> iterator = globalList.iterator();
                     while (iterator.hasNext()){
                         MailboxShutdown mbElement = iterator.next();
@@ -152,6 +156,10 @@ public class MailboxWatchdogJobExecutor implements Job {
                 } else {
                     logger.error("Error Disabling mailbox "+ mailbox.getNAME()+": " + result );
                 }
+            }
+            else  {
+
+                logger.info("Mailbox not stopped by watchdog => skip switch back");
             }
 
 
