@@ -93,12 +93,28 @@ public class MailboxWatcher  extends VerticalLayout {
         this.jdbcTemplate = jdbcTemplate;
 
         comboBox = new ComboBox<>("Verbindung");
-        List<Configuration> configList = service.findMessageConfigurations();
-        if (configList != null && !configList.isEmpty()) {
-            comboBox.setItems(configList);
-            comboBox.setItemLabelGenerator(Configuration::getName);
-            comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
+        try {
+            List<Configuration> configList = service.findMessageConfigurations();
+            if (configList != null && !configList.isEmpty()) {
+
+                List<Configuration> filteredConfigList = configList.stream()
+                        .filter(config -> config.getIsWatchdog() != null && config.getIsWatchdog() == 1)
+                        .toList();
+                if (!filteredConfigList.isEmpty()) {
+                    comboBox.setItems(filteredConfigList);
+                    comboBox.setItemLabelGenerator(Configuration::getName);
+                    comboBox.setValue(filteredConfigList.get(0)); // Set the first item as the default value
+                } else {
+                    Notification.show("No configurations available for watchdog.", 5000, Notification.Position.MIDDLE);
+                }
+            }
+        //    updateTreeGrid();
+            //    updateGrid();
+        } catch (Exception e) {
+            // Display the error message to the user
+            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
+
 
         comboBox.setPlaceholder("auswählen");
         configureMailboxGrid();
