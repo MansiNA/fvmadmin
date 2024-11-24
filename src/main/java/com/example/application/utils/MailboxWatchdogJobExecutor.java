@@ -92,6 +92,13 @@ public class MailboxWatchdogJobExecutor implements Job {
         int maxMessageCount = Integer.parseInt(mailbox.getMAX_MESSAGE_COUNT()); // Maximum allowed message count
 
         logger.info("-----------Check MB " + mailbox.getNAME() + "---------------");
+
+        if (inVerarbeitung > maxMessageCount && mailbox.getQUANTIFIER()==0)
+        {
+            logger.info("Mailbox {} allready disabled...", mailbox.getNAME());
+            return;
+        }
+
         logger.info("Mailbox {} (with maxMessageCount {}) has active Messages: {}", mailbox.getNAME(), maxMessageCount, inVerarbeitung);
 
         MailboxShutdown mb = new MailboxShutdown();
@@ -103,12 +110,6 @@ public class MailboxWatchdogJobExecutor implements Job {
         //logger.info("globalList has {} entries.", globalList.stream().count());
 
         // Check if mailbox needs to be disabled
-
-        if (inVerarbeitung > maxMessageCount && mailbox.getQUANTIFIER()==0)
-        {
-            logger.info("Mailbox {} allready disabled...", mailbox.getNAME());
-            return;
-        }
 
 
         if (inVerarbeitung > maxMessageCount && mailbox.getQUANTIFIER()==1 && !exists) {
