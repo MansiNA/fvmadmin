@@ -27,6 +27,7 @@ import java.util.Optional;
 @AnonymousAllowed
 public class ExportCockpitView extends VerticalLayout implements BeforeEnterObserver {
 
+    @Autowired
     private JdbcTemplate jdbcTemplate;
     @Autowired
     private ConfigurationService configurationService;
