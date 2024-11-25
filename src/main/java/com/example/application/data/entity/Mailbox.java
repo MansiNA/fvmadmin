@@ -41,6 +41,9 @@ public class Mailbox {
     }
 
     public String getMAX_MESSAGE_COUNT() {
+        if(MAX_MESSAGE_COUNT == null) {
+            return MAX_MESSAGE_COUNT = "1";
+        }
         return MAX_MESSAGE_COUNT;
     }
 

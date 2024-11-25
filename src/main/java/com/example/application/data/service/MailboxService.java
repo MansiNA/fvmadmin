@@ -173,6 +173,19 @@ public class MailboxService {
                 jdbcTemplate.execute(createTableSQL);
 
                 System.out.println("Table created successfully.");
+
+                // Insert default row
+                String insertRowSQL = "INSERT INTO FVM_MONITOR_ALERTING ("
+                        + "MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, "
+                        + "LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, "
+                        + "ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+                jdbcTemplate.update(insertRowSQL,
+                        "m.quaschny@t-online.de", "", "In der EKP sind Probleme", "In der EKP sind Probleme",
+                        "0 0/10 * * * ?", null, null, 0, 5, 1, 1, 0);
+
+                System.out.println("Default row inserted successfully.");
             } else {
                 System.out.println("Table already exists: " + tableName);
             }
@@ -290,9 +303,9 @@ public class MailboxService {
         Connection connection = null;
         DataSource dataSource = null;
         try {
-            jdbcTemplate.getDataSource().getConnection().close();
-//            connection = jdbcTemplate.getDataSource().getConnection();
-//            dataSource = jdbcTemplate.getDataSource();
+        //    jdbcTemplate.getDataSource().getConnection().close();
+            connection = jdbcTemplate.getDataSource().getConnection();
+            dataSource = jdbcTemplate.getDataSource();
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
@@ -334,6 +347,8 @@ public class MailboxService {
         } catch (Exception e) {
             System.out.println("Exception: " + e.getMessage());
             return e.getMessage();
+        } finally {
+            connectionClose(jdbcTemplate);
         }
 
     }

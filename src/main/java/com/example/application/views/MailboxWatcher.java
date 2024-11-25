@@ -153,13 +153,13 @@ public class MailboxWatcher  extends VerticalLayout {
         mailboxService.createFvmMonitorAlertingTable(comboBox.getValue());
         MonitorAlerting  monitorAlerting = mailboxService.fetchEmailConfiguration(comboBox.getValue());
 
-        if (monitorAlerting != null && monitorAlerting.getIsBackJobActive() != null && monitorAlerting.getIsBackJobActive() != 0) {
+        if (monitorAlerting != null && monitorAlerting.getIsMBWatchdogActive() != null && monitorAlerting.getIsMBWatchdogActive() != 0) {
             setChecker("On");
         } else {
             setChecker("Off");
         }
 
-        Div checkInfo = new Div(new Span("Background-Job: "), syscheck);
+        Div checkInfo = new Div(new Span("Watchdog-Job: "), syscheck);
         syscheck.getStyle().set("font-weight", "bold");
 
         HorizontalLayout hl = new HorizontalLayout();
@@ -430,7 +430,7 @@ public class MailboxWatcher  extends VerticalLayout {
                 logger.info("checkMailboxWatchdogProcess: Starting MailboxWatchdog job executing");
                 scheduleMBWatchdogJob(configuration);
             } catch (Exception e) {
-                Notification.show("Error executing job: " + configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                Notification.show("Error executing job: " +  configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
             }
         } else {
             // If status is "Off", stop all scheduled jobs
@@ -439,7 +439,7 @@ public class MailboxWatcher  extends VerticalLayout {
     }
     public void scheduleMBWatchdogJob(Configuration configuration) throws SchedulerException {
         logger.info("Starting scheduleMBWatchdogJob");
-        BackgroundJobExecutor.stopJob = false;
+        MailboxWatchdogJobExecutor.stopJob = false;
         Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
         scheduler.start();
 
@@ -481,23 +481,38 @@ public class MailboxWatcher  extends VerticalLayout {
         logger.info("Executing stopMBWatchdogScheduledJobs");
         try {
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
-            JobKey cronJobKey = new JobKey("job-mbWatchdog-cron-" + configuration.getId(), "MBWatchdog_group");
+            JobKey cronJobKey = new JobKey("job-mbWatchdog-cron-" + configuration.getId(), "mbWatchdog_group");
 
             // Try stopping cron job
             if (scheduler.checkExists(cronJobKey)) {
                 if (scheduler.deleteJob(cronJobKey)) {
-                  //  BackgroundJobExecutor.stopJob = true;
+                    MailboxWatchdogJobExecutor.stopJob = true;
                     System.out.println("stop MBWatchdog job successful "+ configuration.getName());
-                    Notification.show("Cron job " + configuration.getName() + " stopped successfully,," + configuration.getId());
+                    Notification.show("MBWatchdog Cron job " + configuration.getName() + " stopped successfully,," + configuration.getId());
                 }
             }
-
 
         } catch (Exception e) {
             logger.error("Executing stopMBWatchdogScheduledJobs: Error stopping jobs:");
             Notification.show("Error stopping jobs: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
+
+    private void restartBackgroundCron() {
+        try {
+            Configuration configuration = comboBox.getValue ();
+            if(syscheck.getText().equals("On")) {
+                stopMBWatchdogScheduledJobs(configuration);
+                scheduleMBWatchdogJob(configuration);
+            } else {
+                stopMBWatchdogScheduledJobs(configuration);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Notification.show("Failed to restart alert job: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
+
     private void mailboxWatchdogJobConfigurationDialog() {
 
         Dialog dialog = new Dialog();
@@ -526,7 +541,7 @@ public class MailboxWatcher  extends VerticalLayout {
                 } else {
                     setChecker("Off");
                 }
-               // restartBackgroundCron();
+                restartBackgroundCron();
             }
 
             dialog.close();

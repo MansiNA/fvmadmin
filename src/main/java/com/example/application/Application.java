@@ -6,6 +6,7 @@ import com.example.application.data.entity.MailboxShutdown;
 import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.JobDefinitionService;
+import com.example.application.data.service.MailboxService;
 import com.example.application.service.CockpitService;
 import com.example.application.utils.*;
 import com.example.application.views.CockpitView;
@@ -65,6 +66,9 @@ public class Application implements AppShellConfigurator {
 
     @Autowired
     private CockpitService cockpitService;
+
+    @Autowired
+    private MailboxService mailboxService;
     public static HashMap<Long, Integer> maxPoolsizeMap = new HashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
@@ -85,6 +89,7 @@ public class Application implements AppShellConfigurator {
         initializePools();
         allMonitorCronStart();
         allBackGroundCronStart();
+        allMailboxWatchdogCronStart();
 //        if ("On".equals(emailAlertingAutostart)) {
 //            System.out.println("---------------yyyyyyyyyyyyyyyy-------------------");
 //            allMonitorCronStart();
@@ -132,6 +137,25 @@ public class Application implements AppShellConfigurator {
         for(Configuration configuration : monitoringConfigs) {
             try {
                 scheduleBackgroundJob(configuration);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+    private void allMailboxWatchdogCronStart() {
+        logger.info("allMailboxWatchdogCronStart(): all watchdog job schedule");
+        List<Configuration> configList = configurationService.findMessageConfigurations();
+        List<Configuration> monitoringConfigs = configList.stream()
+                .filter(config -> config.getIsWatchdog() != null && config.getIsWatchdog() == 1)
+                .collect(Collectors.toList());
+        //  for(Configuration configuration)
+        // Fetch email configurations
+        for(Configuration configuration : monitoringConfigs) {
+            try {
+
+                scheduleMBWatchdogJob(configuration);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -303,6 +327,45 @@ public class Application implements AppShellConfigurator {
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("trigger-cron-" + jobManager.getId(), "group1")
                 .withSchedule(CronScheduleBuilder.cronSchedule(jobManager.getCron()))
+                .forJob(jobDetail)
+                .build();
+
+        scheduler.scheduleJob(jobDetail, trigger);
+    }
+    public void scheduleMBWatchdogJob(Configuration configuration) throws SchedulerException {
+        logger.info("scheduleMBWatchdogJob(Configuration configuration): start watchdog job schedule");
+        MailboxWatchdogJobExecutor.stopJob = false;
+        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+        scheduler.start();
+
+        JobDataMap jobDataMap = new JobDataMap();
+        try {
+            jobDataMap.put("configuration", JobDefinitionUtils.serializeJobDefinition(configuration));
+        } catch (JsonProcessingException e) {
+            Notification.show("Error serializing job definition: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            return;
+        }
+
+        jobDataMap.put("startType", "cron");
+
+        JobDetail jobDetail = JobBuilder.newJob(MailboxWatchdogJobExecutor.class)
+                .withIdentity("job-mbWatchdog-cron-" + configuration.getId(), "mbWatchdog_group")
+                .usingJobData(jobDataMap)
+                .build();
+
+        // Fetch monitorAlerting configuration to get the interval
+        MonitorAlerting monitorAlerting = mailboxService.fetchEmailConfiguration(configuration);
+
+        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+            System.out.println("No interval set for the configuration. Job will not be scheduled.");
+            return;
+        }
+
+        String cronExpression = monitorAlerting.getCron();
+
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("trigger-mbWatchdog -cron-" + configuration.getId(), "mbWatchdog_group")
+                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
                 .forJob(jobDetail)
                 .build();
 

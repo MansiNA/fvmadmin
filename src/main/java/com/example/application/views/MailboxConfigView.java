@@ -36,6 +36,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
+import org.eclipse.angus.mail.imap.protocol.MailboxInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -161,7 +162,7 @@ public class MailboxConfigView  extends VerticalLayout {
                                 String result = updateMessageBox(clickedItem,"1");
                                 if(result.equals("Ok")) {
                                     Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird eingeschaltet...");
-                                    protokollService.logAction(verbindung,clickedItem.getUSER_ID() + " wurde eingeschaltet.", "");
+                                    protokollService.logAction(MainLayout.userName ,verbindung,clickedItem.getUSER_ID() + " wurde eingeschaltet.", "");
                                     updateList();
                                 } else {
                                     Notification.show(result).addThemeVariants(NotificationVariant.LUMO_ERROR);;
@@ -173,7 +174,7 @@ public class MailboxConfigView  extends VerticalLayout {
                                     String result = updateMessageBox(clickedItem, "0");
                                     if(result.equals("Ok")) {
                                         Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird ausgeschaltet...");
-                                        protokollService.logAction(verbindung,clickedItem.getUSER_ID() + " wurde ausgeschaltet.", reason);
+                                        protokollService.logAction(MainLayout.userName, verbindung,clickedItem.getUSER_ID() + " wurde ausgeschaltet.", reason);
                                         updateList();
                                     }  else {
                                         Notification.show(result).addThemeVariants(NotificationVariant.LUMO_ERROR);;
@@ -385,7 +386,7 @@ public class MailboxConfigView  extends VerticalLayout {
                 mailbox.setQUANTIFIER(0);
                 result = updateMessageBox(mailbox, "0");
                 if(result.equals("Ok")) {
-                    protokollService.logAction(verbindung, mailbox.getUSER_ID() + " wurde ausgeschaltet.", reason);
+                    protokollService.logAction(MainLayout.userName, verbindung, mailbox.getUSER_ID() + " wurde ausgeschaltet.", reason);
                     //    protokollService.saveMailboxShutdownState(mailbox.getUSER_ID(), reason);
                     insertMailboxShutdown(mailbox.getUSER_ID(), reason);
                 }
@@ -415,7 +416,7 @@ public class MailboxConfigView  extends VerticalLayout {
                 mailbox.setQUANTIFIER(1);
                 result = updateMessageBox(mailbox, "1");
                 if(result.equals("Ok")) {
-                    protokollService.logAction(verbindung, mailbox.getUSER_ID() + " wurde eingeschaltet.", "");
+                    protokollService.logAction(MainLayout.userName, verbindung, mailbox.getUSER_ID() + " wurde eingeschaltet.", "");
                 }
             }
         }

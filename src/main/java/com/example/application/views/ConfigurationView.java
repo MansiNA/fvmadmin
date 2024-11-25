@@ -65,7 +65,7 @@ public class ConfigurationView extends VerticalLayout {
     private void configureGrid() {
         grid.addClassNames("configuration-grid");
         grid.setSizeFull();
-        grid.setColumns("id", "name", "userName","db_Url", "isMonitoring");
+        grid.setColumns("id", "name", "userName","db_Url", "isMonitoring", "isWatchdog");
 
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
 
