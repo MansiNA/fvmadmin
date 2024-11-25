@@ -27,6 +27,7 @@ public class ConfigForm extends FormLayout {
     PasswordField password = new PasswordField("Password");
     TextField db_Url = new TextField("DB-ConnectionString");
     Checkbox isMonitoring = new Checkbox("Is Monitoring");
+    Checkbox isWatchdog = new Checkbox("Is Watchdog");
 
     Button save=new Button("Save");
     Button delete = new Button("Delete");
@@ -78,6 +79,24 @@ public class ConfigForm extends FormLayout {
                     }
                 })
                 .bind("isMonitoring");
+
+        // Custom binding for isMonitoring with a converter from Integer to Boolean
+        binder.forField(isWatchdog)
+                .withConverter(new Converter<Boolean, Integer>() {
+                    @Override
+                    public Result<Integer> convertToModel(Boolean fieldValue, ValueContext context) {
+                        // Convert Boolean to Integer
+                        return Result.ok(fieldValue ? 1 : 0);
+                    }
+
+                    @Override
+                    public Boolean convertToPresentation(Integer integer, ValueContext context) {
+                        // Convert Integer to Boolean
+                        return integer != null && integer == 1;
+                    }
+                })
+                .bind("isWatchdog");
+
         add(
                 id,
                 name,
@@ -85,6 +104,7 @@ public class ConfigForm extends FormLayout {
                 password,
                 db_Url,
                 isMonitoring,
+                isWatchdog,
                 createButtonLayout()
         );
 

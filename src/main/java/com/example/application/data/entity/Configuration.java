@@ -31,6 +31,9 @@ public class Configuration {
     @Column(name = "IS_MONITORING")
     private Integer isMonitoring;
 
+    @Column(name = "IS_WATCHDOG")
+    private Integer isWatchdog;
+
     // Method to encode a password to Base64
     // Method to encode a password to URL-safe Base64
     public static String encodePassword(String plainTextPassword) {

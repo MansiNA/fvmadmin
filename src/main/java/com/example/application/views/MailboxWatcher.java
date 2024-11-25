@@ -93,12 +93,28 @@ public class MailboxWatcher  extends VerticalLayout {
         this.jdbcTemplate = jdbcTemplate;
 
         comboBox = new ComboBox<>("Verbindung");
-        List<Configuration> configList = service.findMessageConfigurations();
-        if (configList != null && !configList.isEmpty()) {
-            comboBox.setItems(configList);
-            comboBox.setItemLabelGenerator(Configuration::getName);
-            comboBox.setValue(service.findAllConfigurations().stream().findFirst().get());
+        try {
+            List<Configuration> configList = service.findMessageConfigurations();
+            if (configList != null && !configList.isEmpty()) {
+
+                List<Configuration> filteredConfigList = configList.stream()
+                        .filter(config -> config.getIsWatchdog() != null && config.getIsWatchdog() == 1)
+                        .toList();
+                if (!filteredConfigList.isEmpty()) {
+                    comboBox.setItems(filteredConfigList);
+                    comboBox.setItemLabelGenerator(Configuration::getName);
+                    comboBox.setValue(filteredConfigList.get(0)); // Set the first item as the default value
+                } else {
+                    Notification.show("No configurations available for watchdog.", 5000, Notification.Position.MIDDLE);
+                }
+            }
+        //    updateTreeGrid();
+            //    updateGrid();
+        } catch (Exception e) {
+            // Display the error message to the user
+            Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
+
 
         comboBox.setPlaceholder("auswählen");
         configureMailboxGrid();
@@ -253,55 +269,55 @@ public class MailboxWatcher  extends VerticalLayout {
         Grid.Column<Mailbox> maxMessageCountColumn = grid.addColumn(Mailbox::getMAX_MESSAGE_COUNT).setHeader("Max Message Count")
                 .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
 
-//        grid.addColumn(createStatusComponentRenderer()).setHeader("Status")
-//                .setAutoWidth(true).setResizable(true);
+        grid.addColumn(createStatusComponentRenderer()).setHeader("Status")
+                .setAutoWidth(true).setResizable(true);
 
 
-        grid.addComponentColumn(mb -> createStatusIcon(mb.getQUANTIFIER()))
-                //.setTooltipGenerator(person -> person.getStatus())
-                .setWidth("4em").setFlexGrow(0)
-                .setHeader("Status");
+//        grid.addComponentColumn(mb -> createStatusIcon(mb.getQUANTIFIER()))
+//                //.setTooltipGenerator(person -> person.getStatus())
+//                .setWidth("4em").setFlexGrow(0)
+//                .setHeader("Status");
 
-        grid.addColumn(
-                new NativeButtonRenderer<>(
-//                          "Switch",
-                        item -> {
-                            // Determine the switch label based on the QUANTIFIER value
-                            return item.getQUANTIFIER() == 0 ? "Einschalten" : "Ausschalten";
-                        },
-                        clickedItem -> {
-                            String verbindung = comboBox.getValue().getName();
-                            if (clickedItem.getQUANTIFIER()==0) {
-
-                                //   clickedItem.setQUANTIFIER(1);
-                                String result = mailboxService.updateMessageBox(clickedItem,"1", comboBox.getValue());
-                                if(result.equals("Ok")) {
-                                    Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird eingeschaltet...");
-                                    protokollService.logAction(verbindung,clickedItem.getUSER_ID() + " wurde eingeschaltet.", "");
-                                    updateList();
-                                } else {
-                                    Notification.show(result).addThemeVariants(NotificationVariant.LUMO_ERROR);;
-                                }
-
-                            }
-                            else {
-                                showShutdownReasonDialog(reason -> {
-                                    String result = mailboxService.updateMessageBox(clickedItem, "0", comboBox.getValue());
-                                    if(result.equals("Ok")) {
-                                        Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird ausgeschaltet...");
-                                        protokollService.logAction(verbindung,clickedItem.getUSER_ID() + " wurde ausgeschaltet.", reason);
-                                        updateList();
-                                    }  else {
-                                        Notification.show(result).addThemeVariants(NotificationVariant.LUMO_ERROR);;
-                                    }
-                                });
-                            }
-                            // clickedItem.setIsActive(false);
-                            // clickedItem.setLastName("Huhu");
-
-
-                        })
-        );
+//        grid.addColumn(
+//                new NativeButtonRenderer<>(
+////                          "Switch",
+//                        item -> {
+//                            // Determine the switch label based on the QUANTIFIER value
+//                            return item.getQUANTIFIER() == 0 ? "Einschalten" : "Ausschalten";
+//                        },
+//                        clickedItem -> {
+//                            String verbindung = comboBox.getValue().getName();
+//                            if (clickedItem.getQUANTIFIER()==0) {
+//
+//                                //   clickedItem.setQUANTIFIER(1);
+//                                String result = mailboxService.updateMessageBox(clickedItem,"1", comboBox.getValue());
+//                                if(result.equals("Ok")) {
+//                                    Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird eingeschaltet...");
+//                                    protokollService.logAction(verbindung,clickedItem.getUSER_ID() + " wurde eingeschaltet.", "");
+//                                    updateList();
+//                                } else {
+//                                    Notification.show(result).addThemeVariants(NotificationVariant.LUMO_ERROR);;
+//                                }
+//
+//                            }
+//                            else {
+//                                showShutdownReasonDialog(reason -> {
+//                                    String result = mailboxService.updateMessageBox(clickedItem, "0", comboBox.getValue());
+//                                    if(result.equals("Ok")) {
+//                                        Notification.show("Postfach " + clickedItem.getUSER_ID() + " wird ausgeschaltet...");
+//                                        protokollService.logAction(verbindung,clickedItem.getUSER_ID() + " wurde ausgeschaltet.", reason);
+//                                        updateList();
+//                                    }  else {
+//                                        Notification.show(result).addThemeVariants(NotificationVariant.LUMO_ERROR);;
+//                                    }
+//                                });
+//                            }
+//                            // clickedItem.setIsActive(false);
+//                            // clickedItem.setLastName("Huhu");
+//
+//
+//                        })
+//        );
 
 
 
