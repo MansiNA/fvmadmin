@@ -153,7 +153,7 @@ public class MailboxWatchdogJobExecutor implements Job {
                 String result = mailboxService.updateMessageBox(mailbox,"1", configuration);
                 if(result.equals("Ok")) {
                     logger.info("Mailbox {} enabled successfully.", mailbox.getNAME());
-                    protokollService.logAction("watchdog" ,configuration.getName(), mailbox.getUSER_ID()+" wurde eingschaltet", "active messages " + inVerarbeitung + " below " + maxMessageCount+);
+                    protokollService.logAction("watchdog" ,configuration.getName(), mailbox.getUSER_ID()+" wurde eingschaltet", "active messages " + inVerarbeitung + " below " + maxMessageCount);
                     //remove Mailbox from internal list
                     Iterator<MailboxShutdown> iterator = globalList.iterator();
                     while (iterator.hasNext()){
