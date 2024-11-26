@@ -1046,7 +1046,7 @@ public class JobManagerView extends VerticalLayout implements BeforeEnterObserve
     }
 
     private void updateUIBasedOnMessage(UI ui, String displayMessage, int jobId, boolean isCron) {
-        if (displayMessage.contains("start running all")) {
+        if (displayMessage.contains("Mailbox updated")) {
             updateAllButtonsState(ui, "Cron Stop");
           //  updateAllButtonsState(ui, false, true);
         } else if (displayMessage.contains("stopped successfully") || displayMessage.contains("not found running") || displayMessage.contains("Error stopping job")) {

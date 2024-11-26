@@ -80,7 +80,7 @@ public class BackgroundJobExecutor implements Job {
         logger.info("Starting executeJob() of.................."+configuration.getName());
         MonitorAlerting monitorAlerting = fetchEmailConfiguration(configuration);
 
-        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+        if (monitorAlerting == null || monitorAlerting.getBgCron() == null) {
             return; // Exit if no configuration or interval is set
         }
 
@@ -351,7 +351,7 @@ public class BackgroundJobExecutor implements Job {
             logger.info("Executing fetchEmailConfiguration");
 
             // Query to get the existing configuration
-            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE FROM FVM_MONITOR_ALERTING";
+            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE FROM FVM_MONITOR_ALERTING";
 
             // Use jdbcTemplate to query and map results to MonitorAlerting object
             jdbcTemplate.query(sql, rs -> {
@@ -360,7 +360,8 @@ public class BackgroundJobExecutor implements Job {
                 monitorAlerting.setMailCCEmpfaenger(rs.getString("MAIL_CC_EMPFAENGER"));
                 monitorAlerting.setMailBetreff(rs.getString("MAIL_BETREFF"));
                 monitorAlerting.setMailText(rs.getString("MAIL_TEXT"));
-                monitorAlerting.setCron(rs.getString("CRON_EXPRESSION"));
+                monitorAlerting.setBgCron(rs.getString("BG_JOB_CRON_EXPRESSION"));
+                monitorAlerting.setMbWatchdogCron(rs.getString("MB_WATCHDOG_CRON_EXPRESSION"));
                 monitorAlerting.setRetentionTime(rs.getInt("RETENTION_TIME"));
                 monitorAlerting.setMaxParallelCheck(rs.getInt("MAX_PARALLEL_CHECKS"));
                 // Converting SQL Timestamp to LocalDateTime

@@ -16,7 +16,8 @@ public class MonitorAlerting {
     private String mailBetreff;
     private String mailText;
   //  private Integer intervall;
-    private String cron;
+    private String bgCron;
+    private String mbWatchdogCron;
     private Integer isActive;
     private Integer isBackJobActive;
     private Integer isMBWatchdogActive;
@@ -47,7 +48,8 @@ public class MonitorAlerting {
                 ", mailCCEmpfaenger='" + mailCCEmpfaenger + '\'' +
                 ", mailBetreff='" + mailBetreff + '\'' +
                 ", mailText='" + mailText + '\'' +
-                ", cron=" + cron +
+                ", mbWatchdogCron='" + mbWatchdogCron + '\'' +
+                ", bg_cron=" + bgCron +
              //   ", intervall=" + intervall +
                 '}';
     }

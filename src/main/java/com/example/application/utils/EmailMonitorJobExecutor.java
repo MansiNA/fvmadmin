@@ -60,7 +60,7 @@ public class EmailMonitorJobExecutor implements Job {
     private void executeJob(Configuration configuration) {
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
 
-        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+        if (monitorAlerting == null || monitorAlerting.getBgCron() == null) {
             logger.info("EMail-Check: Exit because no configuration or interval is set");
             return; // Exit if no configuration or interval is set
         }

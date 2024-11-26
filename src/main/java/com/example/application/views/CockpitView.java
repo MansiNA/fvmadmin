@@ -391,13 +391,13 @@ public class CockpitView extends VerticalLayout{
         // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
    //     System.out.println("---------------------------------------"+monitorAlerting.getMailEmpfaenger()+"--------------------------------------");
-        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+        if (monitorAlerting == null || monitorAlerting.getBgCron() == null) {
             //System.out.println("No interval set for the configuration. Job will not be scheduled.");
             logger.error("No interval set for the configuration. Job will not be scheduled.");
             return;
         }
 
-        String cronExpression = monitorAlerting.getCron();
+        String cronExpression = monitorAlerting.getBgCron();
 
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("trigger-alert-cron-" + configuration.getId(), "Email_group")
@@ -432,12 +432,12 @@ public class CockpitView extends VerticalLayout{
         // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(configuration);
 
-        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+        if (monitorAlerting == null || monitorAlerting.getBgCron() == null) {
             System.out.println("No interval set for the configuration. Job will not be scheduled.");
             return;
         }
 
-        String cronExpression = monitorAlerting.getCron();
+        String cronExpression = monitorAlerting.getBgCron();
 
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("trigger-background -cron-" + configuration.getId(), "Chek_group")
@@ -1055,7 +1055,7 @@ public class CockpitView extends VerticalLayout{
         // Fetch email configurations
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
 
-        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+        if (monitorAlerting == null || monitorAlerting.getBgCron() == null) {
             logger.error("E-Mail Alerting not configured!");
             return; // Exit if no configuration or interval is set
         }
@@ -2088,17 +2088,17 @@ public class CockpitView extends VerticalLayout{
 
         MonitorAlerting monitorAlerting = cockpitService.fetchEmailConfiguration(comboBox.getValue());
 
-        Optional.ofNullable(monitorAlerting.getCron()).ifPresent(cronField::setValue);
+        Optional.ofNullable(monitorAlerting.getBgCron()).ifPresent(cronField::setValue);
         aktiv.setValue(monitorAlerting.getIsBackJobActive() != null && monitorAlerting.getIsBackJobActive() != 0);
         Optional.ofNullable(monitorAlerting.getRetentionTime()).ifPresent(retentionTimeField::setValue);
         Optional.ofNullable(monitorAlerting.getMaxParallelCheck()).ifPresent(maxParallelChecksField::setValue);
 
         Button saveButton = new Button("Save", event -> {
             // Update the monitorAlerting object with values from the input fields
-            monitorAlerting.setCron(cronField.getValue());
+            monitorAlerting.setBgCron(cronField.getValue());
             monitorAlerting.setIsBackJobActive(aktiv.getValue() ? 1: 0);
             monitorAlerting.setRetentionTime(retentionTimeField.getValue());
-             monitorAlerting.setMaxParallelCheck(maxParallelChecksField.getValue());
+            monitorAlerting.setMaxParallelCheck(maxParallelChecksField.getValue());
 
             // Call the save method to persist the configuration
             boolean isSuccess = cockpitService.saveBackgoundJobConfiguration(monitorAlerting, comboBox.getValue());
@@ -2155,7 +2155,7 @@ public class CockpitView extends VerticalLayout{
                     monitorAlerting.getMailCCEmpfaenger(),
                     monitorAlerting.getMailBetreff(),
                     monitorAlerting.getMailText(),
-                    monitorAlerting.getCron()
+                    monitorAlerting.getBgCron()
             );
             Notification.show("Configuration saved successfully.");
         } catch (Exception e) {
@@ -2221,7 +2221,7 @@ public class CockpitView extends VerticalLayout{
                 monitorAlerting.setMailCCEmpfaenger(rs.getString("MAIL_CC_EMPFAENGER"));
                 monitorAlerting.setMailBetreff(rs.getString("MAIL_BETREFF"));
                 monitorAlerting.setMailText(rs.getString("MAIL_TEXT"));
-                monitorAlerting.setCron(rs.getString("CRON_EXPRESSION"));
+                monitorAlerting.setBgCron(rs.getString("CRON_EXPRESSION"));
             });
 
         } catch (Exception e) {

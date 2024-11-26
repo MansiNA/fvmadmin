@@ -7,6 +7,7 @@ import com.example.application.data.service.ProtokollService;
 import com.example.application.views.MailboxWatcher;
 import com.example.application.views.MainLayout;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -141,7 +142,7 @@ public class MailboxWatchdogJobExecutor implements Job {
             }
         } else {
             logger.info("Mailbox {} below max message count...", mailbox.getNAME());
-
+            MailboxWatcher.notifySubscribers("Mailbox updated: " + mailbox.getNAME());
             if (mailbox.getQUANTIFIER()==1)
             {
                 logger.info("Mailbox {} already active...", mailbox.getNAME());

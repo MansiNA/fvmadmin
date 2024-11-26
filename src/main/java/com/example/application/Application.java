@@ -152,10 +152,14 @@ public class Application implements AppShellConfigurator {
                 .collect(Collectors.toList());
         //  for(Configuration configuration)
         // Fetch email configurations
+
+
         for(Configuration configuration : monitoringConfigs) {
             try {
-
-                scheduleMBWatchdogJob(configuration);
+                MonitorAlerting monitorAlerting = mailboxService.fetchEmailConfiguration(configuration);
+                if(monitorAlerting.getIsMBWatchdogActive() != null && monitorAlerting.getIsMBWatchdogActive() == 1) {
+                    scheduleMBWatchdogJob(configuration);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -208,13 +212,13 @@ public class Application implements AppShellConfigurator {
                     .build();
 
 
-            if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+            if (monitorAlerting == null || monitorAlerting.getBgCron() == null) {
                 System.out.println("No interval set for the configuration. Job will not be scheduled.");
                 return;
             }
 
         //    int interval = monitorAlerting.getIntervall(); // assuming this returns the interval in minutes
-            String cronExpression = monitorAlerting.getCron();
+            String cronExpression = monitorAlerting.getBgCron() ;
 
             Trigger trigger = TriggerBuilder.newTrigger()
                     .withIdentity("trigger-alert-cron-" + configuration.getId(), "Email_group")
@@ -249,12 +253,12 @@ public class Application implements AppShellConfigurator {
                     .usingJobData(jobDataMap)
                     .build();
 
-            if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+            if (monitorAlerting == null || monitorAlerting.getBgCron() == null) {
                 System.out.println("No interval set for the configuration. Job will not be scheduled.");
                 return;
             }
 
-            String cronExpression = monitorAlerting.getCron();
+            String cronExpression = monitorAlerting.getBgCron();
 
             Trigger trigger = TriggerBuilder.newTrigger()
                     .withIdentity("trigger-background -cron-" + configuration.getId(), "Chek_group")
@@ -356,12 +360,12 @@ public class Application implements AppShellConfigurator {
         // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = mailboxService.fetchEmailConfiguration(configuration);
 
-        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+        if (monitorAlerting == null || monitorAlerting.getMbWatchdogCron() == null) {
             System.out.println("No interval set for the configuration. Job will not be scheduled.");
             return;
         }
 
-        String cronExpression = monitorAlerting.getCron();
+        String cronExpression = monitorAlerting.getMbWatchdogCron();
 
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("trigger-mbWatchdog -cron-" + configuration.getId(), "mbWatchdog_group")

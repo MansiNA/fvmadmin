@@ -4,7 +4,6 @@ import com.example.application.data.entity.*;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.MailboxService;
 import com.example.application.data.service.ProtokollService;
-import com.example.application.utils.BackgroundJobExecutor;
 import com.example.application.utils.JobDefinitionUtils;
 import com.example.application.utils.MailboxWatchdogJobExecutor;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -25,16 +24,15 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
-import com.vaadin.flow.data.renderer.NativeButtonRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.function.SerializableBiConsumer;
+import com.vaadin.flow.function.SerializableConsumer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.zaxxer.hikari.HikariDataSource;
@@ -50,10 +48,10 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -68,7 +66,7 @@ public class MailboxWatcher  extends VerticalLayout {
     private MailboxService mailboxService;
     private ProtokollService protokollService;
     private ComboBox<Configuration> comboBox;
-    Grid<Mailbox> grid = new Grid<>(Mailbox.class, false);
+    public Grid<Mailbox> grid = new Grid<>(Mailbox.class, false);
 
     private List<MailboxShutdown> affectedMailboxes;
     private List<Mailbox> mailboxen;
@@ -84,6 +82,9 @@ public class MailboxWatcher  extends VerticalLayout {
     private ContextMenu check_menu;
     private Span syscheck;
     private static final Logger logger = LoggerFactory.getLogger(MailboxWatcher.class);
+    private static final Set<SerializableConsumer<String>> subscribers = new HashSet<>();
+    private static final ExecutorService notifierThread = Executors.newSingleThreadExecutor();
+    private SerializableConsumer<String> subscriber;
 
     public MailboxWatcher(ConfigurationService service, ProtokollService protokollService, MailboxService mailboxService, JdbcTemplate jdbcTemplate)  {
         logger.info("Starting MailboxWatcher");
@@ -179,7 +180,10 @@ public class MailboxWatcher  extends VerticalLayout {
         headerLayout.setFlexGrow(1, title);
 
         add(headerLayout,grid);
+        addAttachListener(event -> updateJobManagerSubscription());
+        addDetachListener(event -> updateJobManagerSubscription());
 
+        //  updateJobManagerSubscription();
         // button.addClickListener(clickEvent -> {
         comboBox.addValueChangeListener(event->{
 
@@ -461,12 +465,12 @@ public class MailboxWatcher  extends VerticalLayout {
         // Fetch monitorAlerting configuration to get the interval
         MonitorAlerting monitorAlerting = mailboxService.fetchEmailConfiguration(configuration);
 
-        if (monitorAlerting == null || monitorAlerting.getCron() == null) {
+        if (monitorAlerting == null || monitorAlerting.getMbWatchdogCron() == null) {
             System.out.println("No interval set for the configuration. Job will not be scheduled.");
             return;
         }
 
-        String cronExpression = monitorAlerting.getCron();
+        String cronExpression = monitorAlerting.getMbWatchdogCron();
 
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("trigger-mbWatchdog -cron-" + configuration.getId(), "mbWatchdog_group")
@@ -526,12 +530,12 @@ public class MailboxWatcher  extends VerticalLayout {
 
         MonitorAlerting monitorAlerting = mailboxService.fetchEmailConfiguration(comboBox.getValue());
 
-        Optional.ofNullable(monitorAlerting.getCron()).ifPresent(cronField::setValue);
+        Optional.ofNullable(monitorAlerting.getMbWatchdogCron()).ifPresent(cronField::setValue);
         aktiv.setValue(monitorAlerting.getIsMBWatchdogActive() != null && monitorAlerting.getIsMBWatchdogActive() != 0);
 
         Button saveButton = new Button("Save", event -> {
 
-            monitorAlerting.setCron(cronField.getValue());
+            monitorAlerting.setMbWatchdogCron(cronField.getValue());
             monitorAlerting.setIsMBWatchdogActive(aktiv.getValue() ? 1: 0);
 
             boolean isSuccess = mailboxService.saveMailboxJobConfiguration(monitorAlerting, comboBox.getValue());
@@ -828,6 +832,60 @@ public class MailboxWatcher  extends VerticalLayout {
             }
         }
     }
+    public static void notifySubscribers(String message) {
+        Set<SerializableConsumer<String>> subscribersSnapshot;
+        synchronized (subscribers) {
+            subscribersSnapshot = new HashSet<>(subscribers);
+        }
 
+        for (SerializableConsumer<String> subscriber : subscribersSnapshot) {
+            notifierThread.execute(() -> {
+                try {
+                    subscriber.accept(message);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+    }
 
+    private void subscribe(SerializableConsumer<String> subscriber) {
+        synchronized (subscribers) {
+            subscribers.add(subscriber);
+        }
+    }
+
+    private void unsubscribe() {
+        if (subscriber == null) {
+            return; // Already unsubscribed
+        }
+        synchronized (subscribers) {
+            subscribers.remove(subscriber);
+        }
+        subscriber = null;
+    }
+
+    private void updateJobManagerSubscription() {
+        UI ui = getUI().orElse(null);
+
+        if (ui != null) {
+            if (subscriber != null) {
+                return; // Already subscribed
+            }
+
+            subscriber = message -> ui.access(() -> {
+                if (!ui.isAttached()) {
+                    return; // UI is detached, stop processing
+                }
+                if (message.contains("Mailbox updated")) {
+                    System.out.println("grid updated---------------------------------------------------------");
+                    updateList();
+                }
+            });
+
+            subscribe(subscriber);
+        } else {
+            unsubscribe();
+        }
+    }
 }

@@ -285,14 +285,15 @@ public class CockpitService {
                         + "MAIL_CC_EMPFAENGER VARCHAR(255), "
                         + "MAIL_BETREFF VARCHAR(255), "
                         + "MAIL_TEXT VARCHAR(255), "
-                        + "CRON_EXPRESSION VARCHAR(255), "
+                        + "BG_JOB_CRON_EXPRESSION VARCHAR(255), "
                         + "LAST_ALERT_TIME DATE, "
                         + "LAST_ALERT_CHECKTIME TIMESTAMP, "
                         + "IS_ACTIVE INT, "
                         + "RETENTION_TIME INT,"
                         + "MAX_PARALLEL_CHECKS INT, "
                         + "ISBACKJOBACTIVE INT, "
-                        + "ISMBWATCHDOGACTIVE INT "
+                        + "ISMBWATCHDOGACTIVE INT, "
+                        + "MB_WATCHDOG_CRON_EXPRESSION VARCHAR(255) "
                         + ")";
 
                 jdbcTemplate.execute(createTableSQL);
@@ -303,15 +304,14 @@ public class CockpitService {
 
                 // Insert default row
                 String insertRowSQL = "INSERT INTO FVM_MONITOR_ALERTING ("
-                        + "MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, "
+                        + "MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION, "
                         + "LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, "
-                        + "ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        + "ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE, MB_WATCHDOG_CRON_EXPRESSION) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
 
                 jdbcTemplate.update(insertRowSQL,
                         "m.quaschny@t-online.de", "", "In der EKP sind Probleme", "In der EKP sind Probleme",
-                        "0 0/10 * * * ?", null, null, 0, 5, 1, 1, 0);
-
+                        "0 0/1 * * * ?", null, null, 0, 5, 1, 1, 0, "0 0/2 * * * ?");
                 System.out.println("Default row inserted successfully.");
             } else {
                   System.out.println("Table already exists: " + tableName);
@@ -350,7 +350,7 @@ public class CockpitService {
         int maxParallel = 0;
         JdbcTemplate jdbcTemplate = getJdbcTemplateWithDBConnetion(configuration);
         try {
-            
+            System.out.println(configuration.getUserName()+"+++++++++++++++++++++++----------------");
             String sql = "SELECT MAX_PARALLEL_CHECKS FROM FVM_MONITOR_ALERTING";
 
             maxParallel = jdbcTemplate.queryForObject(sql, Integer.class);
@@ -371,7 +371,7 @@ public class CockpitService {
          //   connectWithDatabase(configuration);
         //    jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
             // Query to get the existing configuration
-            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE FROM FVM_MONITOR_ALERTING";
+            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION,MB_WATCHDOG_CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE FROM FVM_MONITOR_ALERTING";
 
             // Use jdbcTemplate to query and map results to MonitorAlerting object
             jdbcTemplate.query(sql, rs -> {
@@ -380,7 +380,8 @@ public class CockpitService {
                 monitorAlerting.setMailCCEmpfaenger(rs.getString("MAIL_CC_EMPFAENGER"));
                 monitorAlerting.setMailBetreff(rs.getString("MAIL_BETREFF"));
                 monitorAlerting.setMailText(rs.getString("MAIL_TEXT"));
-                monitorAlerting.setCron(rs.getString("CRON_EXPRESSION"));
+                monitorAlerting.setBgCron(rs.getString("BG_JOB_CRON_EXPRESSION"));
+                monitorAlerting.setMbWatchdogCron(rs.getString("MB_WATCHDOG_CRON_EXPRESSION"));
                 monitorAlerting.setRetentionTime(rs.getInt("RETENTION_TIME"));
                 monitorAlerting.setMaxParallelCheck(rs.getInt("MAX_PARALLEL_CHECKS"));
                 // Converting SQL Timestamp to LocalDateTime
@@ -446,15 +447,16 @@ public class CockpitService {
             } else {
                 // If no record exists, insert a new configuration
                 String insertQuery = "INSERT INTO FVM_MONITOR_ALERTING " +
-                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?,?)";
+                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?,?, ?)";
 
                 int rowsAffected = jdbcTemplate.update(insertQuery,
                         monitorAlerting.getMailEmpfaenger(),
                         monitorAlerting.getMailCCEmpfaenger(),
                         monitorAlerting.getMailBetreff(),
                         monitorAlerting.getMailText(),
-                        monitorAlerting.getCron(),
+                        monitorAlerting.getBgCron(),
+                        monitorAlerting.getMbWatchdogCron(),
                         monitorAlerting.getIsActive(),
                         monitorAlerting.getRetentionTime(),
                         monitorAlerting.getMaxParallelCheck()
@@ -489,13 +491,13 @@ public class CockpitService {
             if (count != null && count > 0) {
                 // If record exists, update the configuration
                 String updateQuery = "UPDATE FVM_MONITOR_ALERTING SET " +
-                        "CRON_EXPRESSION = ?, " +
+                        "BG_JOB_CRON_EXPRESSION = ?, " +
                         "ISBACKJOBACTIVE = ?, " +
                         "RETENTION_TIME = ?, " +
                         "MAX_PARALLEL_CHECKS = ? ";
 
                 int rowsAffected = jdbcTemplate.update(updateQuery,
-                        monitorAlerting.getCron(),
+                        monitorAlerting.getBgCron(),
                         monitorAlerting.getIsBackJobActive(),
                         monitorAlerting.getRetentionTime(),
                         monitorAlerting.getMaxParallelCheck()
@@ -513,16 +515,17 @@ public class CockpitService {
             } else {
                 // If no record exists, insert a new configuration
                 String insertQuery = "INSERT INTO FVM_MONITOR_ALERTING " +
-                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, CRON_EXPRESSION, ISBACKJOBACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?,?)";
+                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?,?, ?)";
 
                 int rowsAffected = jdbcTemplate.update(insertQuery,
                         monitorAlerting.getMailEmpfaenger(),
                         monitorAlerting.getMailCCEmpfaenger(),
                         monitorAlerting.getMailBetreff(),
                         monitorAlerting.getMailText(),
-                        monitorAlerting.getCron(),
-                        monitorAlerting.getIsBackJobActive(),
+                        monitorAlerting.getBgCron(),
+                        monitorAlerting.getMbWatchdogCron(),
+                        monitorAlerting.getIsActive(),
                         monitorAlerting.getRetentionTime(),
                         monitorAlerting.getMaxParallelCheck()
                 );
