@@ -669,10 +669,10 @@ public class MailboxWatcher  extends VerticalLayout {
 
     private void updateList() {
 
-        List<Mailbox> people = mailboxService.getMailboxes(comboBox.getValue());
+        mailboxen = mailboxService.getMailboxes(comboBox.getValue());
         // people.get(1).setLastName("hhh");
-        if(people != null) {
-            grid.setItems(people);
+        if(mailboxen != null) {
+            grid.setItems(mailboxen);
         }
 
     }
@@ -877,15 +877,30 @@ public class MailboxWatcher  extends VerticalLayout {
                 if (!ui.isAttached()) {
                     return; // UI is detached, stop processing
                 }
-                if (message.contains("Mailbox updated")) {
-                    System.out.println("grid updated---------------------------------------------------------");
-                    updateList();
-                }
+
+                updateGridItem(message);
+
             });
 
             subscribe(subscriber);
         } else {
             unsubscribe();
         }
+    }
+
+    private void updateGridItem(String message) {
+        String[] parts = message.split(",,");
+        String userID  = parts[0].trim();
+        int quantifier  = Integer.parseInt(parts[1].trim());
+        logger.info("updateGridItem "+message);
+        if (userID != null) {
+            mailboxen.stream()
+                    .filter(mailbox -> userID.equals(mailbox.getUSER_ID()))
+                    .forEach(mailbox -> mailbox.setQUANTIFIER(quantifier)); // Update QUANTIFIER
+
+            // Update the grid with the updated mailbox list
+            grid.setItems(mailboxen);
+        }
+
     }
 }

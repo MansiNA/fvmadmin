@@ -300,8 +300,6 @@ public class CockpitService {
 
                 System.out.println("Table created successfully.");
 
-                System.out.println("Table created successfully.");
-
                 // Insert default row
                 String insertRowSQL = "INSERT INTO FVM_MONITOR_ALERTING ("
                         + "MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION, "

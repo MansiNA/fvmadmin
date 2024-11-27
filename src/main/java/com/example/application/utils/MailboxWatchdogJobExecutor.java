@@ -129,10 +129,9 @@ public class MailboxWatchdogJobExecutor implements Job {
 
             String result = mailboxService.updateMessageBox(mailbox,"0", configuration);
             if(result.equals("Ok")) {
-
                // affectedMailboxes.add(mb);
                 globalList.add(mb);
-                MailboxWatcher.notifySubscribers("Mailbox updated: " + mailbox.getNAME());
+                MailboxWatcher.notifySubscribers(mailbox.getUSER_ID() +",, 0");
        //         applicationContextStorage.getGlobalList().add(mb);
                 protokollService.logAction("watchdog" ,configuration.getName(), mailbox.getUSER_ID()+" wurde ausgeschaltet", "active messages " + inVerarbeitung + " exceeded " + maxMessageCount);
                 logger.info("Add Mailbox to globalList. Entries now:" + globalList.stream().count());
@@ -154,7 +153,7 @@ public class MailboxWatchdogJobExecutor implements Job {
                 String result = mailboxService.updateMessageBox(mailbox,"1", configuration);
                 if(result.equals("Ok")) {
                     logger.info("Mailbox {} enabled successfully.", mailbox.getNAME());
-                    MailboxWatcher.notifySubscribers("Mailbox updated: " + mailbox.getNAME());
+                    MailboxWatcher.notifySubscribers(mailbox.getUSER_ID() +",, 1");
                     protokollService.logAction("watchdog" ,configuration.getName(), mailbox.getUSER_ID()+" wurde eingschaltet", "active messages " + inVerarbeitung + " below " + maxMessageCount);
                     //remove Mailbox from internal list
                     Iterator<MailboxShutdown> iterator = globalList.iterator();
