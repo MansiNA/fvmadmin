@@ -74,6 +74,35 @@ public class MailboxService {
         return mailboxen;
     }
 
+    public Mailbox getUpdatedMailboxe(Configuration configuration, String userId) {
+
+        Mailbox mailboxen;
+        String sql="select Name,user_id,court_id,typ,konvertierungsdienste,max_message_count,DAYSTOEXPIRE,ROLEID,STATUS,in_egvp_wartend,quantifier,aktuell_in_eKP_verarbeitet,in_ekp_haengend,in_ekp_warteschlange,in_ekp_fehlerhospital from EKP.v_Postfach_Incoming_Status WHERE user_id = ?";
+
+        System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
+        try {
+            getJdbcTemplateWithDBConnetion(configuration);
+
+            // Query for single object
+            Mailbox mailbox = jdbcTemplate.queryForObject(
+                    sql,
+                    new Object[]{userId}, // Pass the userId parameter
+                    new BeanPropertyRowMapper<>(Mailbox.class) // Use BeanPropertyRowMapper to map the result
+            );
+
+
+            System.out.println("get MAILBOX..... "+mailbox);
+            return mailbox;
+        } catch (Exception e) {
+            //   System.out.println("Exception: " + e.getMessage());
+            throw new RuntimeException("Error querying the database: " + e.getMessage(), e);
+            // Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        } finally {
+            connectionClose(jdbcTemplate);
+        }
+
+    }
+
     public boolean saveMailboxJobConfiguration(MonitorAlerting monitorAlerting, Configuration configuration) {
         getJdbcTemplateWithDBConnetion(configuration);
         try {

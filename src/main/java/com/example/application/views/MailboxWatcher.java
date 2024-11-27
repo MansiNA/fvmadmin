@@ -892,14 +892,24 @@ public class MailboxWatcher  extends VerticalLayout {
         String[] parts = message.split(",,");
         String userID  = parts[0].trim();
         int quantifier  = Integer.parseInt(parts[1].trim());
-        logger.info("updateGridItem "+message);
-        if (userID != null) {
-            mailboxen.stream()
-                    .filter(mailbox -> userID.equals(mailbox.getUSER_ID()))
-                    .forEach(mailbox -> mailbox.setQUANTIFIER(quantifier)); // Update QUANTIFIER
+        long configId = Integer.parseInt(parts[2].trim());
+        Configuration configuration = service.findByIdConfiguration(configId);
+        logger.info("updateGridItem: updatedMailbox in grid  "+message);
 
-            // Update the grid with the updated mailbox list
+        Mailbox updatedMailbox = mailboxService.getUpdatedMailboxe(configuration, userID);
+        if (userID != null) {
+
+            mailboxen.removeIf(mailbox -> userID.equals(mailbox.getUSER_ID()));
+
+            // Add the updated mailbox to the list
+            mailboxen.add(updatedMailbox);
+
+            // Update the grid with the modified list
             grid.setItems(mailboxen);
+
+            // Refresh the grid to reflect changes
+            grid.getDataProvider().refreshAll();
+            System.out.println("Grid update sucessfully----------------------------");
         }
 
     }
