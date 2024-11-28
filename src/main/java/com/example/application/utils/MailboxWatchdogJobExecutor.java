@@ -102,80 +102,74 @@ public class MailboxWatchdogJobExecutor implements Job {
 
         int inVerarbeitung = Integer.parseInt(mailbox.getAktuell_in_eKP_verarbeitet()); // Current "In Verarbeitung" value
         int maxMessageCount = Integer.parseInt(mailbox.getMAX_MESSAGE_COUNT()); // Maximum allowed message count
-
+        boolean isDisabled = mailbox.getQUANTIFIER() == 0;
         logger.info("-----------Check MB " + mailbox.getNAME() + "---------------");
-
-        if (inVerarbeitung > maxMessageCount && mailbox.getQUANTIFIER()==0)
-        {
-            logger.info("Mailbox {} allready disabled...", mailbox.getNAME());
-            return;
-        }
-
         logger.info("Mailbox {} (with maxMessageCount {}) has active Messages: {}", mailbox.getNAME(), maxMessageCount, inVerarbeitung);
 
-        MailboxShutdown mb = new MailboxShutdown();
-        mb.setMailboxId(mailbox.getCOURT_ID());
-
-        boolean exists = globalList.stream().anyMatch(m -> mb.getMailboxId().equals(m.getMailboxId()));
-
+        MailboxShutdown mailboxShutdown = new MailboxShutdown();
+        mailboxShutdown.setMailboxId(mailbox.getCOURT_ID());
+        boolean exists = globalList.stream().anyMatch(m -> mailboxShutdown.getMailboxId().equals(m.getMailboxId()));
         //logger.info("MB exists in globalList? " + exists);
         //logger.info("globalList has {} entries.", globalList.stream().count());
 
-        // Check if mailbox needs to be disabled
-
-
-        if (inVerarbeitung > maxMessageCount && mailbox.getQUANTIFIER()==1 && !exists) {
-            logger.info("Shutdown mailbox {} due to exceeding max message count!", mailbox.getNAME());
-
-            String result = mailboxService.updateMessageBox(mailbox,"0", configuration);
-            if(result.equals("Ok")) {
-               // affectedMailboxes.add(mb);
-                globalList.add(mb);
-                MailboxWatcher.notifySubscribers(mailbox.getUSER_ID() +",, 0,,"+configuration.getId());
-       //         applicationContextStorage.getGlobalList().add(mb);
-                protokollService.logAction("watchdog" ,configuration.getName(), mailbox.getUSER_ID()+" wurde ausgeschaltet", "active messages " + inVerarbeitung + " exceeded " + maxMessageCount);
-                logger.info("Add Mailbox to globalList. Entries now:" + globalList.stream().count());
-
+        if (inVerarbeitung > maxMessageCount && !exists) {
+            if (!isDisabled) {
+                disableMailbox(mailbox, inVerarbeitung, maxMessageCount, mailboxShutdown);
             } else {
-                logger.error("Error Disabling mailbox "+ mailbox.getNAME()+": " + result );
+                logger.info("Mailbox {} is already disabled.", mailbox.getNAME());
             }
         } else {
-            logger.info("Mailbox {} below max message count...", mailbox.getNAME());
-
-            if (mailbox.getQUANTIFIER()==1)
-            {
-                logger.info("Mailbox {} already active...", mailbox.getNAME());
-                return;
+            if (isDisabled) {
+                enableMailbox(mailbox,inVerarbeitung,maxMessageCount,exists);
+            } else {
+                logger.info("Mailbox {} is already active.", mailbox.getNAME());
             }
+        }
+    }
 
-            if (exists) {
-                logger.info("Mailbox stopped by watchdog => switch back to active");
-                String result = mailboxService.updateMessageBox(mailbox,"1", configuration);
-                if(result.equals("Ok")) {
-                    logger.info("Mailbox {} enabled successfully.", mailbox.getNAME());
-                    MailboxWatcher.notifySubscribers(mailbox.getUSER_ID() +",, 1,,"+configuration.getId());
-                    protokollService.logAction("watchdog" ,configuration.getName(), mailbox.getUSER_ID()+" wurde eingschaltet", "active messages " + inVerarbeitung + " below " + maxMessageCount);
-                    //remove Mailbox from internal list
-                    Iterator<MailboxShutdown> iterator = globalList.iterator();
-                    while (iterator.hasNext()){
-                        MailboxShutdown mbElement = iterator.next();
-                        if (mbElement.getMailboxId().equals(mailbox.getCOURT_ID()))
-                        {
-                            iterator.remove();
-                        }
+    private void disableMailbox(Mailbox mailbox, int inVerarbeitung, int maxMessageCount, MailboxShutdown mailboxShutdown) {
+        logger.info("disableMailbox: Shutdown mailbox {} due to exceeding max message count!", mailbox.getNAME());
+
+        String result = mailboxService.updateMessageBox(mailbox,"0", configuration);
+        if(result.equals("Ok")) {
+            // affectedMailboxes.add(mb);
+            globalList.add(mailboxShutdown);
+            MailboxWatcher.notifySubscribers(mailbox.getUSER_ID() +",, 0,,"+configuration.getId());
+            //         applicationContextStorage.getGlobalList().add(mb);
+            protokollService.logAction("watchdog" ,configuration.getName(), mailbox.getUSER_ID()+" wurde ausgeschaltet", "active messages " + inVerarbeitung + " exceeded " + maxMessageCount);
+            logger.info("Add Mailbox to globalList. Entries now:" + globalList.stream().count());
+
+        } else {
+            logger.error("Error Disabling mailbox "+ mailbox.getNAME()+": " + result );
+        }
+    }
+
+    private void enableMailbox(Mailbox mailbox, int inVerarbeitung, int maxMessageCount, boolean exists) {
+        logger.info("Mailbox {} below max message count...", mailbox.getNAME());
+
+        if (exists) {
+            logger.info("Mailbox stopped by watchdog => switch back to active");
+            String result = mailboxService.updateMessageBox(mailbox,"1", configuration);
+            if(result.equals("Ok")) {
+                logger.info("Mailbox {} enabled successfully.", mailbox.getNAME());
+                MailboxWatcher.notifySubscribers(mailbox.getUSER_ID() +",, 1,,"+configuration.getId());
+                protokollService.logAction("watchdog" ,configuration.getName(), mailbox.getUSER_ID()+" wurde eingschaltet", "active messages " + inVerarbeitung + " below " + maxMessageCount);
+                //remove Mailbox from internal list
+                Iterator<MailboxShutdown> iterator = globalList.iterator();
+                while (iterator.hasNext()){
+                    MailboxShutdown mbElement = iterator.next();
+                    if (mbElement.getMailboxId().equals(mailbox.getCOURT_ID()))
+                    {
+                        iterator.remove();
                     }
-
-
-                } else {
-                    logger.error("Error Disabling mailbox "+ mailbox.getNAME()+": " + result );
                 }
+
+            } else {
+                logger.error("Failed to enable mailbox {}: {}", mailbox.getNAME(), result);
             }
-            else  {
-
-                logger.info("Mailbox not stopped by watchdog => skip switch back");
-            }
-
-
+        }
+        else  {
+            logger.info("Mailbox {} was not stopped by watchdog, skipping reactivation.", mailbox.getNAME());
         }
     }
 }

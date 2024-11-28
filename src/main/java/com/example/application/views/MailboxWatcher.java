@@ -877,7 +877,7 @@ public class MailboxWatcher  extends VerticalLayout {
                 if (!ui.isAttached()) {
                     return; // UI is detached, stop processing
                 }
-
+               // updateList();
                 updateGridItem(message);
 
             });
@@ -898,17 +898,10 @@ public class MailboxWatcher  extends VerticalLayout {
 
         Mailbox updatedMailbox = mailboxService.getUpdatedMailboxe(configuration, userID);
         if (userID != null) {
-
-            mailboxen.removeIf(mailbox -> userID.equals(mailbox.getUSER_ID()));
-
-            // Add the updated mailbox to the list
-            mailboxen.add(updatedMailbox);
-
-            // Update the grid with the modified list
+            mailboxen.replaceAll(mailbox ->
+                    mailbox.getUSER_ID().equals(updatedMailbox.getUSER_ID()) ? updatedMailbox : mailbox
+            );
             grid.setItems(mailboxen);
-
-            // Refresh the grid to reflect changes
-            grid.getDataProvider().refreshAll();
             System.out.println("Grid update sucessfully----------------------------");
         }
 
