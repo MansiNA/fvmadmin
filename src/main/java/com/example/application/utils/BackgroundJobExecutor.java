@@ -351,7 +351,10 @@ public class BackgroundJobExecutor implements Job {
             logger.info("Executing fetchEmailConfiguration");
 
             // Query to get the existing configuration
-            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE FROM FVM_MONITOR_ALERTING";
+            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, WATCHDOG_MAIL_EMPFAENGER," +
+                    "WATCHDOG_MAIL_CC_EMPFAENGER," +
+                    "WATCHDOG_MAIL_BETREFF," +
+                    "WATCHDOG_MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION,LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE FROM FVM_MONITOR_ALERTING";
 
             // Use jdbcTemplate to query and map results to MonitorAlerting object
             jdbcTemplate.query(sql, rs -> {
@@ -360,6 +363,10 @@ public class BackgroundJobExecutor implements Job {
                 monitorAlerting.setMailCCEmpfaenger(rs.getString("MAIL_CC_EMPFAENGER"));
                 monitorAlerting.setMailBetreff(rs.getString("MAIL_BETREFF"));
                 monitorAlerting.setMailText(rs.getString("MAIL_TEXT"));
+                monitorAlerting.setWatchdogMailEmpfaenger(rs.getString("WATCHDOG_MAIL_EMPFAENGER"));
+                monitorAlerting.setWatchdogMailCCEmpfaenger(rs.getString("WATCHDOG_MAIL_CC_EMPFAENGER"));
+                monitorAlerting.setWatchdogMailBetreff(rs.getString("WATCHDOG_MAIL_BETREFF"));
+                monitorAlerting.setWatchdogMailText(rs.getString("WATCHDOG_MAIL_TEXT"));
                 monitorAlerting.setBgCron(rs.getString("BG_JOB_CRON_EXPRESSION"));
                 monitorAlerting.setMbWatchdogCron(rs.getString("MB_WATCHDOG_CRON_EXPRESSION"));
                 monitorAlerting.setRetentionTime(rs.getInt("RETENTION_TIME"));
@@ -376,8 +383,8 @@ public class BackgroundJobExecutor implements Job {
                 }
                 monitorAlerting.setIsActive(rs.getInt("IS_ACTIVE"));
                 monitorAlerting.setIsBackJobActive(rs.getInt("ISBACKJOBACTIVE"));
+                monitorAlerting.setIsMBWatchdogActive(rs.getInt("ISMBWATCHDOGACTIVE"));
             });
-
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -25,7 +25,10 @@ public class MonitorAlerting {
     private LocalDateTime lastALertCheckTime;
     private int retentionTime;
     private int maxParallelCheck;
-
+    private String watchdogMailEmpfaenger;
+    private String watchdogMailCCEmpfaenger;
+    private String watchdogMailBetreff;
+    private String watchdogMailText;
     // Default constructor
     public MonitorAlerting() {}
 

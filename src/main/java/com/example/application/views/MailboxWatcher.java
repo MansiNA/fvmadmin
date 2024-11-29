@@ -522,9 +522,17 @@ public class MailboxWatcher  extends VerticalLayout {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Mailbox Watchdog Job Konfiguration");
 
+        TextField watchdogMailEmpfaengerField = new TextField("WATCHDOG_MAIL_EMPFAENGER");
+        TextField watchdogMailCCEmpfaengerField = new TextField("WATCHDOG_MAIL_CC_EMPFAENGER");
+        TextField watchdogMailBetreffField = new TextField("WATCHDOG_MAIL_BETREFF");
+        TextArea watchdogMailTextArea = new TextArea("WATCHDOG_MAIL_TEXT");
         TextField cronField = new TextField("CRON_EXPRESSION");
         Checkbox aktiv = new Checkbox("Mailbox Watchdog aktiv");
 
+        watchdogMailEmpfaengerField.setWidth("100%");
+        watchdogMailCCEmpfaengerField.setWidth("100%");
+        watchdogMailBetreffField.setWidth("100%");
+        watchdogMailTextArea.setWidth("100%");
         cronField.setWidth("100%");
         aktiv.setWidth("100%");
 
@@ -532,9 +540,17 @@ public class MailboxWatcher  extends VerticalLayout {
 
         Optional.ofNullable(monitorAlerting.getMbWatchdogCron()).ifPresent(cronField::setValue);
         aktiv.setValue(monitorAlerting.getIsMBWatchdogActive() != null && monitorAlerting.getIsMBWatchdogActive() != 0);
+        Optional.ofNullable(monitorAlerting.getWatchdogMailEmpfaenger()).ifPresent(watchdogMailEmpfaengerField::setValue);
+        Optional.ofNullable(monitorAlerting.getWatchdogMailCCEmpfaenger()).ifPresent(watchdogMailCCEmpfaengerField::setValue);
+        Optional.ofNullable(monitorAlerting.getWatchdogMailBetreff()).ifPresent(watchdogMailBetreffField::setValue);
+        Optional.ofNullable(monitorAlerting.getWatchdogMailText()).ifPresent(watchdogMailTextArea::setValue);
 
         Button saveButton = new Button("Save", event -> {
 
+            monitorAlerting.setWatchdogMailEmpfaenger(watchdogMailEmpfaengerField.getValue());
+            monitorAlerting.setWatchdogMailCCEmpfaenger(watchdogMailCCEmpfaengerField.getValue());
+            monitorAlerting.setWatchdogMailBetreff(watchdogMailBetreffField.getValue());
+            monitorAlerting.setWatchdogMailText(watchdogMailTextArea.getValue());
             monitorAlerting.setMbWatchdogCron(cronField.getValue());
             monitorAlerting.setIsMBWatchdogActive(aktiv.getValue() ? 1: 0);
 
@@ -557,6 +573,10 @@ public class MailboxWatcher  extends VerticalLayout {
 
         // Create layout and add components
         VerticalLayout layout = new VerticalLayout(
+                watchdogMailEmpfaengerField,
+                watchdogMailCCEmpfaengerField,
+                watchdogMailBetreffField,
+                watchdogMailTextArea,
                 cronField,
                 aktiv,
                 new HorizontalLayout(saveButton, cancelButton)

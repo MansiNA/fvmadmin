@@ -280,11 +280,18 @@ public class CockpitService {
             if (!tableExists(tableName, dbType, jdbcTemplate)) {
                 System.out.println("Creating table: " + tableName);
 
+
+
+
                 String createTableSQL = "CREATE TABLE FVM_MONITOR_ALERTING ("
                         + "MAIL_EMPFAENGER VARCHAR(255), "
                         + "MAIL_CC_EMPFAENGER VARCHAR(255), "
                         + "MAIL_BETREFF VARCHAR(255), "
                         + "MAIL_TEXT VARCHAR(255), "
+                        + "WATCHDOG_MAIL_EMPFAENGER VARCHAR(255), "
+                        + "WATCHDOG_MAIL_CC_EMPFAENGER VARCHAR(255), "
+                        + "WATCHDOG_MAIL_BETREFF VARCHAR(255), "
+                        + "WATCHDOG_MAIL_TEXT VARCHAR(255), "
                         + "BG_JOB_CRON_EXPRESSION VARCHAR(255), "
                         + "LAST_ALERT_TIME DATE, "
                         + "LAST_ALERT_CHECKTIME TIMESTAMP, "
@@ -304,12 +311,12 @@ public class CockpitService {
                 String insertRowSQL = "INSERT INTO FVM_MONITOR_ALERTING ("
                         + "MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION, "
                         + "LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, "
-                        + "ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE, MB_WATCHDOG_CRON_EXPRESSION) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
+                        + "ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE, MB_WATCHDOG_CRON_EXPRESSION, WATCHDOG_MAIL_EMPFAENGER, WATCHDOG_MAIL_CC_EMPFAENGER, WATCHDOG_MAIL_BETREFF, WATCHDOG_MAIL_TEXT) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?)";
 
                 jdbcTemplate.update(insertRowSQL,
                         "m.quaschny@t-online.de", "", "In der EKP sind Probleme", "In der EKP sind Probleme",
-                        "0 0/1 * * * ?", null, null, 0, 5, 1, 1, 0, "0 0/2 * * * ?");
+                        "0 0/1 * * * ?", null, null, 0, 5, 1, 1, 0, "0 0/2 * * * ?","m.quaschny@t-online.de", "", "watchdog for ekp", "In der EKP sind Probleme watchdog");
                 System.out.println("Default row inserted successfully.");
             } else {
                   System.out.println("Table already exists: " + tableName);
@@ -369,7 +376,10 @@ public class CockpitService {
          //   connectWithDatabase(configuration);
         //    jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
             // Query to get the existing configuration
-            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION,MB_WATCHDOG_CRON_EXPRESSION, LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE FROM FVM_MONITOR_ALERTING";
+            String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, WATCHDOG_MAIL_EMPFAENGER," +
+                    "WATCHDOG_MAIL_CC_EMPFAENGER," +
+                    "WATCHDOG_MAIL_BETREFF," +
+                    "WATCHDOG_MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION,LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE FROM FVM_MONITOR_ALERTING";
 
             // Use jdbcTemplate to query and map results to MonitorAlerting object
             jdbcTemplate.query(sql, rs -> {
@@ -378,6 +388,10 @@ public class CockpitService {
                 monitorAlerting.setMailCCEmpfaenger(rs.getString("MAIL_CC_EMPFAENGER"));
                 monitorAlerting.setMailBetreff(rs.getString("MAIL_BETREFF"));
                 monitorAlerting.setMailText(rs.getString("MAIL_TEXT"));
+                monitorAlerting.setWatchdogMailEmpfaenger(rs.getString("WATCHDOG_MAIL_EMPFAENGER"));
+                monitorAlerting.setWatchdogMailCCEmpfaenger(rs.getString("WATCHDOG_MAIL_CC_EMPFAENGER"));
+                monitorAlerting.setWatchdogMailBetreff(rs.getString("WATCHDOG_MAIL_BETREFF"));
+                monitorAlerting.setWatchdogMailText(rs.getString("WATCHDOG_MAIL_TEXT"));
                 monitorAlerting.setBgCron(rs.getString("BG_JOB_CRON_EXPRESSION"));
                 monitorAlerting.setMbWatchdogCron(rs.getString("MB_WATCHDOG_CRON_EXPRESSION"));
                 monitorAlerting.setRetentionTime(rs.getInt("RETENTION_TIME"));
