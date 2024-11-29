@@ -41,6 +41,8 @@ public class MailboxService {
         List<Mailbox> mailboxen;
         String sql="select Name,user_id,court_id,typ,konvertierungsdienste,max_message_count,DAYSTOEXPIRE,ROLEID,STATUS,in_egvp_wartend,quantifier,aktuell_in_eKP_verarbeitet,in_ekp_haengend,in_ekp_warteschlange,in_ekp_fehlerhospital from EKP.v_Postfach_Incoming_Status";
 
+        logger.info("#######Start DB-Abfrage: " + sql);
+
         System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
 
 //        DriverManagerDataSource ds = new DriverManagerDataSource();
