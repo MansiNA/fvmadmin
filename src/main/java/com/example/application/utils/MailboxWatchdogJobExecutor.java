@@ -77,16 +77,24 @@ public class MailboxWatchdogJobExecutor implements Job {
         }
 
         mailboxen = mailboxService.getMailboxes(configuration);
-        MailboxWatcher.notifySubscribers("Update grid");
+
         if (mailboxen == null || mailboxen.isEmpty()) {
             logger.info("No mailboxes found for "+configuration.getUserName());
             return;
         }
 
+        MailboxWatcher.notifySubscribers("Update grid");
 
         for (Mailbox mailbox : mailboxen) {
             try {
-                checkAndUpdateMailboxStatus(mailbox);
+                int x = checkAndUpdateMailboxStatus(mailbox);
+                if (x==1) //If mailbox changed then read new values from db...
+                {
+                    mailboxen = mailboxService.getMailboxes(configuration);
+                    MailboxWatcher.notifySubscribers("Update grid");
+                }
+
+
             } catch (Exception e) {
                 logger.error("Error processing mailbox {}: {}", mailbox.getNAME(), e.getMessage());
             }
@@ -95,11 +103,11 @@ public class MailboxWatchdogJobExecutor implements Job {
 
     }
 
-    private void checkAndUpdateMailboxStatus(Mailbox mailbox) {
+    private int checkAndUpdateMailboxStatus(Mailbox mailbox) {
         logger.info("Executing checkAndUpdateMailboxStatus");
         logger.info("Value of watchdog stopJob: " + stopJob);
         if (stopJob) {
-            return; // Exit if the job is stopped
+            return 0; // Exit if the job is stopped
         }
 
         int inVerarbeitung = Integer.parseInt(mailbox.getAktuell_in_eKP_verarbeitet()); // Current "In Verarbeitung" value
@@ -114,19 +122,34 @@ public class MailboxWatchdogJobExecutor implements Job {
         //logger.info("MB exists in globalList? " + exists);
         //logger.info("globalList has {} entries.", globalList.stream().count());
 
-        if (inVerarbeitung > maxMessageCount && !exists) {
+        if (inVerarbeitung > maxMessageCount) {
             if (!isDisabled) {
                 disableMailbox(mailbox, inVerarbeitung, maxMessageCount, mailboxShutdown);
+                return 1;
+
+
             } else {
                 logger.info("Mailbox {} is already disabled.", mailbox.getNAME());
+                return 0;
             }
-        } else {
+        }
+
+        if (inVerarbeitung <= maxMessageCount && exists)  //Schwellwert unterschritten und war nicht von Watchdog disabled
+        {
             if (isDisabled) {
-                enableMailbox(mailbox,inVerarbeitung,maxMessageCount,exists);
+                enableMailbox(mailbox,inVerarbeitung,maxMessageCount);
+                return 1;
             } else {
                 logger.info("Mailbox {} is already active.", mailbox.getNAME());
             }
         }
+        else
+        {
+           logger.info("Mailbox {} was not stopped by watchdog, skipping reactivation.", mailbox.getNAME());
+        }
+
+
+        return 0;
     }
 
     private void disableMailbox(Mailbox mailbox, int inVerarbeitung, int maxMessageCount, MailboxShutdown mailboxShutdown) {
@@ -147,11 +170,10 @@ public class MailboxWatchdogJobExecutor implements Job {
         }
     }
 
-    private void enableMailbox(Mailbox mailbox, int inVerarbeitung, int maxMessageCount, boolean exists) {
+    private void enableMailbox(Mailbox mailbox, int inVerarbeitung, int maxMessageCount) {
         logger.info("Mailbox {} below max message count...", mailbox.getNAME());
 
-        if (exists) {
-            logger.info("Mailbox stopped by watchdog => switch back to active");
+        logger.info("Mailbox stopped by watchdog => switch back to active");
             String result = mailboxService.updateMessageBox(mailbox,"1", configuration);
             if(result.equals("Ok")) {
                 logger.info("Mailbox {} enabled successfully.", mailbox.getNAME());
@@ -172,8 +194,7 @@ public class MailboxWatchdogJobExecutor implements Job {
                 logger.error("Failed to enable mailbox {}: {}", mailbox.getNAME(), result);
             }
         }
-        else  {
-            logger.info("Mailbox {} was not stopped by watchdog, skipping reactivation.", mailbox.getNAME());
-        }
+
+
     }
-}
+
