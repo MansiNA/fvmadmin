@@ -67,7 +67,7 @@ public class MailboxWatcher  extends VerticalLayout {
     private ProtokollService protokollService;
     private ComboBox<Configuration> comboBox;
     public Grid<Mailbox> grid = new Grid<>(Mailbox.class, false);
-
+    Button refresh = new Button("refresh");
     private List<MailboxShutdown> affectedMailboxes;
     private List<Mailbox> mailboxen;
     private String switchLable;
@@ -85,6 +85,7 @@ public class MailboxWatcher  extends VerticalLayout {
     private static final Set<SerializableConsumer<String>> subscribers = new HashSet<>();
     private static final ExecutorService notifierThread = Executors.newSingleThreadExecutor();
     private SerializableConsumer<String> subscriber;
+    private UI ui;
 
     public MailboxWatcher(ConfigurationService service, ProtokollService protokollService, MailboxService mailboxService, JdbcTemplate jdbcTemplate)  {
         logger.info("Starting MailboxWatcher");
@@ -93,6 +94,7 @@ public class MailboxWatcher  extends VerticalLayout {
         this.mailboxService = mailboxService;
         this.jdbcTemplate = jdbcTemplate;
 
+        ui = UI.getCurrent();
         comboBox = new ComboBox<>("Verbindung");
         try {
             List<Configuration> configList = service.findMessageConfigurations();
@@ -165,7 +167,7 @@ public class MailboxWatcher  extends VerticalLayout {
 
         HorizontalLayout hl = new HorizontalLayout();
         //   hl.add(comboBox,button,refresh);
-        hl.add(comboBox, checkInfo);
+        hl.add(comboBox,refresh, checkInfo);
         hl.setAlignItems(Alignment.BASELINE);
         setSizeFull();
         add(hl);
@@ -182,6 +184,10 @@ public class MailboxWatcher  extends VerticalLayout {
         add(headerLayout,grid);
         addAttachListener(event -> updateJobManagerSubscription());
         addDetachListener(event -> updateJobManagerSubscription());
+
+        refresh.addClickListener(e -> {
+            updateList();
+        });
 
         //  updateJobManagerSubscription();
         // button.addClickListener(clickEvent -> {
@@ -694,7 +700,11 @@ public class MailboxWatcher  extends VerticalLayout {
         if(mailboxen != null) {
             grid.setItems(mailboxen);
         }
-
+        System.out.println("update mailbox: "+mailboxen.size());
+        for (Mailbox mailbox : mailboxen) {
+            System.out.println("Mailbox Name: " + mailbox.getNAME() +
+                    ", Aktuell_in_eKP_verarbeitet: " + mailbox.getAktuell_in_eKP_verarbeitet());
+        }
     }
 
     private static Renderer<Mailbox> createEmployeeTemplateRenderer() {
@@ -886,7 +896,7 @@ public class MailboxWatcher  extends VerticalLayout {
     }
 
     private void updateJobManagerSubscription() {
-        UI ui = getUI().orElse(null);
+    //    UI ui = getUI().orElse(null);
 
         if (ui != null) {
             if (subscriber != null) {

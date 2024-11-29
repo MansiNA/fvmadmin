@@ -60,8 +60,12 @@ public class MailboxService {
                     new BeanPropertyRowMapper(Mailbox.class));
 
 
-
             System.out.println("MAILBOX_CONFIG eingelesen");
+            System.out.println("configuration: "+configuration.getUserName()+" mailbox fetch: "+mailboxen.size());
+            for (Mailbox mailbox : mailboxen) {
+                System.out.println("Mailbox Name: " + mailbox.getNAME() +
+                        ", Aktuell_in_eKP_verarbeitet: " + mailbox.getAktuell_in_eKP_verarbeitet());
+            }
 
         } catch (Exception e) {
             //   System.out.println("Exception: " + e.getMessage());

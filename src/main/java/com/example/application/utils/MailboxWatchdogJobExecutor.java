@@ -133,7 +133,7 @@ public class MailboxWatchdogJobExecutor implements Job {
         String result = mailboxService.updateMessageBox(mailbox,"0", configuration);
         if(result.equals("Ok")) {
             // affectedMailboxes.add(mb);
-            globalList.add(mailboxShutdown);
+        //    globalList.add(mailboxShutdown);
             MailboxWatcher.notifySubscribers(mailbox.getUSER_ID() +",, 0,,"+configuration.getId());
             //         applicationContextStorage.getGlobalList().add(mb);
             protokollService.logAction("watchdog" ,configuration.getName(), mailbox.getUSER_ID()+" wurde ausgeschaltet", "active messages " + inVerarbeitung + " exceeded " + maxMessageCount);
@@ -147,7 +147,7 @@ public class MailboxWatchdogJobExecutor implements Job {
     private void enableMailbox(Mailbox mailbox, int inVerarbeitung, int maxMessageCount, boolean exists) {
         logger.info("Mailbox {} below max message count...", mailbox.getNAME());
 
-        if (exists) {
+     //   if (exists) {
             logger.info("Mailbox stopped by watchdog => switch back to active");
             String result = mailboxService.updateMessageBox(mailbox,"1", configuration);
             if(result.equals("Ok")) {
@@ -164,9 +164,9 @@ public class MailboxWatchdogJobExecutor implements Job {
                     }
                 }
 
-            } else {
-                logger.error("Failed to enable mailbox {}: {}", mailbox.getNAME(), result);
-            }
+        //    } else {
+        //        logger.error("Failed to enable mailbox {}: {}", mailbox.getNAME(), result);
+        //    }
         }
         else  {
             logger.info("Mailbox {} was not stopped by watchdog, skipping reactivation.", mailbox.getNAME());
