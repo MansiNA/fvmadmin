@@ -907,9 +907,7 @@ public class MailboxWatcher  extends VerticalLayout {
                 if (!ui.isAttached()) {
                     return; // UI is detached, stop processing
                 }
-               // updateList();
-                updateGridItem(message);
-
+                updateList();
             });
 
             subscribe(subscriber);
@@ -921,8 +919,7 @@ public class MailboxWatcher  extends VerticalLayout {
     private void updateGridItem(String message) {
         String[] parts = message.split(",,");
         String userID  = parts[0].trim();
-        int quantifier  = Integer.parseInt(parts[1].trim());
-        long configId = Integer.parseInt(parts[2].trim());
+        long configId = Integer.parseInt(parts[1].trim());
         Configuration configuration = service.findByIdConfiguration(configId);
         logger.info("updateGridItem: updatedMailbox in grid  "+message);
 
