@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import static com.example.application.Application.globalList;
+import static com.example.application.Application.mailboxen;
 
 @Component
 public class MailboxWatchdogJobExecutor implements Job {
@@ -75,15 +76,15 @@ public class MailboxWatchdogJobExecutor implements Job {
             return;
         }
 
-        List<Mailbox> mailboxes = mailboxService.getMailboxes(configuration);
+        mailboxen = mailboxService.getMailboxes(configuration);
         MailboxWatcher.notifySubscribers("Update grid");
-        if (mailboxes == null || mailboxes.isEmpty()) {
+        if (mailboxen == null || mailboxen.isEmpty()) {
             logger.info("No mailboxes found for "+configuration.getUserName());
             return;
         }
 
 
-        for (Mailbox mailbox : mailboxes) {
+        for (Mailbox mailbox : mailboxen) {
             try {
                 checkAndUpdateMailboxStatus(mailbox);
             } catch (Exception e) {

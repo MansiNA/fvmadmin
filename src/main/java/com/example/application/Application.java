@@ -1,9 +1,6 @@
 package com.example.application;
 
-import com.example.application.data.entity.Configuration;
-import com.example.application.data.entity.JobManager;
-import com.example.application.data.entity.MailboxShutdown;
-import com.example.application.data.entity.MonitorAlerting;
+import com.example.application.data.entity.*;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.JobDefinitionService;
 import com.example.application.data.service.MailboxService;
@@ -73,6 +70,8 @@ public class Application implements AppShellConfigurator {
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
     public static List<MailboxShutdown> globalList=new ArrayList<>();
+
+    public static List<Mailbox> mailboxen=new ArrayList<>();
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);

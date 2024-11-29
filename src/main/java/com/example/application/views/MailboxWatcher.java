@@ -56,6 +56,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.example.application.Application.mailboxen;
+
 @PageTitle("Mailbox Watcher")
 @Route(value = "mailbox-watcher", layout= MainLayout.class)
 @RolesAllowed({"ADMIN"})
@@ -69,7 +71,7 @@ public class MailboxWatcher  extends VerticalLayout {
     public Grid<Mailbox> grid = new Grid<>(Mailbox.class, false);
     Button refresh = new Button("refresh");
     private List<MailboxShutdown> affectedMailboxes;
-    private List<Mailbox> mailboxen;
+  //  private List<Mailbox> mailboxen;
     private String switchLable;
     @Value("${spring.datasource.jdbc-url}")
     private String defaultJdbcUrl;
@@ -186,6 +188,7 @@ public class MailboxWatcher  extends VerticalLayout {
         addDetachListener(event -> updateJobManagerSubscription());
 
         refresh.addClickListener(e -> {
+            mailboxen = mailboxService.getMailboxes(comboBox.getValue());
             updateList();
         });
 
@@ -695,9 +698,11 @@ public class MailboxWatcher  extends VerticalLayout {
 
     private void updateList() {
 
-        mailboxen = mailboxService.getMailboxes(comboBox.getValue());
+     //mailboxen = mailboxService.getMailboxes(comboBox.getValue());
+
         // people.get(1).setLastName("hhh");
-        if(mailboxen != null) {
+
+            if(mailboxen != null) {
             grid.setItems(mailboxen);
         }
         System.out.println("update mailbox: "+mailboxen.size());
