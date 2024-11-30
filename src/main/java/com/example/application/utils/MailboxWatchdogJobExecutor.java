@@ -88,9 +88,16 @@ public class MailboxWatchdogJobExecutor implements Job {
         for (Mailbox mailbox : mailboxen) {
             try {
                 int x = checkAndUpdateMailboxStatus(mailbox);
-                if (x==1) //If mailbox changed then read new values from db...
+                if (x==1) //If mailbox set offline
                 {
-                    mailboxen = mailboxService.getMailboxes(configuration);
+                    mailboxen.stream().filter(m -> m.getUSER_ID() == mailbox.getUSER_ID()).findFirst().ifPresent(m -> m.setQUANTIFIER(0));
+                    //mailboxen = mailboxService.getMailboxes(configuration);
+                    MailboxWatcher.notifySubscribers("Update grid");
+                }
+                if (x==2) //If mailbox set online
+                {
+                    mailboxen.stream().filter(m -> m.getUSER_ID() == mailbox.getUSER_ID()).findFirst().ifPresent(m -> m.setQUANTIFIER(1));
+                    //mailboxen = mailboxService.getMailboxes(configuration);
                     MailboxWatcher.notifySubscribers("Update grid");
                 }
 
@@ -138,7 +145,7 @@ public class MailboxWatchdogJobExecutor implements Job {
         {
             if (isDisabled) {
                 enableMailbox(mailbox,inVerarbeitung,maxMessageCount);
-                return 1;
+                return 2;
             } else {
                 logger.info("Mailbox {} is already active.", mailbox.getNAME());
             }
