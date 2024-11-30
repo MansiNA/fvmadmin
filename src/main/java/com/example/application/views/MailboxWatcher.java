@@ -705,11 +705,11 @@ public class MailboxWatcher  extends VerticalLayout {
             if(mailboxen != null) {
             grid.setItems(mailboxen);
         }
-        System.out.println("update mailbox: "+mailboxen.size());
-        for (Mailbox mailbox : mailboxen) {
-            System.out.println("Mailbox Name: " + mailbox.getNAME() +
-                    ", Aktuell_in_eKP_verarbeitet: " + mailbox.getAktuell_in_eKP_verarbeitet());
-        }
+   //     System.out.println("update mailbox: "+mailboxen.size());
+   //     for (Mailbox mailbox : mailboxen) {
+   //         System.out.println("Mailbox Name: " + mailbox.getNAME() +
+   //                 ", Aktuell_in_eKP_verarbeitet: " + mailbox.getAktuell_in_eKP_verarbeitet());
+   //     }
     }
 
     private static Renderer<Mailbox> createEmployeeTemplateRenderer() {
