@@ -174,7 +174,7 @@ public class ConfigForm extends FormLayout {
         binder.addStatusChangeListener(e -> {
             boolean hasChanges = binder.hasChanges();
             save.setEnabled(hasChanges);
-            System.out.println( binder.hasChanges()+"________________________________________");
+           // System.out.println( binder.hasChanges()+"________________________________________");
         });
 
         //   binder.addStatusChangeListener(e -> save.setEnabled(binder.isValid() && hasChanges));
