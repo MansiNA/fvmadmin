@@ -70,7 +70,7 @@ public class MailboxWatcher  extends VerticalLayout {
     private ComboBox<Configuration> comboBox;
     public Grid<Mailbox> grid = new Grid<>(Mailbox.class, false);
     Button refresh = new Button("refresh");
-    private List<MailboxShutdown> affectedMailboxes;
+    //private List<MailboxShutdown> affectedMailboxes;
   //  private List<Mailbox> mailboxen;
     private String switchLable;
     @Value("${spring.datasource.jdbc-url}")
@@ -133,7 +133,8 @@ public class MailboxWatcher  extends VerticalLayout {
 
         MenuItem onMenuItemChecker = check_menu.addItem("On", event -> {
 
-            System.out.println("Background Job for checker eingeschaltet");
+            //System.out.println("Background Job for checker eingeschaltet");
+            logger.info("Background Job for checker eingeschaltet");
             setChecker("On");
             mailboxService.updateIsMBWatchdogJobActive(1, comboBox.getValue());
             checkMailboxWatchdogProcess();
@@ -142,7 +143,8 @@ public class MailboxWatcher  extends VerticalLayout {
 
         // Add "Off" menu item and mark it checkable
         MenuItem offMenuItemChecker = check_menu.addItem("Off", event -> {
-            System.out.println("Background Job for checker ausgeschaltet");
+            //System.out.println("Background Job for checker ausgeschaltet");
+            logger.info("Switch of Background Job for WWatchdog");
             setChecker("Off");
             mailboxService.updateIsMBWatchdogJobActive(0, comboBox.getValue());
             checkMailboxWatchdogProcess();
@@ -155,14 +157,12 @@ public class MailboxWatcher  extends VerticalLayout {
             mailboxWatchdogJobConfigurationDialog();
         });
 
-        mailboxService.createFvmMonitorAlertingTable(comboBox.getValue());
-        MonitorAlerting  monitorAlerting = mailboxService.fetchEmailConfiguration(comboBox.getValue());
+        //mailboxService.createFvmMonitorAlertingTable(comboBox.getValue());
 
-        if (monitorAlerting != null && monitorAlerting.getIsMBWatchdogActive() != null && monitorAlerting.getIsMBWatchdogActive() != 0) {
-            setChecker("On");
-        } else {
-            setChecker("Off");
-        }
+
+        setWatchdogStatus(comboBox.getValue());
+
+
 
         Div checkInfo = new Div(new Span("Watchdog-Job: "), syscheck);
         syscheck.getStyle().set("font-weight", "bold");
@@ -174,7 +174,7 @@ public class MailboxWatcher  extends VerticalLayout {
         setSizeFull();
         add(hl);
 
-        affectedMailboxes = new ArrayList<>();
+     //   affectedMailboxes = new ArrayList<>();
 
         //  grid.setItems(mailboxen);
         Span title = new Span("Mailbox-Watcher");
@@ -199,6 +199,7 @@ public class MailboxWatcher  extends VerticalLayout {
             UI ui = UI.getCurrent();
             grid.setItems();
             mailboxen=null;
+            setWatchdogStatus(comboBox.getValue());
             // Instruct client side to poll for changes and show spinner
             ui.setPollInterval(500);
             // Start background task
@@ -206,7 +207,9 @@ public class MailboxWatcher  extends VerticalLayout {
 
                 // Do some long running task
                 try {
-                    System.out.println("Hole Mailbox Infos");
+                    //System.out.println("Hole Mailbox Infos");
+
+                    logger.debug("Get Mailbox Infos");
 
                     mailboxen = mailboxService.getMailboxes(comboBox.getValue());
 
@@ -218,6 +221,7 @@ public class MailboxWatcher  extends VerticalLayout {
                 } catch (Exception e) {
                     // Need to use access() when running from background thread
                     ui.access(() -> {
+                        logger.error("Error: " + e.getMessage());
                         Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
                     });
                     //  return; // Exit if an exception occurs
@@ -230,16 +234,13 @@ public class MailboxWatcher  extends VerticalLayout {
 
                     if (mailboxen == null || mailboxen.isEmpty()) {
                         if(mailboxen != null && mailboxen.isEmpty()) {
+                            logger.debug("Found no information in database!");
                             Notification.show("Keine Mailbox Infos gefunden!", 5000, Notification.Position.MIDDLE);
                         }
                         return;
                     } else {
-                        affectedMailboxes = fetchTableData();
-                        if (affectedMailboxes.isEmpty()) {
-                            System.out.println("empty....................."+affectedMailboxes.size());
-                        } else {
-                            System.out.println("affect....................."+affectedMailboxes.size());
-                        }
+                  //      affectedMailboxes = fetchTableData();
+                  //      logger.debug("affectedMailboxes: " + affectedMailboxes.size());
                         grid.setItems(mailboxen);
                     }
 
@@ -250,6 +251,21 @@ public class MailboxWatcher  extends VerticalLayout {
         });
 
 
+    }
+
+    private void setWatchdogStatus(Configuration value) {
+
+        MonitorAlerting  monitorAlerting = mailboxService.fetchEmailConfiguration(value);
+
+        if (monitorAlerting != null && monitorAlerting.getIsMBWatchdogActive() != null && monitorAlerting.getIsMBWatchdogActive() != 0) {
+
+            logger.debug("Setze Watchdog Schalter: on");
+
+            setChecker("On");
+        } else {
+            logger.debug("Setze Watchdog Schalter: off");
+            setChecker("Off");
+        }
     }
 
     private void configureMailboxGrid() {
@@ -366,7 +382,7 @@ public class MailboxWatcher  extends VerticalLayout {
         // Update checked state of menu items
         check_menu.getItems().forEach(item -> item.setChecked(item.getText().equals(status)));
         syscheck.setText(status);
-        logger.info("setChecker:" +status);
+        logger.info("setChecker: " +status);
 
 
     }
@@ -440,13 +456,15 @@ public class MailboxWatcher  extends VerticalLayout {
             try {
                 Notification.show("Starting MailboxWatchdog job executing.... " + configuration.getName(), 5000, Notification.Position.MIDDLE);
                // BackgroundJobExecutor.stopJob = false;
-                logger.info("checkMailboxWatchdogProcess: Starting MailboxWatchdog job executing");
+                logger.info("checkMailboxWatchdogProcess: Starting MailboxWatchdog job executing for " + configuration.getName());
                 scheduleMBWatchdogJob(configuration);
             } catch (Exception e) {
                 Notification.show("Error executing job: " +  configuration.getName() + " " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+                logger.error("Error executing job: " +  configuration.getName() + " " + e.getMessage());
             }
         } else {
             // If status is "Off", stop all scheduled jobs
+            logger.info("checkMailboxWatchdogProcess: Stopping MailboxWatchdog job executing for " + configuration.getName());
             stopMBWatchdogScheduledJobs(configuration);
         }
     }
@@ -475,7 +493,8 @@ public class MailboxWatcher  extends VerticalLayout {
         MonitorAlerting monitorAlerting = mailboxService.fetchEmailConfiguration(configuration);
 
         if (monitorAlerting == null || monitorAlerting.getMbWatchdogCron() == null) {
-            System.out.println("No interval set for the configuration. Job will not be scheduled.");
+            //System.out.println("No interval set for the configuration. Job will not be scheduled.");
+            logger.error("No interval set for the configuration. Job will not be scheduled.");
             return;
         }
 
@@ -878,7 +897,9 @@ public class MailboxWatcher  extends VerticalLayout {
                 try {
                     subscriber.accept(message);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    //e.printStackTrace();
+                    logger.info("Einer der Subscriber konnte nicht informiert werden über message: >" + message + "<");
+
                 }
             });
         }

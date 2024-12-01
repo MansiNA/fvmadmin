@@ -54,7 +54,7 @@ public class MailboxWatchdogJobExecutor implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        logger.info("Executing MailboxWatchdogJobExecutor...");
+        logger.debug("Execute MailboxWatchdogJobExecutor...");
 
         mailboxService = SpringContextHolder.getBean(MailboxService.class);
         protokollService = SpringContextHolder.getBean(ProtokollService.class);
@@ -67,7 +67,7 @@ public class MailboxWatchdogJobExecutor implements Job {
         } catch (JsonProcessingException e) {
             throw new JobExecutionException("Error deserializing job definition", e);
         }
-        logger.info("Finished executing MailboxWatchdogJobExecutor.");
+        logger.debug("Finished executing MailboxWatchdogJobExecutor...");
 
     }
     private void executeJob(Configuration configuration) {
@@ -79,11 +79,9 @@ public class MailboxWatchdogJobExecutor implements Job {
         mailboxen = mailboxService.getMailboxes(configuration);
 
         if (mailboxen == null || mailboxen.isEmpty()) {
-            logger.info("No mailboxes found for "+configuration.getUserName());
+            logger.error("No mailboxes found for " + configuration.getUserName());
             return;
         }
-
-        MailboxWatcher.notifySubscribers("Update grid");
 
         for (Mailbox mailbox : mailboxen) {
             try {
@@ -101,18 +99,18 @@ public class MailboxWatchdogJobExecutor implements Job {
                     MailboxWatcher.notifySubscribers("Update grid");
                 }
 
-
             } catch (Exception e) {
                 logger.error("Error processing mailbox {}: {}", mailbox.getNAME(), e.getMessage());
             }
         }
 
+        MailboxWatcher.notifySubscribers("Update grid");
 
     }
 
     private int checkAndUpdateMailboxStatus(Mailbox mailbox) {
         logger.info("Executing checkAndUpdateMailboxStatus");
-        logger.info("Value of watchdog stopJob: " + stopJob);
+        logger.debug("Value of watchdog stopJob: " + stopJob);
         if (stopJob) {
             return 0; // Exit if the job is stopped
         }
@@ -152,7 +150,15 @@ public class MailboxWatchdogJobExecutor implements Job {
         }
         else
         {
-           logger.info("Mailbox {} was not stopped by watchdog, skipping reactivation.", mailbox.getNAME());
+            if(!isDisabled)
+            {
+                logger.info("Mailbox {} is already enabled", mailbox.getNAME());
+            }
+            else
+            {
+                logger.info("Mailbox {} was not stopped by watchdog, skipping reactivation.", mailbox.getNAME());
+            }
+
         }
 
 

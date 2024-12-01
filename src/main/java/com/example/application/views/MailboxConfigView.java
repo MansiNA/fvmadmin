@@ -37,6 +37,8 @@ import com.vaadin.flow.router.Route;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
 import org.eclipse.angus.mail.imap.protocol.MailboxInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -72,6 +74,7 @@ public class MailboxConfigView  extends VerticalLayout {
     private String switchLable;
     @Value("${spring.datasource.jdbc-url}")
     private String defaultJdbcUrl;
+    private static final Logger logger = LoggerFactory.getLogger(MailboxConfigView.class);
 
     @Value("${spring.datasource.username}")
     private String defaultUsername;
@@ -257,8 +260,7 @@ public class MailboxConfigView  extends VerticalLayout {
 
                 // Do some long running task
                 try {
-                    System.out.println("Hole Mailbox Infos");
-
+                   // System.out.println("Hole Mailbox Infos");
                     mailboxen=getMailboxes();
 
                     //Thread.sleep(2000); //2 Sekunden warten
@@ -288,11 +290,14 @@ public class MailboxConfigView  extends VerticalLayout {
                     } else {
                         affectedMailboxes = fetchTableData();
                         if (affectedMailboxes.isEmpty()) {
-                            System.out.println("empty....................."+affectedMailboxes.size());
+                            logger.info("No Mailboxes disabled by fvmadmin-tool");
+                            logger.debug("affectedMailboxes size: " +affectedMailboxes.size());
                             onOffButton.setText("Alle ausschalten");
                         } else {
-                            System.out.println("affect....................."+affectedMailboxes.size());
-                            onOffButton.setText(affectedMailboxes.size() + " wieder einschalten");
+                            logger.info("Found  " + affectedMailboxes.size() + " Mailboxes disabled by fvmadmin-tool");
+                            logger.debug("affectedMailboxes size: " +affectedMailboxes.size());
+
+                            onOffButton.setText("Alle " + affectedMailboxes.size() + " wieder einschalten");
                         }
                         grid.setItems(mailboxen);
                     }
@@ -562,7 +567,8 @@ public class MailboxConfigView  extends VerticalLayout {
 
                 String sql = "SELECT * FROM \"" + tableName + "\"";
 
-                System.out.println("Executing SQL: " + sql);
+                //System.out.println("Executing SQL: " + sql);
+                logger.info("Executing SQL: " + sql);
 
                 results = jdbcTemplate.query(sql, (rs, rowNum) -> {
                     MailboxShutdown mailboxShutdown = new MailboxShutdown();
@@ -571,12 +577,14 @@ public class MailboxConfigView  extends VerticalLayout {
                     return mailboxShutdown;
                 });
 
-                System.out.println("Data fetched successfully.");
+                //System.out.println("Data fetched successfully.");
             } else {
-                System.out.println("Table does not exist: " + tableName);
+                //System.out.println("Table does not exist: " + tableName);
+                logger.info("Table " + tableName + " not exists. (No mailboxes shutdown via fvmadmin-tool)");
             }
         } catch (Exception e) {
-            System.out.println("Exception: " + e.getMessage());
+            //System.out.println("Exception: " + e.getMessage());
+            logger.error(e.getMessage());
             e.printStackTrace();
         } finally {
             connectionClose(jdbcTemplate);
@@ -622,7 +630,9 @@ public class MailboxConfigView  extends VerticalLayout {
 
         String sql="select Name,user_id,court_id,typ,konvertierungsdienste,max_message_count,DAYSTOEXPIRE,ROLEID,STATUS,in_egvp_wartend,quantifier,aktuell_in_eKP_verarbeitet,in_ekp_haengend,in_ekp_warteschlange,in_ekp_fehlerhospital from EKP.v_Postfach_Incoming_Status";
 
-        System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
+        logger.info("Query on DB: " + comboBox.getValue().getName());
+        logger.info("Execute SQL:" + sql);
+        //System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
 
 //        DriverManagerDataSource ds = new DriverManagerDataSource();
 //        Configuration conf;
@@ -643,12 +653,15 @@ public class MailboxConfigView  extends VerticalLayout {
 
 
 
-            System.out.println("MAILBOX_CONFIG eingelesen");
+            //System.out.println("MAILBOX_CONFIG eingelesen");
 
         } catch (Exception e) {
          //   System.out.println("Exception: " + e.getMessage());
-            throw new RuntimeException("Error querying the database: " + e.getMessage(), e);
-           // Notification.show("Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            //throw new RuntimeException("Error querying the database: " + e.getMessage(), e);
+
+            logger.error("Database Error: " + e.getMessage());
+
+            Notification.show("Database Error: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         } finally {
             connectionClose(jdbcTemplate);
         }

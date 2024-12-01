@@ -26,7 +26,7 @@ public class MailboxService {
     private ConfigurationService configurationService;
     //  List<fvm_monitoring> listOfMonitores;
 
-    private static final Logger logger = LoggerFactory.getLogger(MailboxWatchdogJobExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(MailboxService.class);
 
     public MailboxService(JdbcTemplate jdbcTemplate, ConfigurationService configurationService){
         this.jdbcTemplate = jdbcTemplate;
@@ -43,7 +43,7 @@ public class MailboxService {
 
         logger.info("#######Start DB-Abfrage: " + sql);
 
-        System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
+       // System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
 
 //        DriverManagerDataSource ds = new DriverManagerDataSource();
 //        Configuration conf;
@@ -62,11 +62,11 @@ public class MailboxService {
                     new BeanPropertyRowMapper(Mailbox.class));
 
 
-            System.out.println("MAILBOX_CONFIG eingelesen");
-            System.out.println("configuration: "+configuration.getUserName()+" mailbox fetch: "+mailboxen.size());
+            //System.out.println("MAILBOX_CONFIG eingelesen");
+            //System.out.println("configuration: "+configuration.getUserName()+" mailbox fetch: "+mailboxen.size());
+            logger.debug("configuration: "+configuration.getUserName()+" mailbox fetch: " + mailboxen.size());
             for (Mailbox mailbox : mailboxen) {
-                System.out.println("Mailbox Name: " + mailbox.getNAME() +
-                        ", Aktuell_in_eKP_verarbeitet: " + mailbox.getAktuell_in_eKP_verarbeitet());
+                logger.debug("Mailbox Name: " + mailbox.getNAME() +", Aktuell_in_eKP_verarbeitet: " + mailbox.getAktuell_in_eKP_verarbeitet());
             }
 
         } catch (Exception e) {
@@ -85,7 +85,9 @@ public class MailboxService {
         Mailbox mailboxen;
         String sql="select Name,user_id,court_id,typ,konvertierungsdienste,max_message_count,DAYSTOEXPIRE,ROLEID,STATUS,in_egvp_wartend,quantifier,aktuell_in_eKP_verarbeitet,in_ekp_haengend,in_ekp_warteschlange,in_ekp_fehlerhospital from EKP.v_Postfach_Incoming_Status WHERE user_id = ?";
 
-        System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
+       // System.out.println("Abfrage EKP.Mailbox_Config (MailboxConfigView.java)");
+        logger.info("Start DB-Abfrage on connection: " + configuration.getName());
+        logger.info("DB-Abfrage: " + sql);
         try {
             getJdbcTemplateWithDBConnetion(configuration);
 
@@ -273,7 +275,8 @@ public class MailboxService {
         getJdbcTemplateWithDBConnetion(configuration);
         MonitorAlerting monitorAlerting = new MonitorAlerting();
         try {
-            System.out.println(configuration.getName()+",,,,,,,,,,,,,,,,,,,,,,,,,,,");
+            //System.out.println(configuration.getName()+",,,,,,,,,,,,,,,,,,,,,,,,,,,");
+            logger.info("Hole Daten aus DB " + configuration.getName());
             //   connectWithDatabase(configuration);
             //    jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
             // Query to get the existing configuration
@@ -282,6 +285,7 @@ public class MailboxService {
                     "WATCHDOG_MAIL_BETREFF," +
                     "WATCHDOG_MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION,LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE FROM FVM_MONITOR_ALERTING";
 
+            logger.info("Ausführen SQL: " + sql);
             // Use jdbcTemplate to query and map results to MonitorAlerting object
             jdbcTemplate.query(sql, rs -> {
                 // Set the values in the MonitorAlerting object from the result set
