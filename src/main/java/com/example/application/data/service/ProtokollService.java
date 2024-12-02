@@ -64,4 +64,8 @@ public class ProtokollService {
     public void deleteById(Long id) {
         protokollRepository.deleteById(id);
     }
+
+    public List<Object[]> findInfoZeitpunktShutdownReasonByVerbindung(String verbindung) {
+        return protokollRepository.findInfoZeitpunktShutdownReasonByVerbindung(verbindung);
+    }
 }

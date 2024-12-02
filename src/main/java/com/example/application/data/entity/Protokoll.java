@@ -32,4 +32,5 @@ public class Protokoll {
 
     @Column(name = "VERBINDUNG")
     private String verbindung;
+
 }
