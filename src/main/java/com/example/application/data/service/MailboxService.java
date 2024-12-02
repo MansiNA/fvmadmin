@@ -276,7 +276,7 @@ public class MailboxService {
         MonitorAlerting monitorAlerting = new MonitorAlerting();
         try {
             //System.out.println(configuration.getName()+",,,,,,,,,,,,,,,,,,,,,,,,,,,");
-            logger.info("Hole Daten aus DB " + configuration.getName());
+            logger.info("Read Email-Configuration from DB " + configuration.getName());
             //   connectWithDatabase(configuration);
             //    jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
             // Query to get the existing configuration

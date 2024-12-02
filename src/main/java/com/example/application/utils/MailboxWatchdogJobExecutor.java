@@ -95,6 +95,8 @@ public class MailboxWatchdogJobExecutor implements Job {
             return;
         }
 
+        monitorAlerting = mailboxService.fetchEmailConfiguration(configuration);
+
         for (Mailbox mailbox : mailboxen) {
             try {
                 int x = checkAndUpdateMailboxStatus(mailbox);
@@ -126,7 +128,7 @@ public class MailboxWatchdogJobExecutor implements Job {
         if (stopJob) {
             return 0; // Exit if the job is stopped
         }
-         monitorAlerting = mailboxService.fetchEmailConfiguration(configuration);
+
         int inVerarbeitung = Integer.parseInt(mailbox.getAktuell_in_eKP_verarbeitet()); // Current "In Verarbeitung" value
         int maxMessageCount = Integer.parseInt(mailbox.getMAX_MESSAGE_COUNT()); // Maximum allowed message count
         boolean isDisabled = mailbox.getQUANTIFIER() == 0;
