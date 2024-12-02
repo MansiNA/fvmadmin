@@ -196,6 +196,7 @@ public class MailboxConfigView  extends VerticalLayout {
 
         grid.setItemDetailsRenderer(createPersonDetailsRenderer());
         grid.addThemeVariants(GridVariant.LUMO_COMPACT);
+        grid.setThemeName("dense");
 
       //  inVerarbeitungColumn.setVisible(false);
         RoleIDColumn.setVisible(false);
