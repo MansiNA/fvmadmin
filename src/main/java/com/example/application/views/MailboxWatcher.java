@@ -300,7 +300,7 @@ public class MailboxWatcher  extends VerticalLayout {
 
         grid.addColumn(createStatusComponentRenderer()).setHeader("Status")
                 .setAutoWidth(true).setResizable(true);
-
+        grid.addThemeVariants(GridVariant.LUMO_COMPACT);
 
 //        grid.addComponentColumn(mb -> createStatusIcon(mb.getQUANTIFIER()))
 //                //.setTooltipGenerator(person -> person.getStatus())
