@@ -483,15 +483,17 @@ public class MailboxWatcher  extends VerticalLayout {
             return;
         }
 
+        // Fetch monitorAlerting configuration to get the interval
+        MonitorAlerting monitorAlerting = mailboxService.fetchEmailConfiguration(configuration);
+
         jobDataMap.put("startType", "cron");
+        jobDataMap.put("monitorAlerting", monitorAlerting);
 
         JobDetail jobDetail = JobBuilder.newJob(MailboxWatchdogJobExecutor.class)
                 .withIdentity("job-mbWatchdog-cron-" + configuration.getId(), "mbWatchdog_group")
                 .usingJobData(jobDataMap)
                 .build();
 
-        // Fetch monitorAlerting configuration to get the interval
-        MonitorAlerting monitorAlerting = mailboxService.fetchEmailConfiguration(configuration);
 
         if (monitorAlerting == null || monitorAlerting.getMbWatchdogCron() == null) {
             //System.out.println("No interval set for the configuration. Job will not be scheduled.");

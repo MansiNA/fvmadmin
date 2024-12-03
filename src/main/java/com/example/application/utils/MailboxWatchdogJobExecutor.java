@@ -72,7 +72,7 @@ public class MailboxWatchdogJobExecutor implements Job {
         configurationService = SpringContextHolder.getBean(ConfigurationService.class);
         emailService = SpringContextHolder.getBean(EmailService.class);
         String jobDefinitionString = context.getMergedJobDataMap().getString("configuration");
-
+        monitorAlerting = (MonitorAlerting) context.getMergedJobDataMap().get("monitorAlerting");
         try {
             configuration = JobDefinitionUtils.deserializeJobConfDefinition(jobDefinitionString);
             executeJob(configuration);
@@ -95,8 +95,8 @@ public class MailboxWatchdogJobExecutor implements Job {
             return;
         }
 
-        monitorAlerting = mailboxService.fetchEmailConfiguration(configuration);
-
+        // monitorAlerting = mailboxService.fetchEmailConfiguration(configuration);
+        logger.info("..........monitorAlerting....."+monitorAlerting);
         for (Mailbox mailbox : mailboxen) {
             try {
                 int x = checkAndUpdateMailboxStatus(mailbox);

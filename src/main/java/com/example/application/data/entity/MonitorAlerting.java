@@ -51,6 +51,10 @@ public class MonitorAlerting {
                 ", mailCCEmpfaenger='" + mailCCEmpfaenger + '\'' +
                 ", mailBetreff='" + mailBetreff + '\'' +
                 ", mailText='" + mailText + '\'' +
+                ", watchdogMailEmpfaenger='" + watchdogMailEmpfaenger + '\'' +
+                ", watchdogMailCCEmpfaenger='" + watchdogMailCCEmpfaenger + '\'' +
+                ", watchdogMailBetreff='" + watchdogMailBetreff + '\'' +
+                ", watchdogMailText='" + watchdogMailText + '\'' +
                 ", mbWatchdogCron='" + mbWatchdogCron + '\'' +
                 ", bg_cron=" + bgCron +
              //   ", intervall=" + intervall +
