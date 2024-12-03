@@ -8,6 +8,7 @@ import com.example.application.utils.JobDefinitionUtils;
 import com.example.application.utils.MailboxWatchdogJobExecutor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -26,6 +27,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
@@ -297,7 +299,22 @@ public class MailboxWatcher  extends VerticalLayout {
                 .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
         Grid.Column<Mailbox> maxMessageCountColumn = grid.addColumn(Mailbox::getMAX_MESSAGE_COUNT).setHeader("Max Message Count")
                 .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
+        grid.addColumn(new ComponentRenderer<>(item -> {
 
+            ProgressBar progressBar = new ProgressBar();
+
+            // Wert zwischen 0 und 1
+            Double p = Double.valueOf(item.getAktuell_in_eKP_verarbeitet()) / Double.valueOf(item.getMAX_MESSAGE_COUNT());
+            progressBar.setValue(p);
+            Double rounded;
+            p = p*100;
+            rounded = (double) Math.round(p);
+            Text t = new Text(rounded.toString() + "%");
+            HorizontalLayout hl = new HorizontalLayout();
+            hl.add(t,progressBar);
+
+            return hl;
+        })).setHeader("Auslastung").setWidth("100px").setResizable(true);
         grid.addColumn(createStatusComponentRenderer()).setHeader("Status")
                 .setAutoWidth(true).setResizable(true);
         grid.addThemeVariants(GridVariant.LUMO_COMPACT);
