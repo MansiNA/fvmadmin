@@ -100,6 +100,7 @@ public class MailboxWatcher  extends VerticalLayout {
 
         ui = UI.getCurrent();
         comboBox = new ComboBox<>("Verbindung");
+        comboBox.setPlaceholder("auswählen");
         try {
             List<Configuration> configList = service.findMessageConfigurations();
             if (configList != null && !configList.isEmpty()) {
@@ -110,7 +111,7 @@ public class MailboxWatcher  extends VerticalLayout {
                 if (!filteredConfigList.isEmpty()) {
                     comboBox.setItems(filteredConfigList);
                     comboBox.setItemLabelGenerator(Configuration::getName);
-                    comboBox.setValue(filteredConfigList.get(0)); // Set the first item as the default value
+                  //  comboBox.setValue(filteredConfigList.get(0)); // Set the first item as the default value
                 } else {
                     Notification.show("No configurations available for watchdog.", 5000, Notification.Position.MIDDLE);
                 }
@@ -162,7 +163,7 @@ public class MailboxWatcher  extends VerticalLayout {
         //mailboxService.createFvmMonitorAlertingTable(comboBox.getValue());
 
 
-        setWatchdogStatus(comboBox.getValue());
+       // setWatchdogStatus(comboBox.getValue());
 
 
 
@@ -190,7 +191,9 @@ public class MailboxWatcher  extends VerticalLayout {
         addDetachListener(event -> updateJobManagerSubscription());
 
         refresh.addClickListener(e -> {
-            mailboxen = mailboxService.getMailboxes(comboBox.getValue());
+            if (comboBox.getValue() != null) {
+                mailboxen = mailboxService.getMailboxes(comboBox.getValue());
+            }
             updateList();
         });
 
@@ -741,7 +744,7 @@ public class MailboxWatcher  extends VerticalLayout {
 
         // people.get(1).setLastName("hhh");
 
-            if(mailboxen != null) {
+        if(mailboxen != null && comboBox.getValue() != null) {
             grid.setItems(mailboxen);
         }
    //     System.out.println("update mailbox: "+mailboxen.size());
