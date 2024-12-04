@@ -117,7 +117,7 @@ public class Application implements AppShellConfigurator {
      * Start or stop a HikariCP connection pool based on the 'Is_Monitoring' flag.
      */
     public void managePoolForConfiguration(Configuration config) {
-        logger.info("managePoolForConfiguration(Configuration config) : manage pool of"+ config.getUserName());
+        logger.info("managePoolForConfiguration(Configuration config) : manage pool of "+ config.getUserName());
         if (config.getIsMonitoring() == 1) {
           configurationService.startPool(config);
         } else {

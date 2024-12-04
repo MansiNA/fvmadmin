@@ -5,9 +5,12 @@ import com.example.application.data.entity.MonitorAlerting;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.views.CockpitView;
+import com.example.application.views.MonitoringView;
 import com.vaadin.flow.component.notification.Notification;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -31,7 +34,7 @@ public class CockpitService {
     private JdbcTemplate jdbcTemplate;
     private ConfigurationService configurationService;
   //  List<fvm_monitoring> listOfMonitores;
-
+    private static final Logger logger = LoggerFactory.getLogger(CockpitService.class);
 
     public CockpitService(JdbcTemplate jdbcTemplate, ConfigurationService configurationService){
         this.jdbcTemplate = jdbcTemplate;
@@ -58,7 +61,8 @@ public class CockpitService {
         try {
            return this.jdbcTemplate = new JdbcTemplate(ds);
         } catch (Exception e) {
-            e.getMessage();
+           // e.getMessage();
+            logger.error("Error while connect database: {}",conf.getName());
         }
         return null;
     }
@@ -362,7 +366,8 @@ public class CockpitService {
 
             return maxParallel;
         } catch (Exception e) {
-            e.printStackTrace();
+           // e.printStackTrace();
+            logger.error("fetchMaxParallel: "+e.getMessage());
         } finally {
             connectionClose(jdbcTemplate);
         }

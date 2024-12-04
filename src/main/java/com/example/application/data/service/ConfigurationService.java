@@ -9,6 +9,8 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.transaction.Transactional;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -23,6 +25,7 @@ public class ConfigurationService {
 
     @Getter
     private Map<Long, HikariDataSource> activePools = new HashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(ConfigurationService.class);
 
     public ConfigurationService(ConfigurationRepository configurationRepository) {
 
@@ -140,6 +143,11 @@ public class ConfigurationService {
         if (!activePools.containsKey(config.getId())) {
 
             HikariConfig hikariConfig = new HikariConfig();
+            logger.error("Configuration username: " + config.getUserName() + " is database URL :"+config.getDb_Url());
+            if (config.getDb_Url() == null || config.getDb_Url().isEmpty()) {
+                logger.error("Configuration username : " + config.getUserName() + " is missing the database URL.");
+                return;
+            }
             hikariConfig.setJdbcUrl(config.getDb_Url());
             hikariConfig.setUsername(config.getUserName());
             hikariConfig.setPassword(Configuration.decodePassword(config.getPassword()));
