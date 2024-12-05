@@ -316,6 +316,8 @@ public class MailboxWatcher  extends VerticalLayout {
 
             // Wert zwischen 0 und 1
             Double p = Double.valueOf(item.getAktuell_in_eKP_verarbeitet()) / Double.valueOf(item.getMAX_MESSAGE_COUNT());
+            p = Math.min(p, 1.0);
+            // System.out.println("iin Verarbeitet = "+item.getAktuell_in_eKP_verarbeitet()+"************************auslastung  "+p+" *********** max count"+item.getMAX_MESSAGE_COUNT());
             progressBar.setValue(p);
             Double rounded;
             p = p*100;
