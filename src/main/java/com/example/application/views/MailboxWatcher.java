@@ -90,6 +90,7 @@ public class MailboxWatcher  extends VerticalLayout {
     private static final ExecutorService notifierThread = Executors.newSingleThreadExecutor();
     private SerializableConsumer<String> subscriber;
     private UI ui;
+    Button showLog = new Button("show log");
 
     public MailboxWatcher(ConfigurationService service, ProtokollService protokollService, MailboxService mailboxService, JdbcTemplate jdbcTemplate)  {
         logger.info("Starting MailboxWatcher");
@@ -99,6 +100,7 @@ public class MailboxWatcher  extends VerticalLayout {
         this.jdbcTemplate = jdbcTemplate;
 
         ui = UI.getCurrent();
+        showLog.setEnabled(false);
         comboBox = new ComboBox<>("Verbindung");
         comboBox.setPlaceholder("auswählen");
         try {
@@ -127,6 +129,7 @@ public class MailboxWatcher  extends VerticalLayout {
         comboBox.setPlaceholder("auswählen");
         configureMailboxGrid();
         updateList();
+
 
         // Add "On" menu item and mark it checkable
         syscheck = new Span();
@@ -172,7 +175,7 @@ public class MailboxWatcher  extends VerticalLayout {
 
         HorizontalLayout hl = new HorizontalLayout();
         //   hl.add(comboBox,button,refresh);
-        hl.add(comboBox,refresh, checkInfo);
+        hl.add(comboBox,refresh,showLog, checkInfo);
         hl.setAlignItems(Alignment.BASELINE);
         setSizeFull();
         add(hl);
@@ -196,12 +199,17 @@ public class MailboxWatcher  extends VerticalLayout {
             }
             updateList();
         });
+        showLog.addClickListener(e -> {
+            showLogDialog();
+        });
+
 
         //  updateJobManagerSubscription();
         // button.addClickListener(clickEvent -> {
         comboBox.addValueChangeListener(event->{
 
             UI ui = UI.getCurrent();
+            showLog.setEnabled(true);
             grid.setItems();
             mailboxen=null;
             setWatchdogStatus(comboBox.getValue());
@@ -418,6 +426,7 @@ public class MailboxWatcher  extends VerticalLayout {
 
         List<Protokoll> filteredProtokollList = protokollList.stream()
                 .filter(protokoll -> targetVerbindung.equals(protokoll.getVerbindung()))
+                .filter(protokoll -> "watchdog".equals(protokoll.getUsername()))
                 .collect(Collectors.toList());
 
         grid.setItems(filteredProtokollList);
