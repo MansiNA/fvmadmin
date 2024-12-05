@@ -1,7 +1,10 @@
 package com.example.application.service;
 
+import com.example.application.data.service.MailboxService;
 import jakarta.mail.Message;
 import jakarta.mail.internet.InternetAddress;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.SimpleMailMessage;
@@ -17,7 +20,7 @@ public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender emailSender;
 
-
+    private static final Logger logger = LoggerFactory.getLogger(EmailServiceImpl.class);
     public EmailServiceImpl(JavaMailSender emailSender) {
         this.emailSender = emailSender;
     }
@@ -79,7 +82,8 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendAttachMessage(String to, String cc, String subject, String text, String attachmentFileName, ByteArrayResource byteArrayResource) {
-        MimeMessagePreparator preparator = mimeMessage -> {
+        try {
+            MimeMessagePreparator preparator = mimeMessage -> {
             // Handle multiple "To" recipients
             if (to != null && !to.isEmpty()) {
                 String[] toRecipients = to.split(";");
@@ -112,11 +116,16 @@ public class EmailServiceImpl implements EmailService {
                 helper.addAttachment(attachmentFileName, byteArrayResource);
                 helper.setText(text, true);
             } catch (Exception ex) {
-                ex.printStackTrace();
+                logger.error("Error occurred while MimeMessageHelper: {}", ex.getMessage());
+            //    ex.printStackTrace();
             }
         };
 
         emailSender.send(preparator);
+        } catch (Exception e) {
+            logger.error("Error occurred while sending email to {}: {}", to, e.getMessage());
+        }
     }
+
 
 }

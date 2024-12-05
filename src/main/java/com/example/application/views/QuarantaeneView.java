@@ -68,30 +68,35 @@ public class QuarantaeneView extends VerticalLayout {
         ui = UI.getCurrent();
 
         comboBox = new ComboBox<>("Verbindung");
-        
+        comboBox.setPlaceholder("auswählen");
         List<Configuration> configList = service.findMessageConfigurations();
         if (configList != null && !configList.isEmpty()) {
             comboBox.setItems(configList);
             comboBox.setItemLabelGenerator(Configuration::getName);
-            comboBox.setValue(configList.get(0));
+          //  comboBox.setValue(configList.get(0));
         }
 
         comboBox.addValueChangeListener(event -> {
             logger.info(" comboBox.addValueChangeListener: Verbindung = "+ event.getValue());
             updateGrid();
+            if(listOfQuarantine != null) {
+                List<String> exceptionCodes = listOfQuarantine.stream()
+                        .map(Quarantine::getEXCEPTIONCODE)
+                        .distinct()
+                        .collect(Collectors.toList());
+                System.out.println("exceptionCodes>>>>>>>>>>>>>>>>>< " + exceptionCodes);
+                if (exceptionCodes != null) {
+                    FehlertypCB.setItems(exceptionCodes);
+                }
+                showGridFooter();
+            }
         });
 
         configureQuarantaeneGrid();
-        updateGrid();
+    //    updateGrid();
     //    List<String> errorList = List.of("MESSAGE_INCOMPLETE", "CHECK_FILENAMES", "SERVER_NOT_REACHABLE","RECEIVERID_NOT_FOUND");
-        List<String> exceptionCodes = listOfQuarantine.stream()
-                .map(Quarantine::getEXCEPTIONCODE)
-                .distinct()
-                .collect(Collectors.toList());
+
         FehlertypCB = new ComboBox<>("Fehlertyp");
-        if(exceptionCodes != null) {
-            FehlertypCB.setItems(exceptionCodes);
-        }
         FehlertypCB.setWidth("400px");
         FehlertypCB.setPlaceholder("select Fehlertyp");
 
@@ -145,9 +150,8 @@ public class QuarantaeneView extends VerticalLayout {
                         return;
                     }
                     qgrid.setItems(listOfQuarantine);
-
                     gridUpdateWithFilter(FehlertypCB.getValue());
-                    refreshGrid();
+                    showGridFooter();
                 });
             });
 
@@ -361,7 +365,7 @@ public class QuarantaeneView extends VerticalLayout {
                 .withProperty("SenderID", Quarantine::getSENDERID);
     }
 
-    private void refreshGrid(){
+    private void showGridFooter(){
         logger.info("refreshGrid()");
         Integer anz_MessageCheckFilenames = 0;
 
