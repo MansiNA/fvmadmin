@@ -131,10 +131,10 @@ public class MailboxConfigView  extends VerticalLayout {
         Grid.Column<Mailbox> EgvpPFColumn = grid.addColumn((Mailbox::getStatus)).setHeader("EGVP-E PF Status")
                 .setWidth("10em").setFlexGrow(0).setResizable(true).setSortable(true);
         grid.addColumn((Mailbox::getIn_egvp_wartend)).setHeader("wartend in EGVP-E")
-                .setWidth("10em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("14em").setFlexGrow(0).setResizable(true).setSortable(true);
             //    .setWidth("4em").setFlexGrow(0);
         Grid.Column<Mailbox> inVerarbeitungColumn = grid.addColumn((Mailbox::getAktuell_in_eKP_verarbeitet)).setHeader("in Verarbeitung")
-                .setWidth("10em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
         Grid.Column<Mailbox> haengendColumn = grid.addColumn((Mailbox::getIn_ekp_haengend)).setHeader("hängend")
                 .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
         Grid.Column<Mailbox> FHColumn = grid.addColumn((Mailbox::getIn_ekp_fehlerhospital)).setHeader("im FH")
@@ -147,7 +147,7 @@ public class MailboxConfigView  extends VerticalLayout {
 
         grid.addComponentColumn(mb -> createStatusIcon(mb.getQUANTIFIER()))
                 //.setTooltipGenerator(person -> person.getStatus())
-                .setWidth("4em").setFlexGrow(0)
+                .setWidth("6em").setFlexGrow(0)
                 .setHeader("Status");
 
         grid.addColumn(
@@ -314,8 +314,8 @@ public class MailboxConfigView  extends VerticalLayout {
 
     private void showLogDialog() {
         Dialog dialog = new Dialog();
-        dialog.setWidth("800px");
-        dialog.setHeight("500px");
+        dialog.setWidth("1200px");
+        dialog.setHeight("1000px");
 
         Grid<Protokoll> grid = new Grid<>(Protokoll.class);
         List<Protokoll> protokollList = protokollService.findAllLogsOrderedByZeitpunktDesc();
@@ -327,15 +327,20 @@ public class MailboxConfigView  extends VerticalLayout {
 
         grid.setItems(filteredProtokollList);
 
-        grid.setColumns("id", "username", "zeitpunkt", "info", "shutdownReason", "verbindung");
-        grid.getColumnByKey("id").setHeader("ID").setResizable(true).setAutoWidth(true);
-        grid.getColumnByKey("username").setHeader("Username").setResizable(true).setAutoWidth(true);
-        grid.getColumnByKey("verbindung").setHeader("Verbindung").setResizable(true).setAutoWidth(true);
+        grid.setColumns( "username", "zeitpunkt", "info", "shutdownReason");
+     //   grid.getColumnByKey("id").setHeader("ID").setResizable(true).setAutoWidth(true);
+        grid.getColumnByKey("username").setHeader("User").setResizable(true).setAutoWidth(true);
+        //grid.getColumnByKey("verbindung").setHeader("Verbindung").setResizable(true).setAutoWidth(true);
         grid.getColumnByKey("zeitpunkt").setHeader("Zeitpunkt").setResizable(true).setAutoWidth(true);
         grid.getColumnByKey("info").setHeader("Info").setResizable(true).setAutoWidth(true);
         grid.getColumnByKey("shutdownReason").setHeader("Shutdown Reason").setResizable(true).setAutoWidth(true);
+        grid.setHeightFull();
+        grid.setWidthFull();
+
 
         dialog.add(grid);
+        grid.setHeightFull();
+        grid.setWidthFull();
 
         Button cancelButton = new Button("Close");
         dialog.getFooter().add(cancelButton);
