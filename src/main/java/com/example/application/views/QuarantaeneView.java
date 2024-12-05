@@ -109,12 +109,12 @@ public class QuarantaeneView extends VerticalLayout {
 
 
         HorizontalLayout hl = new HorizontalLayout();
-        hl.add(comboBox, FehlertypCB, button);
+        hl.add(comboBox, FehlertypCB, button, downloadButton);
         hl.setAlignItems(Alignment.BASELINE);
         setSizeFull();
 
-        add(hl, downloadButton, qgrid);
-
+        add(hl, qgrid);
+        downloadButton.setEnabled(false);
         button.addClickListener(clickEvent -> {
 
         //    Notification.show("hole Daten...",2000, Notification.Position.TOP_END);
