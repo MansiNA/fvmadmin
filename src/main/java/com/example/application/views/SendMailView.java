@@ -13,15 +13,18 @@ import com.vaadin.flow.component.crud.BinderCrudEditor;
 import com.vaadin.flow.component.crud.Crud;
 import com.vaadin.flow.component.crud.CrudEditor;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.dialog.DialogVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.html.Input;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.Result;
@@ -65,6 +68,7 @@ public class SendMailView extends VerticalLayout {
     private ComboBox<FVMSendmail> versenderComboBox;
     private ComboBox<FVMSendmail> empfängerComboBox;
     private ComboBox<FVMSendmail> nachrichtComboBox;
+    private IntegerField anzahl = new IntegerField();
     private Crud<FVMSendmail> crud;
     private Grid<FVMSendmail> grid;
     Button sendbutton = new Button("send");
@@ -80,7 +84,8 @@ public class SendMailView extends VerticalLayout {
         List<FVMSendmail> filteredVersender = fvmSendmails.stream()
                 .filter(entity -> "Versender".equals(entity.getEntryTyp()))
                 .collect(Collectors.toList());
-        versenderComboBox = new ComboBox<>("Versender");
+        versenderComboBox = new ComboBox<>("Absender");
+        versenderComboBox.setWidth("800px");
         versenderComboBox.setPlaceholder("auswählen");
 
         if (filteredVersender != null && !filteredVersender.isEmpty()) {
@@ -97,6 +102,7 @@ public class SendMailView extends VerticalLayout {
                 .collect(Collectors.toList());
         empfängerComboBox = new ComboBox<>("Empänger");
         empfängerComboBox.setPlaceholder("auswählen");
+        empfängerComboBox.setWidth("800px");
 
         if (filteredEmpfaenger != null && !filteredEmpfaenger.isEmpty()) {
             empfängerComboBox.setItems(filteredEmpfaenger);
@@ -112,6 +118,7 @@ public class SendMailView extends VerticalLayout {
                 .collect(Collectors.toList());
         nachrichtComboBox = new ComboBox<>("Nachricht");
         nachrichtComboBox.setPlaceholder("auswählen");
+        nachrichtComboBox.setWidth("800px");
 
         if (filteredNachricht != null && !filteredNachricht.isEmpty()) {
             nachrichtComboBox.setItems(filteredNachricht);
@@ -130,12 +137,28 @@ public class SendMailView extends VerticalLayout {
             logger.info("configurationButton.addClickListener: configuration of send mail");
             setSendMailConfigurationDialog();
         });
+
+        anzahl.setLabel("Anzahl");
+        anzahl.setValue(1);
+        anzahl.setStepButtonsVisible(true);
+        anzahl.setMin(1);
+        anzahl.setMax(1000);
+
         HorizontalLayout hl = new HorizontalLayout();
-        hl.add(versenderComboBox, empfängerComboBox, nachrichtComboBox, sendbutton, configurationButton);
+        hl.add(versenderComboBox);
+        hl.add(configurationButton);
         hl.setAlignItems(Alignment.BASELINE);
+        add(hl);
+
+        add(empfängerComboBox);
+        add(nachrichtComboBox);
+        add(anzahl);
+
+        add(sendbutton);
+
+
         setSizeFull();
 
-        add(hl);
 
 
     }
@@ -144,7 +167,11 @@ public class SendMailView extends VerticalLayout {
         logger.info("Opening SendMail Configuration Dialog");
         
         VerticalLayout content = new VerticalLayout();
+        content.setWidthFull();
+        content.setHeightFull();
         Dialog sendMailDialog = new Dialog();
+        sendMailDialog.setDraggable(true);
+        sendMailDialog.setResizable(true);
 
         setupSendMailCrud();
 
@@ -156,8 +183,9 @@ public class SendMailView extends VerticalLayout {
         // Add components to the dialog
         content.add(crud, buttons);
         sendMailDialog.add(content);
-        sendMailDialog.setWidth("900px");
-        sendMailDialog.setHeight("600px");
+        sendMailDialog.setWidth("1000px");
+        sendMailDialog.setHeight("800px");
+        sendMailDialog.addThemeVariants(DialogVariant.LUMO_NO_PADDING);
 
         // Open the dialog
         sendMailDialog.open();
@@ -235,16 +263,20 @@ public class SendMailView extends VerticalLayout {
         //   userGrid.setColumns(USERNAME, NAME, ROLES, IS_AD);
 
         grid.getColumnByKey(ID).setHeader("Id").setWidth("50px").setFlexGrow(0).setResizable(true);
-        grid.getColumnByKey(ENTRYTYP).setHeader("ENTRYTYP").setWidth("200px").setFlexGrow(0).setResizable(true);
-        grid.getColumnByKey(VALUE).setHeader("VALUE").setWidth("80px").setFlexGrow(0).setResizable(true);
+        grid.getColumnByKey(ENTRYTYP).setHeader("ENTRYTYP").setWidth("600px").setFlexGrow(0).setResizable(true);
+        grid.getColumnByKey(VALUE).setHeader("VALUE").setWidth("600px").setFlexGrow(0).setResizable(true);
 
      //   grid.removeColumn(grid.getColumnByKey(ID));
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
         // Reorder the columns (alphabetical by default)
+
         grid.setColumnOrder( grid.getColumnByKey(ID)
                 , grid.getColumnByKey(ENTRYTYP)
                 , grid.getColumnByKey(VALUE)
                 , grid.getColumnByKey(EDIT_COLUMN));
+
+//grid.setWidthFull();
+//grid.setHeightFull();
 
         crud.setToolbarVisible(false);
     }
