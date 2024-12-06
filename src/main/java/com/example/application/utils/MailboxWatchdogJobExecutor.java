@@ -76,6 +76,8 @@ public class MailboxWatchdogJobExecutor implements Job {
         try {
             configuration = JobDefinitionUtils.deserializeJobConfDefinition(jobDefinitionString);
             executeJob(configuration);
+            ByteArrayResource xlsxAttachment = generateExcelAttachment();
+            sendAlertEmail(monitorAlerting, xlsxAttachment);
         } catch (JsonProcessingException e) {
             throw new JobExecutionException("Error deserializing job definition", e);
         }
@@ -190,8 +192,8 @@ public class MailboxWatchdogJobExecutor implements Job {
             MailboxWatcher.notifySubscribers("Update grid");
             //         applicationContextStorage.getGlobalList().add(mb);
             protokollService.logAction("watchdog" ,configuration.getName(), mailbox.getUSER_ID()+" wurde ausgeschaltet", "active messages " + inVerarbeitung + " exceeded " + maxMessageCount);
-            ByteArrayResource xlsxAttachment = generateExcelAttachment();
-            sendAlertEmail(monitorAlerting, xlsxAttachment);
+         //   ByteArrayResource xlsxAttachment = generateExcelAttachment();
+         //   sendAlertEmail(monitorAlerting, xlsxAttachment);
             logger.info("Add Mailbox to globalList. Entries now:" + globalList.stream().count());
 
         } else {
@@ -210,8 +212,8 @@ public class MailboxWatchdogJobExecutor implements Job {
                 MailboxWatcher.notifySubscribers("Update grid");
                 protokollService.logAction("watchdog" ,configuration.getName(), mailbox.getUSER_ID()+" wurde eingschaltet", "active messages " + inVerarbeitung + " below " + maxMessageCount);
 
-                ByteArrayResource xlsxAttachment = generateExcelAttachment();
-                sendAlertEmail(monitorAlerting, xlsxAttachment);
+            //    ByteArrayResource xlsxAttachment = generateExcelAttachment();
+            //    sendAlertEmail(monitorAlerting, xlsxAttachment);
                 //remove Mailbox from internal list
                 Iterator<MailboxShutdown> iterator = globalList.iterator();
                 while (iterator.hasNext()){
@@ -230,11 +232,16 @@ public class MailboxWatchdogJobExecutor implements Job {
     private void sendAlertEmail(MonitorAlerting config, ByteArrayResource resource) {
         try {
             String fileName = "FVM Protokolls.xlsx";
-            emailService.sendAttachMessage(config.getWatchdogMailEmpfaenger(), config.getWatchdogMailCCEmpfaenger(), config.getWatchdogMailBetreff(), config.getWatchdogMailText(), fileName, resource);
+            if(config.getWatchdogMailEmpfaenger() != null) {
+                emailService.sendAttachMessage(config.getWatchdogMailEmpfaenger(), config.getWatchdogMailCCEmpfaenger(), config.getWatchdogMailBetreff(), config.getWatchdogMailText(), fileName, resource);
+                logger.info("Email send to " + config.getWatchdogMailEmpfaenger());
+            } else {
+                logger.info("Email not send to " + config.getWatchdogMailEmpfaenger());
+            }
 
-            logger.info("Email send to " + config.getWatchdogMailEmpfaenger());
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Error while Email sending to {} :", config.getWatchdogMailEmpfaenger(), e.getMessage());
+           // e.printStackTrace();
         }
     }
 
