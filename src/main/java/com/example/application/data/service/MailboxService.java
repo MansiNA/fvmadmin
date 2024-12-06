@@ -385,22 +385,15 @@ public class MailboxService {
     }
 
     public String updateMessageBox(Mailbox mb, String i, Configuration configuration) {
-//        DriverManagerDataSource ds = new DriverManagerDataSource();
-//        Configuration conf;
-//        conf = comboBox.getValue();
-//
-//        ds.setUrl(conf.getDb_Url());
-//        ds.setUsername(conf.getUserName());
-//        ds.setPassword(Configuration.decodePassword(conf.getPassword()));
         try {
 
-            //    jdbcTemplate.setDataSource(ds);
             getJdbcTemplateWithDBConnetion(configuration);
             logger.info("set Quantifier of " + mb.getNAME() + " to " + i);
 
-            jdbcTemplate.execute("update EKP.MAILBOX_CONFIG set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
+            //Not productive yet
+//            jdbcTemplate.execute("update EKP.MAILBOX_CONFIG set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
 
-            jdbcTemplate.execute("update EKP.MAILBOX_CONFIG_Folder set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
+//            jdbcTemplate.execute("update EKP.MAILBOX_CONFIG_Folder set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
 
             return "Ok";
         } catch (Exception e) {
