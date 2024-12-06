@@ -143,7 +143,7 @@ public class MailboxWatchdogJobExecutor implements Job {
 
         if (inVerarbeitung > maxMessageCount) {
             if (!isDisabled) {
-             //   disableMailbox(mailbox, inVerarbeitung, maxMessageCount, mailboxShutdown);
+                disableMailbox(mailbox, inVerarbeitung, maxMessageCount, mailboxShutdown);
                 return 1;
 
 
@@ -156,7 +156,7 @@ public class MailboxWatchdogJobExecutor implements Job {
         if (inVerarbeitung <= maxMessageCount && exists)  //Schwellwert unterschritten und war nicht von Watchdog disabled
         {
             if (isDisabled) {
-              //  enableMailbox(mailbox,inVerarbeitung,maxMessageCount);
+                enableMailbox(mailbox,inVerarbeitung,maxMessageCount);
                 return 2;
             } else {
                 logger.info("Mailbox {} is already active.", mailbox.getNAME());
