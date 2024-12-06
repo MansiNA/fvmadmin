@@ -2280,7 +2280,8 @@ public class CockpitView extends VerticalLayout{
             rte.setHeightFull();
             rte.setReadOnly(true);
             rte.addThemeVariants(RichTextEditorVariant.LUMO_NO_BORDER);
-            rte.asHtml().setValue(inhalt.getBeschreibung());
+            String beschreibung = inhalt.getBeschreibung() != null ? inhalt.getBeschreibung() : "";
+            rte.asHtml().setValue(beschreibung);
 
             //content.add(inhalt.getBeschreibung());
             content.add(rte);
@@ -2292,7 +2293,8 @@ public class CockpitView extends VerticalLayout{
             rte.setHeightFull();
             rte.setReadOnly(true);
             rte.addThemeVariants(RichTextEditorVariant.LUMO_NO_BORDER);
-            rte.asHtml().setValue(inhalt.getHandlungs_INFO());
+            String handlungsInfo = inhalt.getHandlungs_INFO() != null ? inhalt.getHandlungs_INFO() : "";
+            rte.asHtml().setValue(handlungsInfo);
 
             //content.add(inhalt.getBeschreibung());
             content.add(rte);
