@@ -187,43 +187,21 @@ public class SendMailView extends VerticalLayout {
         command=command_builder("ShellCommand", shellcommand);
 
 
-        String param1 = fvmSendmails.stream()
-                .filter(entity -> "Parameter_1".equals(entity.getEntryTyp()))
+        String verzeichnis = fvmSendmails.stream()
+                .filter(entity -> "Verzeichnis".equals(entity.getEntryTyp()))
                 .map(FVMSendmail::getValue)
                 .findFirst()
                 .orElse(null);
-
-        String param2 = fvmSendmails.stream()
-                .filter(entity -> "Parameter_2".equals(entity.getEntryTyp()))
-                .map(FVMSendmail::getValue)
-                .findFirst()
-                .orElse(null);
-
-        String param3 = fvmSendmails.stream()
-                .filter(entity -> "Parameter_3".equals(entity.getEntryTyp()))
-                .map(FVMSendmail::getValue)
-                .findFirst()
-                .orElse(null);
-
-        String param4 = fvmSendmails.stream()
-                .filter(entity -> "Parameter_4".equals(entity.getEntryTyp()))
-                .map(FVMSendmail::getValue)
-                .findFirst()
-                .orElse(null);
-
-        param2=param2.replace("$Anzahl$", anzahl.getValue().toString());
-
-      //  command=command_builder("Parameter_1", param1);
-      //  command=command_builder("Parameter_2", param2);
-      //  command=command_builder("Parameter_3", param3);
-      //  command=command_builder("Parameter_4", param4);
 
 
         readonlyField.setReadOnly(true);
-        readonlyField.setLabel("Command");
+        readonlyField.setLabel("Command executed on Server: " + server + " (Directory: " + verzeichnis + ")");
         readonlyField.setValue(command);
         readonlyField.setWidthFull();
 
+
+        sendbutton.addThemeVariants(ButtonVariant.LUMO_PRIMARY,
+                ButtonVariant.LUMO_SUCCESS);
 
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(versenderComboBox);
