@@ -56,6 +56,7 @@ public class MailboxWatchdogJobExecutor implements Job {
     private static final Logger logger = LoggerFactory.getLogger(MailboxWatchdogJobExecutor.class);
     private JdbcTemplate jdbcTemplate = new JdbcTemplate();
     private MonitorAlerting monitorAlerting;
+    private Boolean switched=false;
     //private final ApplicationContextStorage applicationContextStorage;
 
 
@@ -76,8 +77,8 @@ public class MailboxWatchdogJobExecutor implements Job {
         try {
             configuration = JobDefinitionUtils.deserializeJobConfDefinition(jobDefinitionString);
             executeJob(configuration);
-            ByteArrayResource xlsxAttachment = generateExcelAttachment();
-            sendAlertEmail(monitorAlerting, xlsxAttachment);
+            //ByteArrayResource xlsxAttachment = generateExcelAttachment();
+            //sendAlertEmail(monitorAlerting, xlsxAttachment);
         } catch (JsonProcessingException e) {
             throw new JobExecutionException("Error deserializing job definition", e);
         }
@@ -107,12 +108,14 @@ public class MailboxWatchdogJobExecutor implements Job {
                     mailboxen.stream().filter(m -> m.getUSER_ID() == mailbox.getUSER_ID()).findFirst().ifPresent(m -> m.setQUANTIFIER(0));
                     //mailboxen = mailboxService.getMailboxes(configuration);
                     MailboxWatcher.notifySubscribers("Update grid");
+                    switched=true;
                 }
                 if (x==2) //If mailbox set online
                 {
                     mailboxen.stream().filter(m -> m.getUSER_ID() == mailbox.getUSER_ID()).findFirst().ifPresent(m -> m.setQUANTIFIER(1));
                     //mailboxen = mailboxService.getMailboxes(configuration);
                     MailboxWatcher.notifySubscribers("Update grid");
+                    switched=true;
                 }
 
             } catch (Exception e) {
@@ -121,6 +124,13 @@ public class MailboxWatchdogJobExecutor implements Job {
         }
 
         MailboxWatcher.notifySubscribers("Update grid");
+
+        if (switched){
+            ByteArrayResource xlsxAttachment = generateExcelAttachment();
+            sendAlertEmail(monitorAlerting, xlsxAttachment);
+            switched=false;
+        }
+
 
     }
 
