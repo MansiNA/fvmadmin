@@ -69,6 +69,10 @@ public class SendMailView extends VerticalLayout {
     private ComboBox<FVMSendmail> empfängerComboBox;
     private ComboBox<FVMSendmail> nachrichtComboBox;
     private IntegerField anzahl = new IntegerField();
+    String command;
+
+    TextField readonlyField = new TextField();
+
     private Crud<FVMSendmail> crud;
     private Grid<FVMSendmail> grid;
     Button sendbutton = new Button("send");
@@ -80,7 +84,8 @@ public class SendMailView extends VerticalLayout {
         this.fvmSendmailService = fvmSendmailService;
 
         List<FVMSendmail> fvmSendmails = fvmSendmailService.findAll();
-        System.out.println("*****************************fvmSendmails = "+fvmSendmails.size());
+        //System.out.println("*****************************fvmSendmails = "+fvmSendmails.size());
+        logger.info("fvmSendmails: " + fvmSendmails.size());
         List<FVMSendmail> filteredVersender = fvmSendmails.stream()
                 .filter(entity -> "Versender".equals(entity.getEntryTyp()))
                 .collect(Collectors.toList());
@@ -94,7 +99,11 @@ public class SendMailView extends VerticalLayout {
         }
 
         versenderComboBox.addValueChangeListener(event -> {
-            logger.info(" versenderComboBox.addValueChangeListener: Versender = "+ event.getValue());
+
+            FVMSendmail sm = event.getValue();
+            logger.info(" versenderComboBox.addValueChangeListener: Versender = "+ sm.getValue());
+            command=changeValueForOption(command, "-s", sm.getValue());
+            readonlyField.setValue(command);
         });
 
         List<FVMSendmail> filteredEmpfaenger = fvmSendmails.stream()
@@ -110,7 +119,10 @@ public class SendMailView extends VerticalLayout {
         }
 
         empfängerComboBox.addValueChangeListener(event -> {
-            logger.info(" empfängerComboBox.addValueChangeListener: Empänger = "+ event.getValue());
+            FVMSendmail sm = event.getValue();
+            logger.info("empfängerComboBox.addValueChangeListener: Versender = "+ sm.getValue());
+            command=changeValueForOption(command, "-r", sm.getValue());
+            readonlyField.setValue(command);
         });
 
         List<FVMSendmail> filteredNachricht = fvmSendmails.stream()
@@ -126,7 +138,12 @@ public class SendMailView extends VerticalLayout {
         }
 
         nachrichtComboBox.addValueChangeListener(event -> {
-            logger.info(" nachrichtComboBox.addValueChangeListener: Empänger = "+ event.getValue());
+            FVMSendmail sm = event.getValue();
+            logger.info(" nachrichtComboBox.addValueChangeListener: Empänger = "+ sm.getValue());
+
+            command=command_builder("Parameter_8", sm.getValue());
+            readonlyField.setValue(command);
+
         });
 
         sendbutton.addClickListener(clickEvent -> {
@@ -143,6 +160,70 @@ public class SendMailView extends VerticalLayout {
         anzahl.setStepButtonsVisible(true);
         anzahl.setMin(1);
         anzahl.setMax(1000);
+        anzahl.addValueChangeListener(clickEvent -> {
+
+            command=changeValueForOption(command, "-n", anzahl.getValue().toString());
+            readonlyField.setValue(command);
+
+
+        });
+
+
+
+
+        String server = fvmSendmails.stream()
+                .filter(entity -> "Server".equals(entity.getEntryTyp()))
+                .map(FVMSendmail::getValue)
+                .findFirst()
+                .orElse(null);
+
+
+
+        String shellcommand = fvmSendmails.stream()
+                .filter(entity -> "ShellCommand".equals(entity.getEntryTyp()))
+                .map(FVMSendmail::getValue)
+                .findFirst()
+                .orElse(null);
+        command=command_builder("ShellCommand", shellcommand);
+
+
+        String param1 = fvmSendmails.stream()
+                .filter(entity -> "Parameter_1".equals(entity.getEntryTyp()))
+                .map(FVMSendmail::getValue)
+                .findFirst()
+                .orElse(null);
+
+        String param2 = fvmSendmails.stream()
+                .filter(entity -> "Parameter_2".equals(entity.getEntryTyp()))
+                .map(FVMSendmail::getValue)
+                .findFirst()
+                .orElse(null);
+
+        String param3 = fvmSendmails.stream()
+                .filter(entity -> "Parameter_3".equals(entity.getEntryTyp()))
+                .map(FVMSendmail::getValue)
+                .findFirst()
+                .orElse(null);
+
+        String param4 = fvmSendmails.stream()
+                .filter(entity -> "Parameter_4".equals(entity.getEntryTyp()))
+                .map(FVMSendmail::getValue)
+                .findFirst()
+                .orElse(null);
+
+        param2=param2.replace("$Anzahl$", anzahl.getValue().toString());
+
+      //  command=command_builder("Parameter_1", param1);
+      //  command=command_builder("Parameter_2", param2);
+      //  command=command_builder("Parameter_3", param3);
+      //  command=command_builder("Parameter_4", param4);
+
+
+        readonlyField.setReadOnly(true);
+        readonlyField.setLabel("Command");
+        readonlyField.setValue(command);
+        readonlyField.setWidthFull();
+
 
         HorizontalLayout hl = new HorizontalLayout();
         hl.add(versenderComboBox);
@@ -153,7 +234,7 @@ public class SendMailView extends VerticalLayout {
         add(empfängerComboBox);
         add(nachrichtComboBox);
         add(anzahl);
-
+        add(readonlyField);
         add(sendbutton);
 
 
@@ -161,6 +242,57 @@ public class SendMailView extends VerticalLayout {
 
 
 
+    }
+
+    private String command_builder(String param, String value) {
+
+        String Vorgabe = "$ShellCommand$ -R Test -n 1 -a LPT -t Testnachricht-Dataport -D -s versender -r empfänger nachricht";
+                          //ekpsend.sh   -R "Test"  -n 1       -a LPT     -t Testnachricht-Dataport -D         -s $Versender -r $Empfaenger$ ./$Nachricht$
+
+        if(param.equals("ShellCommand")) {
+            command=Vorgabe.replace("$ShellCommand$", value);
+
+        }
+
+        if(param.equals("Parameter_8")) //Die Nachricht selbst
+        {
+            String[] words = command.split(" ");
+            words[words.length - 1] = value;
+
+            // Zeichenkette wieder zusammenfügen
+            return String.join(" ", words);
+
+        }
+
+
+        logger.info("Parameter: " + param + " Wert" + value);
+        //command=shellcommand + " " + param1 + " " + param2 + " " + param3 + " " + param4;
+        return command;
+    }
+
+
+    public String changeValueForOption(String input, String option, String newValue) {
+
+        logger.info("Zerlege " + input);
+
+        // Zeichenkette in Teile zerlegen
+        String[] parts = input.split(" ");
+
+
+        // Neue Zeichenkette erstellen
+        StringBuilder result = new StringBuilder();
+
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i].equals(option) && i + 1 < parts.length) {
+                // Wenn die Option gefunden wird, ersetze den nächsten Wert
+                logger.info("Found " + option);
+                parts[i + 1] = String.valueOf(newValue);
+            }
+            // Baue die Zeichenkette wieder zusammen
+            result.append(parts[i]).append(" ");
+        }
+
+        return result.toString().trim(); // Entferne das letzte Leerzeichen
     }
 
     private void setSendMailConfigurationDialog() {

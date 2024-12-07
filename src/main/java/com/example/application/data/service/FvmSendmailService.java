@@ -19,8 +19,8 @@ public class FvmSendmailService {
 
     public List<FVMSendmail> findAll() {
         List<FVMSendmail> fvmSendmails = repository.findAll();
-        System.out.println("fvmSendmails size = " + fvmSendmails.size());
-        fvmSendmails.forEach(f -> System.out.println(f.toString())); // Log details of each item
+       // System.out.println("fvmSendmails size = " + fvmSendmails.size());
+       // fvmSendmails.forEach(f -> System.out.println(f.toString())); // Log details of each item
         return fvmSendmails;
     }
 

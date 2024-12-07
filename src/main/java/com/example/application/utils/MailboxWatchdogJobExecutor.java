@@ -277,10 +277,11 @@ public class MailboxWatchdogJobExecutor implements Job {
             // Save the workbook to the file
             try (FileOutputStream fileOut = new FileOutputStream(filePath.toFile())) {
                 workbook.write(fileOut);
-                System.out.println("File saved to project directory: " + filePath.toAbsolutePath());
+                logger.info("File saved to project directory: " + filePath.toAbsolutePath());
             } catch (IOException e) {
                 e.printStackTrace();
-                throw new IOException("Failed to save Excel file to project directory.", e);
+                logger.error("Failed to save Excel file to project directory:", e);
+                //throw new IOException("Failed to save Excel file to project directory.", e);
             }
 
             // Write the workbook to a byte array output stream
