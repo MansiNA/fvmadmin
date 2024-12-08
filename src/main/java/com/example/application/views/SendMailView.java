@@ -55,6 +55,7 @@ import java.io.*;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -367,23 +368,31 @@ public class SendMailView extends VerticalLayout {
         String ENTRYTYP = "entryTyp";
         String VALUE = "value";
 
-        String EDIT_COLUMN = "vaadin-crud-edit-column";
+      //  String EDIT_COLUMN = "vaadin-crud-edit-column";
 
         grid = crud.getGrid();
         //   userGrid.setColumns(USERNAME, NAME, ROLES, IS_AD);
 
-        grid.getColumnByKey(ID).setHeader("Id").setWidth("50px").setFlexGrow(0).setResizable(true);
-        grid.getColumnByKey(ENTRYTYP).setHeader("ENTRYTYP").setWidth("600px").setFlexGrow(0).setResizable(true);
-        grid.getColumnByKey(VALUE).setHeader("VALUE").setWidth("600px").setFlexGrow(0).setResizable(true);
+      //  grid.getColumnByKey(ID).setHeader("Id").setWidth("50px").setFlexGrow(0).setResizable(true);
+        grid.getColumnByKey(ENTRYTYP).setHeader("ENTRYTYP").setWidth("500px").setResizable(true);
+        grid.getColumnByKey(VALUE).setHeader("VALUE").setWidth("800px").setResizable(true);
 
      //   grid.removeColumn(grid.getColumnByKey(ID));
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
         // Reorder the columns (alphabetical by default)
 
-        grid.setColumnOrder( grid.getColumnByKey(ID)
-                , grid.getColumnByKey(ENTRYTYP)
+        List<String> visibleColumns = Arrays.asList(ENTRYTYP, VALUE);
+
+        grid.getColumns().forEach(column -> {
+            String key = column.getKey();
+            if (!visibleColumns.contains(key)) {
+                grid.removeColumn(column);
+            }
+        });
+
+        grid.setColumnOrder(  grid.getColumnByKey(ENTRYTYP)
                 , grid.getColumnByKey(VALUE)
-                , grid.getColumnByKey(EDIT_COLUMN));
+              );
 
 //grid.setWidthFull();
 //grid.setHeightFull();
