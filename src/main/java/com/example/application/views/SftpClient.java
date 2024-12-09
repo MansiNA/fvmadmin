@@ -548,7 +548,8 @@ public final class SftpClient {
         String line;
         StringBuilder output = new StringBuilder();
         while ((line = reader.readLine()) != null) {
-            output.append(line).append("\n");
+          //  output.append(line).append("\n");
+            updateLog(line,output, logTextArea);
         }
 
         StringBuilder errorOutput = new StringBuilder();

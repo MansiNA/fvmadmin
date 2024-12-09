@@ -181,7 +181,7 @@ public class SendMailView extends VerticalLayout {
                 executeCommandOnServer(serverConfiguration, directory, commandToExecute, logTextArea);
                 Notification.show("Command executed successfully!", 3000, Notification.Position.MIDDLE);
             } catch (Exception e) {
-                logger.error("Failed to execute command on server", e);
+                logger.error("Failed to execute command on server", e.getMessage());
                 Notification.show("Error: Command execution failed! "+ e.getMessage(), 3000, Notification.Position.MIDDLE);
             }
         });
@@ -420,6 +420,7 @@ public class SendMailView extends VerticalLayout {
     }
 
     private void executeCommandOnServer(ServerConfiguration serverConfiguration, String directory, String command, TextArea logTextArea) throws Exception {
+
         String username = serverConfiguration.getUserName();
         String host = serverConfiguration.getHostName();
         SftpClient cl = new SftpClient(host, Integer.parseInt(serverConfiguration.getSshPort()), username);
