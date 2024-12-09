@@ -241,7 +241,7 @@ public class MailboxWatchdogJobExecutor implements Job {
 
     private void sendAlertEmail(MonitorAlerting config, ByteArrayResource resource) {
         try {
-            String fileName = "FVM Protokolls.xlsx";
+            String fileName = "FVM_Protokoll.xlsx";
             if(config.getWatchdogMailEmpfaenger() != null) {
                 emailService.sendAttachMessage(config.getWatchdogMailEmpfaenger(), config.getWatchdogMailCCEmpfaenger(), config.getWatchdogMailBetreff(), config.getWatchdogMailText(), fileName, resource);
                 logger.info("Email send to " + config.getWatchdogMailEmpfaenger());
@@ -276,22 +276,6 @@ public class MailboxWatchdogJobExecutor implements Job {
                 row.createCell(0).setCellValue(entry[0] != null ? entry[0].toString() : ""); // INFO
                 row.createCell(1).setCellValue(entry[1] != null ? entry[1].toString() : ""); // ZEITPUNKT
                 row.createCell(2).setCellValue(entry[2] != null ? entry[2].toString() : ""); // SHUTDOWN_REASON
-            }
-
-            Path projectDir = Paths.get("").toAbsolutePath();
-            String fileName = "FVM_Protokolls.xlsx";
-
-            // Define the file path relative to the project root directory
-            Path filePath = projectDir.resolve(fileName);
-
-            // Save the workbook to the file
-            try (FileOutputStream fileOut = new FileOutputStream(filePath.toFile())) {
-                workbook.write(fileOut);
-                logger.info("File saved to project directory: " + filePath.toAbsolutePath());
-            } catch (IOException e) {
-                e.printStackTrace();
-                logger.error("Failed to save Excel file to project directory:", e);
-                //throw new IOException("Failed to save Excel file to project directory.", e);
             }
 
             // Write the workbook to a byte array output stream
