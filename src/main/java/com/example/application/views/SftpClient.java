@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.*;
 
@@ -525,4 +524,55 @@ public final class SftpClient {
             session.disconnect();
         }
     }
+
+    public void executeCommand(String directory, String command) throws Exception {
+        if (session == null || !session.isConnected()) {
+            throw new IllegalStateException("Session is not connected");
+        }
+
+        // Construct the full command
+        String fullCommand = "cd " + directory + " && " + directory +"/"+command;
+        logger.info("Executing command: " + fullCommand);
+
+        ChannelExec channelExec = (ChannelExec) session.openChannel("exec");
+        channelExec.setCommand(fullCommand);
+
+        InputStream inputStream = channelExec.getInputStream();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+        InputStream errorStream = channelExec.getErrStream();
+        BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream));
+
+        channelExec.connect();
+
+        String line;
+        StringBuilder output = new StringBuilder();
+        while ((line = reader.readLine()) != null) {
+            output.append(line).append("\n");
+        }
+
+        StringBuilder errorOutput = new StringBuilder();
+        while ((line = errorReader.readLine()) != null) {
+            errorOutput.append(line).append("\n");
+        }
+
+        reader.close();
+        errorReader.close();
+        channelExec.disconnect();
+
+        logger.info("Command Output: \n" + output.toString());
+        if (errorOutput.length() > 0) {
+            logger.error("Error Output: \n" + errorOutput.toString());
+//            throw new Exception("Error Output: \n" + errorOutput.toString());
+        }
+
+        int exitStatus = channelExec.getExitStatus();
+        if (exitStatus != 0) {
+            logger.error("Command failed with exit status: " + exitStatus);
+            throw new Exception("Error: Command failed with exit status: " + exitStatus );
+        }
+    }
+
+
+
 }

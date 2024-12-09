@@ -4,6 +4,11 @@ import com.example.application.data.GenericDataProvider;
 import com.example.application.data.entity.*;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.FvmSendmailService;
+import com.example.application.data.service.ServerConfigurationService;
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -66,6 +71,7 @@ import java.util.stream.Collectors;
 public class SendMailView extends VerticalLayout {
 
     private FvmSendmailService fvmSendmailService;
+    private ServerConfigurationService serverConfigurationService;
     private ComboBox<FVMSendmail> versenderComboBox;
     private ComboBox<FVMSendmail> empfängerComboBox;
     private ComboBox<FVMSendmail> nachrichtComboBox;
@@ -80,9 +86,10 @@ public class SendMailView extends VerticalLayout {
     private Button configurationButton = new Button("Konfiguration");
     private static final Logger logger = LoggerFactory.getLogger(SendMailView.class);
 
-    public SendMailView(FvmSendmailService fvmSendmailService) {
+    public SendMailView(FvmSendmailService fvmSendmailService, ServerConfigurationService serverConfigurationService) {
         logger.info("Starting SendMailView");
         this.fvmSendmailService = fvmSendmailService;
+        this.serverConfigurationService = serverConfigurationService;
 
         List<FVMSendmail> fvmSendmails = fvmSendmailService.findAll();
         //System.out.println("*****************************fvmSendmails = "+fvmSendmails.size());
@@ -147,10 +154,6 @@ public class SendMailView extends VerticalLayout {
 
         });
 
-        sendbutton.addClickListener(clickEvent -> {
-            logger.info("sendbutton.addClickListener: send");
-        });
-
         configurationButton.addClickListener(clickEvent -> {
             logger.info("configurationButton.addClickListener: configuration of send mail");
             setSendMailConfigurationDialog();
@@ -171,14 +174,17 @@ public class SendMailView extends VerticalLayout {
 
 
 
-
         String server = fvmSendmails.stream()
                 .filter(entity -> "Server".equals(entity.getEntryTyp()))
                 .map(FVMSendmail::getValue)
                 .findFirst()
                 .orElse(null);
 
-
+        List<ServerConfiguration> serverConfigList = serverConfigurationService.findAllConfigurations();
+        ServerConfiguration serverConfiguration = serverConfigList.stream()
+                .filter(entity -> entity.getHostAlias().equals(server))
+                .findFirst()
+                .orElse(null);
 
         String shellcommand = fvmSendmails.stream()
                 .filter(entity -> "ShellCommand".equals(entity.getEntryTyp()))
@@ -194,6 +200,19 @@ public class SendMailView extends VerticalLayout {
                 .findFirst()
                 .orElse(null);
 
+        sendbutton.addClickListener(clickEvent -> {
+            logger.info("sendbutton.addClickListener: send");
+            String directory = "/oracle/scripte/ekpsend";
+            String commandToExecute = command; // Use the command built from the UI inputs
+
+            try {
+                executeCommandOnServer(serverConfiguration, directory, commandToExecute);
+                Notification.show("Command executed successfully!", 3000, Notification.Position.MIDDLE);
+            } catch (Exception e) {
+                logger.error("Failed to execute command on server", e);
+                Notification.show("Error: Command execution failed! "+ e.getMessage(), 3000, Notification.Position.MIDDLE);
+            }
+        });
 
         readonlyField.setReadOnly(true);
         readonlyField.setLabel("Command executed on Server: " + server + " (Directory: " + verzeichnis + ")");
@@ -423,4 +442,13 @@ public class SendMailView extends VerticalLayout {
         List<FVMSendmail> listOfGenericComments = existDataProvider.fetch(new Query<>()).collect(Collectors.toList());
         return listOfGenericComments;
     }
+
+    private void executeCommandOnServer(ServerConfiguration serverConfiguration, String directory, String command) throws Exception {
+        String username = serverConfiguration.getUserName();
+        String host = serverConfiguration.getHostName();
+        SftpClient cl = new SftpClient(host, Integer.parseInt(serverConfiguration.getSshPort()), username);
+        cl.authKey(serverConfiguration.getSshKey(),"");
+        cl.executeCommand(directory, command);
+    }
+
 }
