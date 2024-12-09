@@ -2,15 +2,8 @@ package com.example.application.views;
 
 import com.example.application.data.GenericDataProvider;
 import com.example.application.data.entity.*;
-import com.example.application.data.service.ConfigurationService;
 import com.example.application.data.service.FvmSendmailService;
 import com.example.application.data.service.ServerConfigurationService;
-import com.jcraft.jsch.ChannelExec;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -21,15 +14,11 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.dialog.DialogVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.grid.GridVariant;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.Input;
-import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
-import com.vaadin.flow.component.textfield.NumberField;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.Result;
@@ -37,32 +26,14 @@ import com.vaadin.flow.data.binder.ValueContext;
 import com.vaadin.flow.data.converter.Converter;
 import com.vaadin.flow.data.provider.DataProvider;
 import com.vaadin.flow.data.provider.Query;
-import com.vaadin.flow.data.renderer.LitRenderer;
-import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.server.StreamResource;
-import com.zaxxer.hikari.HikariDataSource;
 import jakarta.annotation.security.RolesAllowed;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
-import javax.sql.DataSource;
-import java.io.*;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @PageTitle("SendMail")
@@ -83,6 +54,7 @@ public class SendMailView extends VerticalLayout {
     private Crud<FVMSendmail> crud;
     private Grid<FVMSendmail> grid;
     Button sendbutton = new Button("send");
+    private TextArea logTextArea = new TextArea();
     private Button configurationButton = new Button("Konfiguration");
     private static final Logger logger = LoggerFactory.getLogger(SendMailView.class);
 
@@ -206,7 +178,7 @@ public class SendMailView extends VerticalLayout {
             String commandToExecute = command; // Use the command built from the UI inputs
 
             try {
-                executeCommandOnServer(serverConfiguration, directory, commandToExecute);
+                executeCommandOnServer(serverConfiguration, directory, commandToExecute, logTextArea);
                 Notification.show("Command executed successfully!", 3000, Notification.Position.MIDDLE);
             } catch (Exception e) {
                 logger.error("Failed to execute command on server", e);
@@ -234,6 +206,10 @@ public class SendMailView extends VerticalLayout {
         add(anzahl);
         add(readonlyField);
         add(sendbutton);
+        logTextArea.setPlaceholder("No error logs yet...");
+        logTextArea.setMaxHeight("600px");
+        logTextArea.setWidthFull();
+        add(logTextArea);
 
 
         setSizeFull();
@@ -443,12 +419,12 @@ public class SendMailView extends VerticalLayout {
         return listOfGenericComments;
     }
 
-    private void executeCommandOnServer(ServerConfiguration serverConfiguration, String directory, String command) throws Exception {
+    private void executeCommandOnServer(ServerConfiguration serverConfiguration, String directory, String command, TextArea logTextArea) throws Exception {
         String username = serverConfiguration.getUserName();
         String host = serverConfiguration.getHostName();
         SftpClient cl = new SftpClient(host, Integer.parseInt(serverConfiguration.getSshPort()), username);
         cl.authKey(serverConfiguration.getSshKey(),"");
-        cl.executeCommand(directory, command);
+        cl.executeCommand(directory, command, logTextArea);
     }
 
 }

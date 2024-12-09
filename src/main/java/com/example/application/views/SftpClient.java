@@ -525,7 +525,7 @@ public final class SftpClient {
         }
     }
 
-    public void executeCommand(String directory, String command) throws Exception {
+    public void executeCommand(String directory, String command, TextArea logTextArea) throws Exception {
         if (session == null || !session.isConnected()) {
             throw new IllegalStateException("Session is not connected");
         }
@@ -553,7 +553,8 @@ public final class SftpClient {
 
         StringBuilder errorOutput = new StringBuilder();
         while ((line = errorReader.readLine()) != null) {
-            errorOutput.append(line).append("\n");
+          //  errorOutput.append(line).append("\n");
+            updateLog(line,errorOutput, logTextArea);
         }
 
         reader.close();
@@ -563,6 +564,7 @@ public final class SftpClient {
         logger.info("Command Output: \n" + output.toString());
         if (errorOutput.length() > 0) {
             logger.error("Error Output: \n" + errorOutput.toString());
+
 //            throw new Exception("Error Output: \n" + errorOutput.toString());
         }
 
