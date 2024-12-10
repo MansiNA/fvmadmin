@@ -390,7 +390,7 @@ public class MailboxService {
 
     public String updateMessageBox(Mailbox mb, String i, Configuration configuration, Integer simulation) {
         logger.info("updateMessageBox: apply simulation {} ", simulation);
-        if(simulation == 1) {
+        if(simulation == 0) {
             try {
 
                 getJdbcTemplateWithDBConnetion(configuration);
@@ -408,7 +408,7 @@ public class MailboxService {
             } finally {
                 connectionClose(jdbcTemplate);
             }
-        } else if (simulation == 0) {
+        } else if (simulation == 1) {
             return "Ok";
         }
         return "Error";
