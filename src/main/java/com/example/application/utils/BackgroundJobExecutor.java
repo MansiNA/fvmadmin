@@ -384,7 +384,7 @@ public class BackgroundJobExecutor implements Job {
                 monitorAlerting.setIsActive(rs.getInt("IS_ACTIVE"));
                 monitorAlerting.setIsBackJobActive(rs.getInt("ISBACKJOBACTIVE"));
                 monitorAlerting.setIsMBWatchdogActive(rs.getInt("ISMBWATCHDOGACTIVE"));
-                monitorAlerting.setIsActive(rs.getInt("SIMULATION"));
+                monitorAlerting.setSimulation(rs.getInt("SIMULATION"));
             });
 
         } catch (Exception e) {
