@@ -3,7 +3,6 @@ package com.example.application.data.service;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.Mailbox;
 import com.example.application.data.entity.MonitorAlerting;
-import com.example.application.utils.MailboxWatchdogJobExecutor;
 import com.vaadin.flow.component.notification.Notification;
 import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
@@ -129,7 +128,8 @@ public class MailboxService {
                         "WATCHDOG_MAIL_CC_EMPFAENGER = ?, " +
                         "WATCHDOG_MAIL_BETREFF = ?, " +
                         "WATCHDOG_MAIL_TEXT = ?, " +
-                        "ISMBWATCHDOGACTIVE = ? " ;
+                        "ISMBWATCHDOGACTIVE = ?, " +
+                        "SIMULATION = ? ";
 
                 int rowsAffected = jdbcTemplate.update(updateQuery,
                         monitorAlerting.getMbWatchdogCron(),
@@ -137,7 +137,8 @@ public class MailboxService {
                         monitorAlerting.getWatchdogMailCCEmpfaenger(),
                         monitorAlerting.getWatchdogMailBetreff(),
                         monitorAlerting.getWatchdogMailText(),
-                        monitorAlerting.getIsMBWatchdogActive()
+                        monitorAlerting.getIsMBWatchdogActive(),
+                        monitorAlerting.getSimulation()
                 );
 
                 if (rowsAffected > 0) {
@@ -148,8 +149,8 @@ public class MailboxService {
             } else {
                 // If no record exists, insert a new configuration
                 String insertQuery = "INSERT INTO FVM_MONITOR_ALERTING " +
-                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION ISBACKJOBACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISMBWATCHDOGACTIVE) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?,?,?,?)";
+                        "(MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION ISBACKJOBACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISMBWATCHDOGACTIVE, SIMULATION) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?,?,?,?,?)";
 
                 int rowsAffected = jdbcTemplate.update(insertQuery,
                         monitorAlerting.getMailEmpfaenger(),
@@ -161,7 +162,8 @@ public class MailboxService {
                         monitorAlerting.getIsBackJobActive(),
                         monitorAlerting.getRetentionTime(),
                         monitorAlerting.getMaxParallelCheck(),
-                        monitorAlerting.getIsMBWatchdogActive()
+                        monitorAlerting.getIsMBWatchdogActive(),
+                        monitorAlerting.getSimulation()
                 );
 
                 if (rowsAffected > 0) {
@@ -217,6 +219,7 @@ public class MailboxService {
                         + "MAX_PARALLEL_CHECKS INT, "
                         + "ISBACKJOBACTIVE INT, "
                         + "ISMBWATCHDOGACTIVE INT, "
+                        + "SIMULATION INT, "
                         + "MB_WATCHDOG_CRON_EXPRESSION VARCHAR(255) "
                         + ")";
 
@@ -228,12 +231,12 @@ public class MailboxService {
                 String insertRowSQL = "INSERT INTO FVM_MONITOR_ALERTING ("
                         + "MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION, "
                         + "LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, "
-                        + "ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE, MB_WATCHDOG_CRON_EXPRESSION, WATCHDOG_MAIL_EMPFAENGER, WATCHDOG_MAIL_CC_EMPFAENGER, WATCHDOG_MAIL_BETREFF, WATCHDOG_MAIL_TEXT) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?)";
+                        + "ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE, MB_WATCHDOG_CRON_EXPRESSION, WATCHDOG_MAIL_EMPFAENGER, WATCHDOG_MAIL_CC_EMPFAENGER, WATCHDOG_MAIL_BETREFF, WATCHDOG_MAIL_TEXT, SIMULATION) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?)";
 
                 jdbcTemplate.update(insertRowSQL,
                         "m.quaschny@t-online.de", "", "In der EKP sind Probleme", "In der EKP sind Probleme",
-                        "0 0/1 * * * ?", null, null, 0, 5, 1, 1, 0, "0 0/2 * * * ?","m.quaschny@t-online.de", "", "watchdog for ekp", "In der EKP sind Probleme watchdog");
+                        "0 0/1 * * * ?", null, null, 0, 5, 1, 1, 0, "0 0/2 * * * ?","m.quaschny@t-online.de", "", "watchdog for ekp", "In der EKP sind Probleme watchdog","0");
                 System.out.println("Default row inserted successfully.");
             } else {
                 System.out.println("Table already exists: " + tableName);
@@ -283,7 +286,7 @@ public class MailboxService {
             String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, WATCHDOG_MAIL_EMPFAENGER," +
                     "WATCHDOG_MAIL_CC_EMPFAENGER," +
                     "WATCHDOG_MAIL_BETREFF," +
-                    "WATCHDOG_MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION,LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE FROM FVM_MONITOR_ALERTING";
+                    "WATCHDOG_MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION,LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE, SIMULATION FROM FVM_MONITOR_ALERTING";
 
             logger.info("Ausführen SQL: " + sql);
             // Use jdbcTemplate to query and map results to MonitorAlerting object
@@ -314,6 +317,7 @@ public class MailboxService {
                 monitorAlerting.setIsActive(rs.getInt("IS_ACTIVE"));
                 monitorAlerting.setIsBackJobActive(rs.getInt("ISBACKJOBACTIVE"));
                 monitorAlerting.setIsMBWatchdogActive(rs.getInt("ISMBWATCHDOGACTIVE"));
+                monitorAlerting.setIsActive(rs.getInt("SIMULATION"));
             });
 
             return monitorAlerting;
@@ -384,24 +388,30 @@ public class MailboxService {
         }
     }
 
-    public String updateMessageBox(Mailbox mb, String i, Configuration configuration) {
-        try {
+    public String updateMessageBox(Mailbox mb, String i, Configuration configuration, Integer simulation) {
+        logger.info("updateMessageBox: apply simulation {} ", simulation);
+        if(simulation == 1) {
+            try {
 
-            getJdbcTemplateWithDBConnetion(configuration);
-            logger.info("set Quantifier of " + mb.getNAME() + " to " + i);
+                getJdbcTemplateWithDBConnetion(configuration);
+                logger.info("set Quantifier of " + mb.getNAME() + " to " + i);
 
-            //Not productive yet
-//            jdbcTemplate.execute("update EKP.MAILBOX_CONFIG set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
+                //Not productive yet
+            jdbcTemplate.execute("update EKP.MAILBOX_CONFIG set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
 
-//            jdbcTemplate.execute("update EKP.MAILBOX_CONFIG_Folder set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
+            jdbcTemplate.execute("update EKP.MAILBOX_CONFIG_Folder set quantifier=" + i + " where user_id='" + mb.getUSER_ID() +"'");
 
+                return "Ok";
+            } catch (Exception e) {
+                System.out.println("Exception: " + e.getMessage());
+                return e.getMessage();
+            } finally {
+                connectionClose(jdbcTemplate);
+            }
+        } else if (simulation == 0) {
             return "Ok";
-        } catch (Exception e) {
-            System.out.println("Exception: " + e.getMessage());
-            return e.getMessage();
-        } finally {
-            connectionClose(jdbcTemplate);
         }
+        return "Error";
 
     }
 }

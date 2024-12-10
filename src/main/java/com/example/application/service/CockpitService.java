@@ -304,6 +304,7 @@ public class CockpitService {
                         + "MAX_PARALLEL_CHECKS INT, "
                         + "ISBACKJOBACTIVE INT, "
                         + "ISMBWATCHDOGACTIVE INT, "
+                        + "SIMULATION INT, "
                         + "MB_WATCHDOG_CRON_EXPRESSION VARCHAR(255) "
                         + ")";
 
@@ -315,12 +316,12 @@ public class CockpitService {
                 String insertRowSQL = "INSERT INTO FVM_MONITOR_ALERTING ("
                         + "MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, BG_JOB_CRON_EXPRESSION, "
                         + "LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, "
-                        + "ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE, MB_WATCHDOG_CRON_EXPRESSION, WATCHDOG_MAIL_EMPFAENGER, WATCHDOG_MAIL_CC_EMPFAENGER, WATCHDOG_MAIL_BETREFF, WATCHDOG_MAIL_TEXT) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?)";
+                        + "ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE, MB_WATCHDOG_CRON_EXPRESSION, WATCHDOG_MAIL_EMPFAENGER, WATCHDOG_MAIL_CC_EMPFAENGER, WATCHDOG_MAIL_BETREFF, WATCHDOG_MAIL_TEXT, SIMULATION) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?)";
 
                 jdbcTemplate.update(insertRowSQL,
                         "m.quaschny@t-online.de", "", "In der EKP sind Probleme", "In der EKP sind Probleme",
-                        "0 0/1 * * * ?", null, null, 0, 5, 1, 1, 0, "0 0/2 * * * ?","m.quaschny@t-online.de", "", "watchdog for ekp", "In der EKP sind Probleme watchdog");
+                        "0 0/1 * * * ?", null, null, 0, 5, 1, 1, 0, "0 0/2 * * * ?","m.quaschny@t-online.de", "", "watchdog for ekp", "In der EKP sind Probleme watchdog",0);
                 System.out.println("Default row inserted successfully.");
             } else {
                   System.out.println("Table already exists: " + tableName);
@@ -384,7 +385,7 @@ public class CockpitService {
             String sql = "SELECT MAIL_EMPFAENGER, MAIL_CC_EMPFAENGER, MAIL_BETREFF, MAIL_TEXT, WATCHDOG_MAIL_EMPFAENGER," +
                     "WATCHDOG_MAIL_CC_EMPFAENGER," +
                     "WATCHDOG_MAIL_BETREFF," +
-                    "WATCHDOG_MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION,LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE FROM FVM_MONITOR_ALERTING";
+                    "WATCHDOG_MAIL_TEXT, BG_JOB_CRON_EXPRESSION, MB_WATCHDOG_CRON_EXPRESSION,LAST_ALERT_TIME, LAST_ALERT_CHECKTIME, IS_ACTIVE, RETENTION_TIME, MAX_PARALLEL_CHECKS, ISBACKJOBACTIVE, ISMBWATCHDOGACTIVE, SIMULATION FROM FVM_MONITOR_ALERTING";
 
             // Use jdbcTemplate to query and map results to MonitorAlerting object
             jdbcTemplate.query(sql, rs -> {
@@ -414,6 +415,7 @@ public class CockpitService {
                 monitorAlerting.setIsActive(rs.getInt("IS_ACTIVE"));
                 monitorAlerting.setIsBackJobActive(rs.getInt("ISBACKJOBACTIVE"));
                 monitorAlerting.setIsMBWatchdogActive(rs.getInt("ISMBWATCHDOGACTIVE"));
+                monitorAlerting.setIsActive(rs.getInt("SIMULATION"));
             });
 
             return monitorAlerting;

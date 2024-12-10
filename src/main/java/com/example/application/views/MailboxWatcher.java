@@ -590,6 +590,7 @@ public class MailboxWatcher  extends VerticalLayout {
         TextArea watchdogMailTextArea = new TextArea("WATCHDOG_MAIL_TEXT");
         TextField cronField = new TextField("CRON_EXPRESSION");
         Checkbox aktiv = new Checkbox("Mailbox Watchdog aktiv");
+        Checkbox simulation = new Checkbox("Simulation (mailbox update)");
 
         watchdogMailEmpfaengerField.setWidth("100%");
         watchdogMailCCEmpfaengerField.setWidth("100%");
@@ -597,6 +598,7 @@ public class MailboxWatcher  extends VerticalLayout {
         watchdogMailTextArea.setWidth("100%");
         cronField.setWidth("100%");
         aktiv.setWidth("100%");
+        simulation.setWidth("100%");
 
         MonitorAlerting monitorAlerting = mailboxService.fetchEmailConfiguration(comboBox.getValue());
 
@@ -606,6 +608,7 @@ public class MailboxWatcher  extends VerticalLayout {
         Optional.ofNullable(monitorAlerting.getWatchdogMailCCEmpfaenger()).ifPresent(watchdogMailCCEmpfaengerField::setValue);
         Optional.ofNullable(monitorAlerting.getWatchdogMailBetreff()).ifPresent(watchdogMailBetreffField::setValue);
         Optional.ofNullable(monitorAlerting.getWatchdogMailText()).ifPresent(watchdogMailTextArea::setValue);
+        simulation.setValue(monitorAlerting.getSimulation() != null && monitorAlerting.getSimulation() != 0);
 
         Button saveButton = new Button("Save", event -> {
 
@@ -615,6 +618,7 @@ public class MailboxWatcher  extends VerticalLayout {
             monitorAlerting.setWatchdogMailText(watchdogMailTextArea.getValue());
             monitorAlerting.setMbWatchdogCron(cronField.getValue());
             monitorAlerting.setIsMBWatchdogActive(aktiv.getValue() ? 1: 0);
+            monitorAlerting.setSimulation(simulation.getValue() ? 1: 0);
 
             boolean isSuccess = mailboxService.saveMailboxJobConfiguration(monitorAlerting, comboBox.getValue());
             if(isSuccess) {
@@ -641,6 +645,7 @@ public class MailboxWatcher  extends VerticalLayout {
                 watchdogMailTextArea,
                 cronField,
                 aktiv,
+                simulation,
                 new HorizontalLayout(saveButton, cancelButton)
         );
         layout.setSpacing(true);

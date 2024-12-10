@@ -6,18 +6,11 @@ import com.example.application.data.service.MailboxService;
 import com.example.application.data.service.ProtokollService;
 import com.example.application.service.EmailService;
 import com.example.application.views.MailboxWatcher;
-import com.example.application.views.MainLayout;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Scope;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -28,13 +21,9 @@ import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -194,7 +183,7 @@ public class MailboxWatchdogJobExecutor implements Job {
     private void disableMailbox(Mailbox mailbox, int inVerarbeitung, int maxMessageCount, MailboxShutdown mailboxShutdown) {
         logger.info("disableMailbox: Shutdown mailbox {} due to exceeding max message count!", mailbox.getNAME());
 
-        String result = mailboxService.updateMessageBox(mailbox,"0", configuration);
+        String result = mailboxService.updateMessageBox(mailbox,"0", configuration, monitorAlerting.getSimulation());
         if(result.equals("Ok")) {
             // affectedMailboxes.add(mb);
             globalList.add(mailboxShutdown);
@@ -215,7 +204,7 @@ public class MailboxWatchdogJobExecutor implements Job {
         logger.info("Mailbox {} below max message count...", mailbox.getNAME());
 
         logger.info("Mailbox stopped by watchdog => switch back to active");
-            String result = mailboxService.updateMessageBox(mailbox,"1", configuration);
+            String result = mailboxService.updateMessageBox(mailbox,"1", configuration, monitorAlerting.getSimulation());
             if(result.equals("Ok")) {
                 logger.info("Mailbox {} enabled successfully.", mailbox.getNAME());
              //   MailboxWatcher.notifySubscribers(mailbox.getUSER_ID() +",, 1,,"+configuration.getId());

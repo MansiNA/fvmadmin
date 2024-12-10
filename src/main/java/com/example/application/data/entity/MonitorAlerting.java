@@ -29,6 +29,7 @@ public class MonitorAlerting {
     private String watchdogMailCCEmpfaenger;
     private String watchdogMailBetreff;
     private String watchdogMailText;
+    private Integer simulation;
     // Default constructor
     public MonitorAlerting() {}
 
@@ -56,6 +57,7 @@ public class MonitorAlerting {
                 ", watchdogMailBetreff='" + watchdogMailBetreff + '\'' +
                 ", watchdogMailText='" + watchdogMailText + '\'' +
                 ", mbWatchdogCron='" + mbWatchdogCron + '\'' +
+                ", simulation='" + simulation + '\'' +
                 ", bg_cron=" + bgCron +
              //   ", intervall=" + intervall +
                 '}';
