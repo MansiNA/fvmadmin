@@ -25,6 +25,9 @@ public class fvm_monitoring {
     private String bereich;
     private Date Zeitpunkt ;
     private Integer retentionTime;
+    private String type;
+    private String shell_Server;
+    private String shell_Command;
     public String getIS_ACTIVE() {
         return IS_ACTIVE;
     }
@@ -168,5 +171,33 @@ public class fvm_monitoring {
     public void setBereich(String bereich) {
         this.bereich = bereich;
     }
+    public void setType(String type) {
+        this.type = type;
+    }
+    public String getType() {
+        if("SQL".equals(type)) {
+            return type = "SQL-Abfrage";
+        } else if("SHELL".equals(type)) {
+            return type = "Shell-Abfrage";
+        }
+        return type;
+    }
+
+    public void setShellServer(String shell_Server) {
+        this.shell_Server = shell_Server;
+    }
+
+    public String getShellServer() {
+        return shell_Server;
+    }
+
+    public void setShellCommand(String shell_Command) {
+        this.shell_Command = shell_Command;
+    }
+
+    public String getShellCommand() {
+        return shell_Command;
+    }
+
 
 }

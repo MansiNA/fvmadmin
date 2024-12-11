@@ -195,7 +195,7 @@ public class CockpitService {
       //  connectWithDatabase(configuration);
         JdbcTemplate jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
        // JdbcTemplate  jdbcTemplate = getNewJdbcTemplateWithDatabase(configuration);
-        String sql = "SELECT m.ID,m.PID, m.Bereich, RETENTIONTIME, SQL, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
+        String sql = "SELECT m.ID,m.PID, m.Bereich, RETENTIONTIME, SQL, TYPE, SHELL_SERVER, SHELL_COMMAND, TITEL,  BESCHREIBUNG, HANDLUNGS_INFO, CHECK_INTERVALL,  WARNING_SCHWELLWERT" +
                 ", ERROR_SCHWELLWERT,mr.result as Aktueller_Wert, 100 / Error_schwellwert * case when mr.result>=Error_schwellwert then Error_Schwellwert else mr.result end  / 100 as Error_Prozent" +
                 ", Zeitpunkt, m.is_active, m.sql_detail as sql_detail FROM FVM_MONITORING m\n" +
                 "left outer join FVM_MONITOR_RESULT mr\n" +

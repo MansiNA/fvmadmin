@@ -3,6 +3,7 @@ package com.example.application.views;
 import com.example.application.data.entity.*;
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.service.ConfigurationService;
+import com.example.application.data.service.ServerConfigurationService;
 import com.example.application.service.CockpitService;
 import com.example.application.service.EmailService;
 import com.example.application.utils.*;
@@ -142,8 +143,8 @@ public class CockpitView extends VerticalLayout{
                 if (mon.getID() == null) {
                     // If ID is null, perform INSERT
                     String insertSql = "INSERT INTO FVM_MONITORING " +
-                            "(SQL, TITEL, Beschreibung, Handlungs_Info, Check_Intervall, WARNING_SCHWELLWERT, ERROR_SCHWELLWERT, IS_ACTIVE, SQL_Detail, PID, BEREICH, RETENTIONTIME) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                            "(SQL, TITEL, Beschreibung, Handlungs_Info, Check_Intervall, WARNING_SCHWELLWERT, ERROR_SCHWELLWERT, IS_ACTIVE, SQL_Detail, PID, BEREICH, RETENTIONTIME, TYPE, SHELL_SERVER, SHELL_COMMAND) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?)";
 
                     jdbcTemplate.update(insertSql,
                             mon.getSQL(),
@@ -157,7 +158,10 @@ public class CockpitView extends VerticalLayout{
                             mon.getSQL_Detail(),
                             mon.getPid(),
                             mon.getBereich(),
-                            mon.getRetentionTime()
+                            mon.getRetentionTime(),
+                            mon.getType(),
+                            mon.getShellServer(),
+                            mon.getShellCommand()
                     );
                     logger.info("Insert durchgeführt");
 
@@ -175,7 +179,10 @@ public class CockpitView extends VerticalLayout{
                             " SQL_Detail=?, " +
                             " PID=?, " +
                             " BEREICH=?, " +
-                            " RETENTIONTIME=?" +
+                            " RETENTIONTIME=?," +
+                            " TYPE=?," +
+                            " SHELL_SERVER=?," +
+                            " SHELL_COMMAND=?" +
                             " where id= ?";
 
                     System.out.println(sql);
@@ -192,6 +199,9 @@ public class CockpitView extends VerticalLayout{
                             , mon.getPid()
                             , mon.getBereich()
                             , mon.getRetentionTime()
+                            , mon.getType()
+                            ,mon.getShellServer()
+                            ,mon.getShellCommand()
                             , mon.getID()
                     );
 
@@ -256,9 +266,10 @@ public class CockpitView extends VerticalLayout{
     MonitoringForm form;
     private String alertingState;
    // private String emailAlertingAutostart;
+    private List<ServerConfiguration> serverConfigurationList;
     private LocalDateTime lastAlertTime = LocalDateTime.of(1970, 1, 1, 0, 0); // Initialize to epoch start
 
-    public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService, CockpitService cockpitService) {
+    public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService, CockpitService cockpitService, ServerConfigurationService serverConfigurationService) {
         this.jdbcTemplate = jdbcTemplate;
         this.service = service;
         this.emailService = emailService;
@@ -340,7 +351,7 @@ public class CockpitView extends VerticalLayout{
         form = new MonitoringForm(callback);
         form.setVisible(false);
 
-
+        serverConfigurationList = serverConfigurationService.findAllConfigurations();
 
         //add(getToolbar(),grid,form );
         add(getToolbar(),treeGrid,form );
@@ -1894,7 +1905,7 @@ public class CockpitView extends VerticalLayout{
         RadioButtonGroup<String> radioGroup = new RadioButtonGroup<>();
         radioGroup.setLabel("Typ");
         radioGroup.setItems("SQL-Abfrage", "Shell-Abfrage");
-        radioGroup.setValue("SQL-Abfrage");
+        radioGroup.setValue(isNew ? "SQL-Abfrage" : (monitor.getType() != null ? monitor.getType() : ""));
         add(radioGroup);
 
         content.add(radioGroup);
@@ -1912,9 +1923,42 @@ public class CockpitView extends VerticalLayout{
         }
         detailabfrage.setWidthFull();
 
+        TextField shellCommand = new TextField("Shell Command");
+        shellCommand.setValue(isNew ? "" : (monitor.getShellCommand() != null ? monitor.getShellCommand() : ""));
+        shellCommand.setWidthFull();
+        ComboBox<ServerConfiguration> shellConfiguration = new ComboBox<>("Shell Server");
+        shellConfiguration.setItems(serverConfigurationList);
+        ServerConfiguration serverConfiguration = serverConfigurationList.stream()
+                .filter(entity -> entity.getHostAlias().equals(monitor.getShellServer()))
+                .findFirst()
+                .orElse(null);
+        shellConfiguration.setValue(isNew ? null : serverConfiguration);
+        shellConfiguration.setItemLabelGenerator(ServerConfiguration::getHostAlias);
+        shellConfiguration.setWidthFull();
+
         abfrage.addValueChangeListener(event -> monitor.setSQL(event.getValue()));
         detailabfrage.addValueChangeListener(event -> monitor.setSQL_Detail(event.getValue()));
-        content.add(abfrage, detailabfrage);
+        shellCommand.addValueChangeListener(event -> monitor.setShellCommand(event.getValue()));
+        shellConfiguration.addValueChangeListener(event -> monitor.setShellServer(event.getValue() != null ? event.getValue().getHostAlias() : null));
+        radioGroup.addValueChangeListener(event -> monitor.setType(event.getValue()));
+        radioGroup.addValueChangeListener(event -> {
+            String selectedType = event.getValue();
+            monitor.setType(selectedType);
+
+            boolean isSQLSelected = "SQL-Abfrage".equals(selectedType);
+            abfrage.setVisible(isSQLSelected);
+            detailabfrage.setVisible(isSQLSelected);
+            shellCommand.setVisible(!isSQLSelected);
+            shellConfiguration.setVisible(!isSQLSelected);
+        });
+
+        boolean isSQL = "SQL-Abfrage".equals(radioGroup.getValue());
+        abfrage.setVisible(isSQL);
+        detailabfrage.setVisible(isSQL);
+        shellCommand.setVisible(!isSQL);
+        shellConfiguration.setVisible(!isSQL);
+
+        content.add(abfrage, detailabfrage, shellConfiguration , shellCommand);
         return content;
     }
 
