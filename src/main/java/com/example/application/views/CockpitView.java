@@ -1923,10 +1923,10 @@ public class CockpitView extends VerticalLayout{
         }
         detailabfrage.setWidthFull();
 
-        TextField shellCommand = new TextField("Shell Command");
+        TextField shellCommand = new TextField("Command");
         shellCommand.setValue(isNew ? "" : (monitor.getShellCommand() != null ? monitor.getShellCommand() : ""));
         shellCommand.setWidthFull();
-        ComboBox<ServerConfiguration> shellConfiguration = new ComboBox<>("Shell Server");
+        ComboBox<ServerConfiguration> shellConfiguration = new ComboBox<>("Server");
         shellConfiguration.setItems(serverConfigurationList);
         ServerConfiguration serverConfiguration = serverConfigurationList.stream()
                 .filter(entity -> entity.getHostAlias().equals(monitor.getShellServer()))

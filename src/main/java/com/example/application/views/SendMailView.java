@@ -174,11 +174,10 @@ public class SendMailView extends VerticalLayout {
 
         sendbutton.addClickListener(clickEvent -> {
             logger.info("sendbutton.addClickListener: send");
-            String directory = "/oracle/scripte/ekpsend";
             String commandToExecute = command; // Use the command built from the UI inputs
 
             try {
-                executeCommandOnServer(serverConfiguration, directory, commandToExecute, logTextArea);
+                executeCommandOnServer(serverConfiguration, verzeichnis, commandToExecute, logTextArea);
                 Notification.show("Command executed successfully!", 3000, Notification.Position.MIDDLE);
             } catch (Exception e) {
                 logger.error("Failed to execute command on server", e.getMessage());
@@ -206,9 +205,10 @@ public class SendMailView extends VerticalLayout {
         add(anzahl);
         add(readonlyField);
         add(sendbutton);
-        logTextArea.setPlaceholder("No error logs yet...");
+        logTextArea.setPlaceholder("wait fo execute");
         logTextArea.setMaxHeight("600px");
         logTextArea.setWidthFull();
+        logTextArea.setReadOnly(true);
         add(logTextArea);
 
 
