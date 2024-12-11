@@ -21,11 +21,14 @@ import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.grid.contextmenu.GridMenuItem;
 import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.tabs.Tab;
+import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.*;
 import com.vaadin.flow.component.treegrid.TreeGrid;
 import com.vaadin.flow.router.PageTitle;
@@ -165,14 +168,16 @@ public class TableView extends VerticalLayout {
         HorizontalLayout treehl = new HorizontalLayout();
 
 
-        TreeGrid tg= createTreeGrid();
+        VerticalLayout tg= createTreeGrid();
         tg.setWidth("500px");
 
         treehl.add(tg, createSQLTextField());
-        treehl.setFlexGrow(1, tg);
+        treehl.setAlignItems(Alignment.AUTO);
+    //    treehl.setJustifyContentMode(JustifyContentMode.START);
+    //    treehl.setFlexGrow(1, tg);
 
-        //  treehl.setWidthFull();
-        treehl.setAlignItems(Alignment.BASELINE);
+        treehl.setWidthFull();
+
 
       //  queryDetails = new Details("SQL Auswahl",treehl);
       //  queryDetails.setOpened(true);
@@ -202,43 +207,60 @@ public class TableView extends VerticalLayout {
 
     private VerticalLayout createSQLTextField() {
         logger.info("createSQLTextField for sqldefinition");
-        VerticalLayout vl = new VerticalLayout();
+        sqlTextField = new TextArea();
+        queryInfo = new TextArea();
 
-        sqlTextField = new TextArea("SQL:");
+        TabSheet tabSheet = new TabSheet();
+        tabSheet.setWidthFull();
+        tabSheet.add("Beschreibung",
+                queryInfo);
+        tabSheet.add("SQL",
+                sqlTextField);
+
+        add(tabSheet);
+
+        VerticalLayout vl = new VerticalLayout();
+        vl.setWidthFull();
+
+
 
         sqlTextField.setReadOnly(true); // Set as read-only as per your requirement
+        sqlTextField.setWidthFull();
         //sqlTextField.setMaxLength(2000);
-        sqlTextField.setWidth("900px");
+    //    sqlTextField.setWidth("900px");
         //  sqlTextField.setEnabled(false);
         //sqlTextField.setHelperText("SQL");
 
         // sqlTextField.addClassName("no-boarder");
-        sqlTextField.getStyle().set("--vaadin-input-field-readonly-border", "0px");
+  //      sqlTextField.getStyle().set("--vaadin-input-field-readonly-border", "0px");
 
         //   sqlTextField.getStyle().set("--vaadin-input-field-label-font-weight", "800");
 
-        sqlTextField.addClassName("my-special-classname");
+      //  sqlTextField.addClassName("my-special-classname");
 
-        sqlTextField.addThemeVariants(
-                TextAreaVariant.LUMO_SMALL,
+      //  sqlTextField.addThemeVariants(
+      //          TextAreaVariant.LUMO_SMALL,
                 // TextAreaVariant.LUMO_ALIGN_RIGHT,
-                TextAreaVariant.LUMO_HELPER_ABOVE_FIELD
-        );
-        queryInfo = new TextArea("Beschreibung");
-        queryInfo.setWidthFull();
-        queryInfo.addThemeVariants(
-                TextAreaVariant.LUMO_SMALL,
+      //          TextAreaVariant.LUMO_HELPER_ABOVE_FIELD
+     //   );
+
+   //     queryInfo.setWidthFull();
+  //      queryInfo.addThemeVariants(
+  //              TextAreaVariant.LUMO_SMALL,
                 // TextAreaVariant.LUMO_ALIGN_RIGHT,
-                TextAreaVariant.LUMO_HELPER_ABOVE_FIELD
-        );
+   //             TextAreaVariant.LUMO_HELPER_ABOVE_FIELD
+   //     );
         queryInfo.setReadOnly(true);
+        queryInfo.setWidthFull();
 
-        vl.add(queryInfo,sqlTextField);
+        vl.add(tabSheet);
+        //vl.add(queryInfo,sqlTextField);
 
         return vl;
     }
-    private TreeGrid createTreeGrid() {
+    private VerticalLayout createTreeGrid() {
         logger.info("createTreeGrid for sqldefinition");
+        VerticalLayout hl = new VerticalLayout();
         treeGrid = new TreeGrid<>();
         treeGrid.setItems(sqlDefinitionService.getRootProjects(), sqlDefinitionService ::getChildProjects);
         treeGrid.addHierarchyColumn(SqlDefinition::getName);
@@ -271,7 +293,8 @@ public class TableView extends VerticalLayout {
                 queryInfo.setValue(selectedItem.getBeschreibung());
 
                 sqlTextField.setValue(sql);
-                System.out.println("jetzt Ausführen: " + selectedItem.getSql());
+                logger.info("Execute sql: " + sql);
+              //  System.out.println("jetzt Ausführen: " + selectedItem.getSql());
                 aktuelle_SQL = sql;
                 // aktuelle_Tabelle = selectedItem.getName();
 
@@ -344,7 +367,9 @@ public class TableView extends VerticalLayout {
 //                return hasSelection;
 //            });
         }
-        return treeGrid;
+        hl.add(treeGrid);
+      //  return treeGrid;
+        return hl;
     }
 
     private VerticalLayout showEditAndNewDialog(SqlDefinition sqlDefinition, String context){
