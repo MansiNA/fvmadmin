@@ -205,7 +205,6 @@ public class SendMailView extends VerticalLayout {
         add(anzahl);
         add(readonlyField);
         add(sendbutton);
-        logTextArea.setPlaceholder("wait fo execute");
         logTextArea.setMaxHeight("600px");
         logTextArea.setWidthFull();
         logTextArea.setReadOnly(true);
