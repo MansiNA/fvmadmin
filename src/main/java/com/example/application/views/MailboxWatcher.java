@@ -419,8 +419,8 @@ public class MailboxWatcher  extends VerticalLayout {
     }
     private void showLogDialog() {
         Dialog dialog = new Dialog();
-        dialog.setWidth("800px");
-        dialog.setHeight("500px");
+        dialog.setWidth("1200px");
+        dialog.setHeight("800px");
 
         Grid<Protokoll> grid = new Grid<>(Protokoll.class);
         List<Protokoll> protokollList = protokollService.findAllLogsOrderedByZeitpunktDesc();
@@ -433,13 +433,15 @@ public class MailboxWatcher  extends VerticalLayout {
 
         grid.setItems(filteredProtokollList);
 
-        grid.setColumns("id", "username", "zeitpunkt", "info", "shutdownReason", "verbindung");
-        grid.getColumnByKey("id").setHeader("ID").setResizable(true).setAutoWidth(true);
-        grid.getColumnByKey("username").setHeader("Username").setResizable(true).setAutoWidth(true);
-        grid.getColumnByKey("verbindung").setHeader("Verbindung").setResizable(true).setAutoWidth(true);
+        grid.setColumns( "zeitpunkt", "info", "shutdownReason");
+      //  grid.getColumnByKey("id").setHeader("ID").setResizable(true).setAutoWidth(true);
+      //  grid.getColumnByKey("username").setHeader("Username").setResizable(true).setAutoWidth(true);
+      //  grid.getColumnByKey("verbindung").setHeader("Verbindung").setResizable(true).setAutoWidth(true);
         grid.getColumnByKey("zeitpunkt").setHeader("Zeitpunkt").setResizable(true).setAutoWidth(true);
         grid.getColumnByKey("info").setHeader("Info").setResizable(true).setAutoWidth(true);
         grid.getColumnByKey("shutdownReason").setHeader("Shutdown Reason").setResizable(true).setAutoWidth(true);
+        grid.setWidthFull();
+        grid.setHeightFull();
 
         dialog.add(grid);
 
