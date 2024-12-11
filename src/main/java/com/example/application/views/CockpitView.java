@@ -32,6 +32,7 @@ import com.vaadin.flow.component.orderedlayout.BoxSizing;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.richtexteditor.RichTextEditor;
 import com.vaadin.flow.component.richtexteditor.RichTextEditorVariant;
 import com.vaadin.flow.component.tabs.Tab;
@@ -1771,7 +1772,7 @@ public class CockpitView extends VerticalLayout{
         TabSheet tabSheet = new TabSheet();
 
         tabSheet.add("General", getGeneral(monitor, isNew));
-        tabSheet.add("SQL-Abfrage", getSqlAbfrage(monitor, isNew));
+        tabSheet.add("Abfrage", getSqlAbfrage(monitor, isNew));
         tabSheet.add("Beschreibung", getBeschreibung(monitor, isNew));
         tabSheet.add("Handlungsinformationen", getHandlungsinformationen(monitor, isNew));
 
@@ -1890,6 +1891,15 @@ public class CockpitView extends VerticalLayout{
 
     private Component getSqlAbfrage(fvm_monitoring monitor, boolean isNew) {
         VerticalLayout content = new VerticalLayout();
+        RadioButtonGroup<String> radioGroup = new RadioButtonGroup<>();
+        radioGroup.setLabel("Typ");
+        radioGroup.setItems("SQL-Abfrage", "Shell-Abfrage");
+        radioGroup.setValue("SQL-Abfrage");
+        add(radioGroup);
+
+        content.add(radioGroup);
+
+
         TextArea abfrage = new TextArea("SQL-Abfrage");
       //  abfrage.setValue(monitor.getSQL());
         abfrage.setValue(isNew ? "" : (monitor.getSQL() != null ? monitor.getSQL() : ""));
