@@ -266,7 +266,7 @@ public class CockpitView extends VerticalLayout{
     MonitoringForm form;
     private String alertingState;
    // private String emailAlertingAutostart;
-    private List<ServerConfiguration> serverConfigurationList;
+    public static List<ServerConfiguration> serverConfigurationList;
     private LocalDateTime lastAlertTime = LocalDateTime.of(1970, 1, 1, 0, 0); // Initialize to epoch start
 
     public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService, CockpitService cockpitService, ServerConfigurationService serverConfigurationService) {

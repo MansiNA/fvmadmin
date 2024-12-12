@@ -2,11 +2,13 @@ package com.example.application.utils;
 
 import com.example.application.data.entity.Configuration;
 import com.example.application.data.entity.MonitorAlerting;
+import com.example.application.data.entity.ServerConfiguration;
 import com.example.application.data.entity.fvm_monitoring;
 import com.example.application.data.service.ConfigurationService;
 import com.example.application.service.CockpitService;
 import com.example.application.views.CockpitView;
 import com.example.application.views.MainLayout;
+import com.example.application.views.SftpClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -156,7 +158,13 @@ public class BackgroundJobExecutor implements Job {
                             logger.info("Execute Query: \"" + monitoring.getSQL() + "\"");
                            // logger.info("Connection: " + jdbcTemplate.getDataSource().getConnection().getSchema().toString());
                             executorService.submit(() -> {
-                                executeMonitoringTask(monitoring, jdbcTemplate);
+                                if(monitoring.getType().contains("SQL")) {
+                                    logger.info("Sql monitor start execution>>>>>>>>>>>>");
+                                    executeMonitoringTask(monitoring, jdbcTemplate);
+                                } else if(monitoring.getType().contains("Shell")) {
+                                    logger.info("Shell monitor start execution>>>>>>>>>>>>");
+                                    executeShellMonitor(monitoring);
+                                }
                             });
                         }
                     }
@@ -259,6 +267,51 @@ public class BackgroundJobExecutor implements Job {
         }
     }
 
+    private void executeShellMonitor(fvm_monitoring monitoring) {
+        logger.info("Method executeShellMonitor called");
+        logger.info("Value of stopJob: " + stopJob);
+        try {
+            if (stopJob) {
+                return; // Exit if the job is stopped
+            }
+
+                try {
+                    String shellCommand = monitoring.getShellCommand();
+                    if(shellCommand != null) {
+                        String server = monitoring.getShellServer();
+                        ServerConfiguration serverConfiguration = CockpitView.serverConfigurationList.stream()
+                                .filter(entity -> entity.getHostAlias().equals(server))
+                                .findFirst()
+                                .orElse(null);
+                        String username = serverConfiguration.getUserName();
+                        String host = serverConfiguration.getHostName();
+                        SftpClient cl = new SftpClient(host, Integer.parseInt(serverConfiguration.getSshPort()), username);
+                        cl.authKey(serverConfiguration.getSshKey(), "");
+                        String result = cl.executeBackgroundShellCommand(shellCommand);
+                        logger.info("#################### Shell command executed {} and result: {}", shellCommand, result);
+                    } else {
+                        logger.info("Shell command is {} not execute", shellCommand );
+                    }
+                } catch (Exception ex) {
+
+                    logger.error(ex.getMessage() + " "+monitoring.getID() + "shell command: {} error execution ", monitoring.getShellCommand());
+
+                }
+                finally {
+                    // step 4.
+                    synchronized (threadLock) {
+                        currentThreads--;
+                        globalStatus.remove(monitoring.getID());
+                    }
+
+                }
+
+        } catch (Exception e) {
+
+            logger.error("Executing executeMonitoringTask: Error SQL for monitoring ID: " + monitoring.getID() + " - " + e.getMessage());
+        }
+    }
+
     private void cleanUpOldResults(int retentionDays, Configuration configuration, Integer id) {
         JdbcTemplate jdbcTemplate = null;
         try {
@@ -343,6 +396,7 @@ public class BackgroundJobExecutor implements Job {
 
         return new JdbcTemplate(dataSource);
     }
+
 
     public MonitorAlerting fetchEmailConfiguration(Configuration configuration) {
         MonitorAlerting monitorAlerting = new MonitorAlerting();
