@@ -287,18 +287,6 @@ public class CockpitView extends VerticalLayout{
 
         ui= UI.getCurrent();
 
-        Button bt = new Button("Test");
-
-        bt.addClickListener(e -> {
-            System.out.println("Test-Button gedrückt");
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder().uri(URI.create("https://jsonplaceholder.typicode.com/albums")).build();
-            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                    .thenApply(HttpResponse::body)
-                    //.thenAccept(System.out::println)
-                    .thenApply(CockpitView::parse)
-                    .join();
-        });
 
 
         Button xmlBt = new Button("XML");
@@ -1268,21 +1256,7 @@ public class CockpitView extends VerticalLayout{
 
     }
 
-    public static String parse(String responseBody){
 
-        JSONArray albums = new JSONArray(responseBody);
-        for ( int i = 0; i < albums.length();i++){
-            JSONObject album = albums.getJSONObject(i);
-            int id = album.getInt("id");
-            int userId = album.getInt("userId");
-            String title = album.getString("title");
-            System.out.println(id + "  " + title + " "  + userId);
-
-        }
-
-
-        return null;
-    }
 
     private class MonitorContextMenu extends GridContextMenu<fvm_monitoring> {
         public MonitorContextMenu(Grid<fvm_monitoring> target) {

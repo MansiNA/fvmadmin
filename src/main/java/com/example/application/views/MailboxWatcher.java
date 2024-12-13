@@ -27,6 +27,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.page.WebStorage;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
@@ -102,7 +103,6 @@ public class MailboxWatcher  extends VerticalLayout {
         ui = UI.getCurrent();
         showLog.setEnabled(false);
         comboBox = new ComboBox<>("Verbindung");
-        comboBox.setPlaceholder("auswählen");
         try {
             List<Configuration> configList = service.findMessageConfigurations();
             if (configList != null && !configList.isEmpty()) {
@@ -127,6 +127,12 @@ public class MailboxWatcher  extends VerticalLayout {
 
 
         comboBox.setPlaceholder("auswählen");
+
+        //get last choice
+        WebStorage.getItem(WebStorage.Storage.SESSION_STORAGE, "MBWatcherVerbindung", value -> {
+            System.out.println("Last Verbindung: " + value);
+        });
+
         configureMailboxGrid();
         updateList();
 
@@ -212,6 +218,10 @@ public class MailboxWatcher  extends VerticalLayout {
             showLog.setEnabled(true);
             grid.setItems();
             mailboxen=null;
+
+            //save value to local web storage
+            WebStorage.setItem(WebStorage.Storage.SESSION_STORAGE,"MBWatcherVerbindung", comboBox.getValue().getName());
+
             setWatchdogStatus(comboBox.getValue());
             // Instruct client side to poll for changes and show spinner
             ui.setPollInterval(500);
@@ -289,27 +299,15 @@ public class MailboxWatcher  extends VerticalLayout {
         //        .setAutoWidth(true).setResizable(true);
 
         grid.addColumn(Mailbox::getNAME).setHeader("Name")
-                .setWidth("22em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("350px").setResizable(true).setSortable(true);
 
-        Grid.Column<Mailbox> DaystoExpireColumn = grid.addColumn((Mailbox::getDAYSTOEXPIRE)).setHeader("Zert. Ablauf")
-                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
-        Grid.Column<Mailbox> RoleIDColumn = grid.addColumn((Mailbox::getROLEID)).setHeader("Role ID")
-                .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
-        Grid.Column<Mailbox> EgvpPFColumn = grid.addColumn((Mailbox::getStatus)).setHeader("EGVP-E PF Status")
-                .setWidth("10em").setFlexGrow(0).setResizable(true).setSortable(true);
         grid.addColumn((Mailbox::getIn_egvp_wartend)).setHeader("wartend in EGVP-E")
-                .setWidth("10em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("120px").setResizable(true).setSortable(true);
         //    .setWidth("4em").setFlexGrow(0);
         Grid.Column<Mailbox> inVerarbeitungColumn = grid.addColumn((Mailbox::getAktuell_in_eKP_verarbeitet)).setHeader("in Verarbeitung")
-                .setWidth("10em").setFlexGrow(0).setResizable(true).setSortable(true);
-        Grid.Column<Mailbox> haengendColumn = grid.addColumn((Mailbox::getIn_ekp_haengend)).setHeader("hängend")
-                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
-        Grid.Column<Mailbox> FHColumn = grid.addColumn((Mailbox::getIn_ekp_fehlerhospital)).setHeader("im FH")
-                .setWidth("6em").setFlexGrow(0).setResizable(true).setSortable(true);
-        Grid.Column<Mailbox> KONVERTIERUNGSDIENSTEColumn = grid.addColumn(Mailbox::getKONVERTIERUNGSDIENSTE).setHeader("hat Konvertierungsdienst")
-                .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("120px").setResizable(true).setSortable(true);
         Grid.Column<Mailbox> maxMessageCountColumn = grid.addColumn(Mailbox::getMAX_MESSAGE_COUNT).setHeader("Max Message Count")
-                .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("120px").setResizable(true).setSortable(true);
         grid.addColumn(new ComponentRenderer<>(item -> {
 
             ProgressBar progressBar = new ProgressBar();
@@ -379,33 +377,13 @@ public class MailboxWatcher  extends VerticalLayout {
 //                        })
 //        );
 
-
-
-
-        grid.setItemDetailsRenderer(createPersonDetailsRenderer());
+    //    grid.setItemDetailsRenderer(createPersonDetailsRenderer());
         grid.addThemeVariants(GridVariant.LUMO_COMPACT);
 
 
         //  inVerarbeitungColumn.setVisible(false);
-        RoleIDColumn.setVisible(false);
-        EgvpPFColumn.setVisible(false);
-        DaystoExpireColumn.setVisible(false);
 
-        haengendColumn.setVisible(false);
-        FHColumn.setVisible(false);
-        KONVERTIERUNGSDIENSTEColumn.setVisible(false);
 
-        Button menuButton = new Button("Show/Hide Columns");
-        menuButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-        ColumnToggleContextMenu columnToggleContextMenu = new ColumnToggleContextMenu(menuButton);
-        columnToggleContextMenu.addColumnToggleItem("Zert. Ablauf", DaystoExpireColumn);
-        columnToggleContextMenu.addColumnToggleItem("Role-ID", RoleIDColumn);
-        columnToggleContextMenu.addColumnToggleItem("EGVP PF Status", EgvpPFColumn);
-        columnToggleContextMenu.addColumnToggleItem("in Verarbeitung", inVerarbeitungColumn);
-        columnToggleContextMenu.addColumnToggleItem("hängende Nachrichten", haengendColumn);
-        columnToggleContextMenu.addColumnToggleItem("im Fehlerhospital", FHColumn);
-        columnToggleContextMenu.addColumnToggleItem("Konvertierungsdienste", KONVERTIERUNGSDIENSTEColumn);
 
     }
 

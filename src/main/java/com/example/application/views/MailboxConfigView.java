@@ -122,32 +122,32 @@ public class MailboxConfigView  extends VerticalLayout {
         //        .setAutoWidth(true).setResizable(true);
 
         grid.addColumn(Mailbox::getNAME).setHeader("Name")
-                .setWidth("22em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("350px").setResizable(true).setSortable(true);
 
         Grid.Column<Mailbox> DaystoExpireColumn = grid.addColumn((Mailbox::getDAYSTOEXPIRE)).setHeader("Zert. Ablauf")
-                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("80px").setResizable(true).setSortable(true);
         Grid.Column<Mailbox> RoleIDColumn = grid.addColumn((Mailbox::getROLEID)).setHeader("Role ID")
-                .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("80px").setResizable(true).setSortable(true);
         Grid.Column<Mailbox> EgvpPFColumn = grid.addColumn((Mailbox::getStatus)).setHeader("EGVP-E PF Status")
-                .setWidth("10em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("50px").setResizable(true).setSortable(true);
         grid.addColumn((Mailbox::getIn_egvp_wartend)).setHeader("wartend in EGVP-E")
-                .setWidth("14em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("120px").setResizable(true).setSortable(true);
             //    .setWidth("4em").setFlexGrow(0);
         Grid.Column<Mailbox> inVerarbeitungColumn = grid.addColumn((Mailbox::getAktuell_in_eKP_verarbeitet)).setHeader("in Verarbeitung")
-                .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("120px").setResizable(true).setSortable(true);
         Grid.Column<Mailbox> haengendColumn = grid.addColumn((Mailbox::getIn_ekp_haengend)).setHeader("hängend")
-                .setWidth("8em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("50px").setResizable(true).setSortable(true);
         Grid.Column<Mailbox> FHColumn = grid.addColumn((Mailbox::getIn_ekp_fehlerhospital)).setHeader("im FH")
-                .setWidth("6em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("80px").setResizable(true).setSortable(true);
         Grid.Column<Mailbox> KONVERTIERUNGSDIENSTEColumn = grid.addColumn(Mailbox::getKONVERTIERUNGSDIENSTE).setHeader("hat Konvertierungsdienst")
-                .setWidth("12em").setFlexGrow(0).setResizable(true).setSortable(true);
+                .setWidth("80px").setResizable(true).setSortable(true);
 //        grid.addColumn(createStatusComponentRenderer()).setHeader("Status")
 //                .setAutoWidth(true).setResizable(true);
 
 
         grid.addComponentColumn(mb -> createStatusIcon(mb.getQUANTIFIER()))
                 //.setTooltipGenerator(person -> person.getStatus())
-                .setWidth("6em").setFlexGrow(0)
+                .setWidth("70px").setFlexGrow(0)
                 .setHeader("Status");
 
         grid.addColumn(
