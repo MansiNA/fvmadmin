@@ -607,7 +607,7 @@ public final class SftpClient {
             }
 
             int exitStatus = channelExec.getExitStatus();
-
+        //    logger.info("Command executed successfully with output:\n" + output);
             // Log and return based on command execution result
             if (exitStatus == 0) {
                 logger.info("Command executed successfully with output:\n" + output);
@@ -617,17 +617,19 @@ public final class SftpClient {
                 if (errorOutput.length() > 0) {
                     logger.error("Error Output:\n" + errorOutput);
                 }
-                throw new Exception("Command failed with exit status: " + exitStatus + "\nError Output:\n" + errorOutput);
+             //   throw new Exception("Command failed with exit status: " + exitStatus + "\nError Output:\n" + errorOutput);
             }
 
         } catch (IOException e) {
             logger.error("I/O error during command execution", e);
-            throw new Exception("I/O error occurred while executing command: " + e.getMessage(), e);
+            return null;
+         //   throw new Exception("I/O error occurred while executing command: " + e.getMessage(), e);
         } finally {
             if (channelExec != null && channelExec.isConnected()) {
                 channelExec.disconnect();
             }
         }
+        return  null;
     }
 
 }

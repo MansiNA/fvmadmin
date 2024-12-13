@@ -79,6 +79,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -1193,7 +1194,7 @@ public class CockpitView extends VerticalLayout{
                 Duration remainingTime = calculateRemainingTime(duration, startTime);
                 updateCountdownLabel(remainingTime);
             });
-        }, 0, 1, java.util.concurrent.TimeUnit.SECONDS);
+        }, 0, 1, TimeUnit.SECONDS);
     }
 
 
@@ -1432,10 +1433,29 @@ public class CockpitView extends VerticalLayout{
         UI ui = UI.getCurrent();
         executorService.submit(() -> {
         //    if (monitoring.getIS_ACTIVE().equals("1")) {
+            String result = null;
                 try {
-                    jdbcTemplate = cockpitService.getNewJdbcTemplateWithDatabase(comboBox.getValue());
-                    String sqlQuery = monitoring.getSQL();
-                    String result = jdbcTemplate.queryForObject(sqlQuery, String.class);
+                    if(monitoring.getType().contains("SQL")) {
+                        jdbcTemplate = cockpitService.getNewJdbcTemplateWithDatabase(comboBox.getValue());
+                        String sqlQuery = monitoring.getSQL();
+                        result = jdbcTemplate.queryForObject(sqlQuery, String.class);
+                    } else {
+                        String shellCommand = monitoring.getShellCommand();
+                        if(shellCommand != null) {
+                            String server = monitoring.getShellServer();
+                            ServerConfiguration serverConfiguration = CockpitView.serverConfigurationList.stream()
+                                    .filter(entity -> entity.getHostAlias().equals(server))
+                                    .findFirst()
+                                    .orElse(null);
+                            String username = serverConfiguration.getUserName();
+                            String host = serverConfiguration.getHostName();
+                            SftpClient cl = new SftpClient(host, Integer.parseInt(serverConfiguration.getSshPort()), username);
+                            cl.authKey(serverConfiguration.getSshKey(), "");
+                            result = cl.executeBackgroundShellCommand(shellCommand);
+
+                        }
+                    }
+
                     Integer count = jdbcTemplate.queryForObject(
                             "SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE ID = ?",
                             new Object[]{monitoring.getID()},
@@ -1458,8 +1478,9 @@ public class CockpitView extends VerticalLayout{
                                 "Query executed successfully");
                     }
                     if (ui != null) {
+                        String finalResult = result;
                         ui.access(() -> {
-                            Notification.show("refresh : sql check ID: " + monitoring.getID() + " reult: "+ result, 5000, Notification.Position.MIDDLE);
+                            Notification.show("refresh : sql check ID: " + monitoring.getID() + " reult: "+ finalResult, 5000, Notification.Position.MIDDLE);
                         });
                     }
 
@@ -2245,7 +2266,7 @@ public class CockpitView extends VerticalLayout{
         try {
 
             DriverManagerDataSource ds = new DriverManagerDataSource();
-            com.example.application.data.entity.Configuration conf;
+            Configuration conf;
             conf = comboBox.getValue();
 
             ds.setUrl(conf.getDb_Url());
