@@ -25,6 +25,7 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.page.WebStorage;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
@@ -105,6 +106,19 @@ public class MailboxConfigView  extends VerticalLayout {
                 refresh.setEnabled(true);  // Enable the refresh button when an item is selected
                 onOffButton.setEnabled(true);
                 showLog.setEnabled(true);
+                //save value to local web storage
+                WebStorage.setItem(WebStorage.Storage.SESSION_STORAGE,"MailboxVerbindungId", ""+comboBox.getValue().getId());
+
+            }
+        });
+
+        //get last choice
+        WebStorage.getItem(WebStorage.Storage.SESSION_STORAGE, "MailboxVerbindungId", value -> {
+            System.out.println("Mailbox Last Verbindung ID: " + value);
+            if(value != null) {
+                Configuration configuration = service.findByIdConfiguration(Long.valueOf(value));
+                System.out.println("Mailbox Last Verbindung name: " + configuration.getName());
+                comboBox.setValue(configuration);
             }
         });
 

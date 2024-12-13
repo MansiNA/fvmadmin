@@ -129,12 +129,11 @@ public class MailboxWatcher  extends VerticalLayout {
         comboBox.setPlaceholder("auswählen");
 
         //get last choice
-        WebStorage.getItem(WebStorage.Storage.SESSION_STORAGE, "MBWatcherVerbindung_id", values -> {
-            System.out.println("Last Verbindung: " + values);
-            if(values != null) {
-                String[] value = values.split(";");
-                Long id = Long.valueOf(value[1].trim());
-                Configuration configuration = service.findByIdConfiguration(id);
+        WebStorage.getItem(WebStorage.Storage.SESSION_STORAGE, "MBWatcherVerbindungId", value -> {
+            System.out.println("Last Verbindung ID: " + value);
+            if(value != null) {
+                Configuration configuration = service.findByIdConfiguration(Long.valueOf(value));
+                System.out.println("Last Verbindung name: " + configuration.getName());
                 comboBox.setValue(configuration);
             }
         });
@@ -225,7 +224,7 @@ public class MailboxWatcher  extends VerticalLayout {
             mailboxen=null;
 
             //save value to local web storage
-            WebStorage.setItem(WebStorage.Storage.SESSION_STORAGE,"MBWatcherVerbindung_id", comboBox.getValue().getName()+";"+comboBox.getValue().getId());
+            WebStorage.setItem(WebStorage.Storage.SESSION_STORAGE,"MBWatcherVerbindungId", ""+comboBox.getValue().getId());
 
             setWatchdogStatus(comboBox.getValue());
             // Instruct client side to poll for changes and show spinner

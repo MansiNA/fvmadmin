@@ -32,6 +32,7 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.BoxSizing;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.page.WebStorage;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.richtexteditor.RichTextEditor;
@@ -559,6 +560,10 @@ public class CockpitView extends VerticalLayout{
         }
 
         comboBox.addValueChangeListener(event -> {
+
+            //save value to local web storage
+            WebStorage.setItem(WebStorage.Storage.SESSION_STORAGE,"CockpitVerbindungId", ""+comboBox.getValue().getId());
+
             updateTreeGrid();
         //    updateGrid();
             cockpitService.createFvmMonitorAlertingTable(comboBox.getValue());
@@ -572,6 +577,16 @@ public class CockpitView extends VerticalLayout{
                 setChecker("On");
             } else {
                 setChecker("Off");
+            }
+        });
+
+        //get last choice
+        WebStorage.getItem(WebStorage.Storage.SESSION_STORAGE, "CockpitVerbindungId", value -> {
+            System.out.println("Cockpit Last Verbindung ID: " + value);
+            if(value != null) {
+                Configuration configuration = service.findByIdConfiguration(Long.valueOf(value));
+                System.out.println("Cockpit Last Verbindung name: " + configuration.getName());
+                comboBox.setValue(configuration);
             }
         });
 
