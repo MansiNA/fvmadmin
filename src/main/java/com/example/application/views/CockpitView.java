@@ -336,8 +336,6 @@ public class CockpitView extends VerticalLayout{
 
 
 
-
-
         form = new MonitoringForm(callback);
         form.setVisible(false);
 
@@ -348,7 +346,18 @@ public class CockpitView extends VerticalLayout{
 
     }
 
-
+    public JdbcTemplate getJdbcTemplateWithDBConnetion(com.example.application.data.entity.Configuration conf) {
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setUrl(conf.getDb_Url());
+        ds.setUsername(conf.getUserName());
+        ds.setPassword(com.example.application.data.entity.Configuration.decodePassword(conf.getPassword()));
+        try {
+            jdbcTemplate.setDataSource(ds);
+        } catch (Exception e) {
+            e.getMessage();
+        }
+        return null;
+    }
 
     private void setAlerting(String status) {
         // Update checked state of menu items
@@ -564,6 +573,8 @@ public class CockpitView extends VerticalLayout{
 
             //save value to local web storage
             WebStorage.setItem(WebStorage.Storage.SESSION_STORAGE,"CockpitVerbindungId", ""+comboBox.getValue().getId());
+
+            getJdbcTemplateWithDBConnetion(comboBox.getValue());
 
             updateTreeGrid();
         //    updateGrid();
@@ -1360,8 +1371,21 @@ public class CockpitView extends VerticalLayout{
             GridMenuItem<fvm_monitoring> refreshItem = addItem("Refresh", e -> e.getItem().ifPresent(monitor -> {
                 if (monitor.getPid() != 0) {
                     System.out.printf("Refresh im ContextMenü aufgerufen: %s%n", monitor.getID());
+
+                    if(monitor.getType().contains("Shell-Abfrage"))
+                    {
+                        logger.info("Ausführen Shell Command");
+                        executeImmediateShellCheck(monitor);
+                    }
+                    else
+                    {
+                        logger.info("Ausführen SQL Command");
+                        executeImmediateSQLCheck(monitor);
+                    }
+
+
                  //   refreshMonitor(monitor.getID());
-                    executeImmediateSQLCheck(monitor);
+                 //   executeImmediateSQLCheck(monitor);
                    // shutdownExecutorService();
                 }
             }));
@@ -1429,6 +1453,72 @@ public class CockpitView extends VerticalLayout{
 
     }
 
+    public void executeImmediateShellCheck(fvm_monitoring monitoring) {
+        UI ui = UI.getCurrent();
+        executorService.submit(() -> {
+            //    if (monitoring.getIS_ACTIVE().equals("1")) {
+            String result = null;
+            try {
+                  String shellCommand = monitoring.getShellCommand();
+                  if(shellCommand != null)
+                  {
+                     String server = monitoring.getShellServer();
+                     ServerConfiguration serverConfiguration = CockpitView.serverConfigurationList.stream()
+                              .filter(entity -> entity.getHostAlias().equals(server))
+                              .findFirst()
+                              .orElse(null);
+                     String username = serverConfiguration.getUserName();
+                     String host = serverConfiguration.getHostName();
+                     SftpClient cl = new SftpClient(host, Integer.parseInt(serverConfiguration.getSshPort()), username);
+
+                     cl.authKey(serverConfiguration.getSshKey(), "");
+                     result = cl.executeShellCommand(shellCommand);
+                     logger.debug("Result from Shellscript: " + result);
+
+                    }
+
+                Integer count = jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE ID = ?",
+                        new Object[]{monitoring.getID()},
+                        Integer.class
+                );
+                //    logger.info("Connection: " + jdbcTemplate.getDataSource().getConnection().getMetaData().getUserName() );
+                logger.debug("Execute SQL: SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE ID =" + monitoring.getID() + "; Result: >" +result +"<") ;
+
+                if (count != null ) {
+
+                    logger.debug("UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID=" + monitoring.getID() + ";");
+
+                    jdbcTemplate.update(
+                            "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
+                            monitoring.getID());
+
+                    logger.debug("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) " +
+                            "VALUES (" + monitoring.getID() + "," + Timestamp.valueOf(LocalDateTime.now())+ ",1, " + result + ",\"Shell-Command " + shellCommand + " executed successfully\")");
+
+                    jdbcTemplate.update(
+                            "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
+                            monitoring.getID(),
+                            Timestamp.valueOf(LocalDateTime.now()),
+                            1, // Mark as active
+                            result,
+                            "Shell-Command " + shellCommand + " executed successfully");
+                }
+                if (ui != null) {
+                    String finalResult = result;
+                    ui.access(() -> {
+                        Notification.show("refresh : Shell Check ID: " + monitoring.getID() + " result: "+ finalResult, 5000, Notification.Position.MIDDLE);
+                    });
+                }
+
+
+            }catch (Exception ex) {
+                logger.error(ex.getMessage());
+            }
+
+        });
+
+    }
     public void executeImmediateSQLCheck(fvm_monitoring monitoring) {
         UI ui = UI.getCurrent();
         executorService.submit(() -> {
@@ -1456,6 +1546,7 @@ public class CockpitView extends VerticalLayout{
                         }
                     }
 
+
                     Integer count = jdbcTemplate.queryForObject(
                             "SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE ID = ?",
                             new Object[]{monitoring.getID()},
@@ -1465,9 +1556,15 @@ public class CockpitView extends VerticalLayout{
                     logger.info("Execute SQL: SELECT COUNT(*) FROM FVM_MONITOR_RESULT WHERE ID =" + monitoring.getID() + "; Result: >" +result +"<") ;
 
                     if (count != null ) {
+
+                        logger.debug("UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID=" + monitoring.getID() + ";");
+
                         jdbcTemplate.update(
                                 "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
                                 monitoring.getID());
+
+                        logger.debug("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) " +
+                                "VALUES (" + monitoring.getID() + "," + Timestamp.valueOf(LocalDateTime.now())+ ",1, " + result + ",\"Query executed successfully\")");
 
                         jdbcTemplate.update(
                                 "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
@@ -1480,12 +1577,24 @@ public class CockpitView extends VerticalLayout{
                     if (ui != null) {
                         String finalResult = result;
                         ui.access(() -> {
-                            Notification.show("refresh : sql check ID: " + monitoring.getID() + " reult: "+ finalResult, 5000, Notification.Position.MIDDLE);
+                            Notification.show("refresh : sql check ID: " + monitoring.getID() + " result: "+ finalResult, 5000, Notification.Position.MIDDLE);
                         });
                     }
 
                 } catch (Exception ex) {
                     logger.error(ex.getMessage());
+
+                    logger.debug("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) " +
+                            "VALUES (" + monitoring.getID() + "," + Timestamp.valueOf(LocalDateTime.now())+ ",1, " + result + ", \"Error:" + ex.getMessage() +"\")");
+
+                    jdbcTemplate.update(
+                            "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
+                            monitoring.getID(),
+                            Timestamp.valueOf(LocalDateTime.now()),
+                            1, // Mark as active
+                            result,
+                            "Error: " + ex.getMessage());
+
                     //System.out.println("Erorr: while " + monitoring.getID() + "----------------------query executed: " + monitoring.getSQL().toString());
                     if (ui != null) {
                         ui.access(() -> {

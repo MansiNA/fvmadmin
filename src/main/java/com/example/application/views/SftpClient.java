@@ -74,7 +74,7 @@ public final class SftpClient {
 
 
     public void authKey(String key, String pass) throws JSchException {
-        logger.info("authKey(): key = "+key +" password = "+pass);
+        logger.trace("authKey(): key = "+key +" password = "+pass);
         try {
             byte[] privateKey = key.getBytes();
             jsch.addIdentity("identity_name", privateKey, null, pass != null ? pass.getBytes() : null);
@@ -574,6 +574,62 @@ public final class SftpClient {
             logger.error("Command failed with exit status: " + exitStatus);
             throw new Exception("Error: Command failed with exit status: " + exitStatus );
         }
+    }
+
+    public String executeShellCommand(String command) throws Exception {
+        if (session == null || !session.isConnected()) {
+            throw new IllegalStateException("Session is not connected");
+        }
+
+        logger.info("Executing command: " + command);
+
+        ChannelExec channelExec = (ChannelExec) session.openChannel("exec");
+        channelExec.setCommand(command);
+
+        try (InputStream inputStream = channelExec.getInputStream();
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+             InputStream errorStream = channelExec.getErrStream();
+             BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream))) {
+
+            channelExec.connect();
+
+            // Collect output
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+
+            // Collect error output
+            StringBuilder errorOutput = new StringBuilder();
+            while ((line = errorReader.readLine()) != null) {
+                errorOutput.append(line).append("\n");
+            }
+
+            int exitStatus = channelExec.getExitStatus();
+            //    logger.info("Command executed successfully with output:\n" + output);
+            // Log and return based on command execution result
+            if (exitStatus == 0) {
+                logger.info("Command executed successfully with output:\n" + output);
+                return output.length() > 0 ? output.toString().trim() : "No output from command.";
+            } else {
+                logger.error("Command failed with exit status: " + exitStatus);
+                if (errorOutput.length() > 0) {
+                    logger.error("Error Output:\n" + errorOutput);
+                }
+                //   throw new Exception("Command failed with exit status: " + exitStatus + "\nError Output:\n" + errorOutput);
+            }
+
+        } catch (IOException e) {
+            logger.error("I/O error during command execution", e);
+            return null;
+            //   throw new Exception("I/O error occurred while executing command: " + e.getMessage(), e);
+        } finally {
+            if (channelExec != null && channelExec.isConnected()) {
+                channelExec.disconnect();
+            }
+        }
+        return  null;
     }
 
     public String executeBackgroundShellCommand(String command) throws Exception {
