@@ -862,7 +862,16 @@ public class CockpitView extends VerticalLayout{
             return null;
         });
         treeGrid.addExpandListener(event -> {
-           System.out.println("yes..."+event.getItems().size());
+            // System.out.println("yes..."+event.getItems().size());
+            logger.debug("Tree expanded...");
+
+
+        });
+
+        treeGrid.addCollapseListener(event -> {
+            // System.out.println("yes..."+event.getItems().size());
+            logger.debug("Tree collapsed...");
+
         });
 
         menuButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
