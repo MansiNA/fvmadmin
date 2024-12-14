@@ -237,6 +237,8 @@ public class CockpitView extends VerticalLayout{
 
     // RichTextEditor editor = new RichTextEditor();
 
+    private Collection<fvm_monitoring>expanded_nodes=new ArrayList<>();
+
     private ComboBox<Configuration> comboBox;
     public static List<fvm_monitoring> param_Liste = new ArrayList<fvm_monitoring>();
     static List<fvm_monitoring> monitore;
@@ -270,6 +272,7 @@ public class CockpitView extends VerticalLayout{
    // private String emailAlertingAutostart;
     public static List<ServerConfiguration> serverConfigurationList;
     private LocalDateTime lastAlertTime = LocalDateTime.of(1970, 1, 1, 0, 0); // Initialize to epoch start
+
 
     public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService, CockpitService cockpitService, ServerConfigurationService serverConfigurationService) {
         this.jdbcTemplate = jdbcTemplate;
@@ -739,6 +742,10 @@ public class CockpitView extends VerticalLayout{
             List<fvm_monitoring> rootItems = cockpitService.getRootMonitor(param_Liste);
             treeGrid.setItems(rootItems, cockpitService ::getChildMonitor);
             logger.info("updateTreeGrid");
+
+            logger.debug("Try to expand tree...");
+            treeGrid.expandRecursively(expanded_nodes,1);
+
         }
 
     }
@@ -864,13 +871,14 @@ public class CockpitView extends VerticalLayout{
         treeGrid.addExpandListener(event -> {
             // System.out.println("yes..."+event.getItems().size());
             logger.debug("Tree expanded...");
-
+            expanded_nodes.addAll(event.getItems());
 
         });
 
         treeGrid.addCollapseListener(event -> {
             // System.out.println("yes..."+event.getItems().size());
             logger.debug("Tree collapsed...");
+            expanded_nodes.removeAll(event.getItems());
 
         });
 
