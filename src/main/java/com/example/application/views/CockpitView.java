@@ -237,7 +237,7 @@ public class CockpitView extends VerticalLayout{
 
     // RichTextEditor editor = new RichTextEditor();
 
-    private Collection<fvm_monitoring>expanded_nodes=new ArrayList<>();
+    private List<fvm_monitoring>expanded_nodes=new ArrayList<>();
 
     private ComboBox<Configuration> comboBox;
     public static List<fvm_monitoring> param_Liste = new ArrayList<fvm_monitoring>();
@@ -610,18 +610,18 @@ public class CockpitView extends VerticalLayout{
 
         autorefresh.addDoubleClickListener(e -> {
 
-            System.out.println("Dialog aufrufen!");
+            logger.debug("Doppelklick auf Autorefresh Label!");
 
         });
 
         autorefresh.addClickListener(e -> {
 
             if (autorefresh.getValue()) {
-                System.out.println("Autorefresh wird eingeschaltet.");
+                logger.debug("Autorefresh wird eingeschaltet.");
                 startCountdown(Duration.ofSeconds(60));
                 countdownLabel.setVisible(true);
             } else {
-                System.out.println("Autorefresh wird ausgeschaltet.");
+                logger.debug("Autorefresh wird ausgeschaltet.");
                 stopCountdown();
                 countdownLabel.setVisible(false);
             }
@@ -746,9 +746,24 @@ public class CockpitView extends VerticalLayout{
 
             logger.debug("Try to expand tree...");
             logger.debug("Expanded-Nodes: " + expanded_nodes.size());
-            treeGrid.expandRecursively(expanded_nodes,2);
-            treeGrid.expand(expanded_nodes);
-            treeGrid.scrollToIndex(1);
+            //treeGrid.expandRecursively(expanded_nodes,2);
+            //treeGrid.expand(expanded_nodes);
+            //treeGrid.scrollToIndex(1);
+            //treeGrid.scrollToEnd();
+
+
+         /*   ui.access(() -> {
+
+                treeGrid.expand(expanded_nodes);
+                treeGrid.getDataProvider().refreshAll();
+                Notification notification = Notification
+                        .show("Site updated...");
+            });
+
+         */
+
+
+            treeGrid.expand(rootItems);
 
         }
 
