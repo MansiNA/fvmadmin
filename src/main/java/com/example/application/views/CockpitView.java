@@ -274,6 +274,7 @@ public class CockpitView extends VerticalLayout{
     private LocalDateTime lastAlertTime = LocalDateTime.of(1970, 1, 1, 0, 0); // Initialize to epoch start
 
 
+
     public CockpitView(JdbcTemplate jdbcTemplate, ConfigurationService service, EmailService emailService, CockpitService cockpitService, ServerConfigurationService serverConfigurationService) {
         this.jdbcTemplate = jdbcTemplate;
         this.service = service;
@@ -744,7 +745,10 @@ public class CockpitView extends VerticalLayout{
             logger.info("updateTreeGrid");
 
             logger.debug("Try to expand tree...");
-            treeGrid.expandRecursively(expanded_nodes,1);
+            logger.debug("Expanded-Nodes: " + expanded_nodes.size());
+            treeGrid.expandRecursively(expanded_nodes,2);
+            treeGrid.expand(expanded_nodes);
+            treeGrid.scrollToIndex(1);
 
         }
 
