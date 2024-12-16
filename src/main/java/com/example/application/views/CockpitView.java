@@ -1498,6 +1498,7 @@ public class CockpitView extends VerticalLayout{
                   String shellCommand = monitoring.getShellCommand();
                   if(shellCommand != null)
                   {
+                      jdbcTemplate = cockpitService.getNewJdbcTemplateWithDatabase(comboBox.getValue());
                      String server = monitoring.getShellServer();
                      ServerConfiguration serverConfiguration = CockpitView.serverConfigurationList.stream()
                               .filter(entity -> entity.getHostAlias().equals(server))
@@ -1528,7 +1529,7 @@ public class CockpitView extends VerticalLayout{
                     jdbcTemplate.update(
                             "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
                             monitoring.getID());
-
+                }
                     logger.debug("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) " +
                             "VALUES (" + monitoring.getID() + "," + Timestamp.valueOf(LocalDateTime.now())+ ",1, " + result + ",\"Shell-Command " + shellCommand + " executed successfully\")");
 
@@ -1539,7 +1540,7 @@ public class CockpitView extends VerticalLayout{
                             1, // Mark as active
                             result,
                             "Shell-Command " + shellCommand + " executed successfully");
-                }
+
                 if (ui != null) {
                     String finalResult = result;
                     ui.access(() -> {
@@ -1550,6 +1551,26 @@ public class CockpitView extends VerticalLayout{
 
             }catch (Exception ex) {
                 logger.error(ex.getMessage());
+
+                if (ui != null) {
+                    String finalResult = result;
+                    ui.access(() -> {
+                        Notification.show("refresh : Shell Check ID: " + monitoring.getID() + "Error: " + ex.getMessage(), 5000, Notification.Position.MIDDLE);
+                    });
+                }
+                String shellCommand = monitoring.getShellCommand();
+                logger.debug("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) " +
+                        "VALUES (" + monitoring.getID() + "," + Timestamp.valueOf(LocalDateTime.now())+ ",0, " + result + ",\"Shell-Command " + shellCommand + " executed successfully\")");
+
+                jdbcTemplate.update(
+                        "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
+                        monitoring.getID(),
+                        Timestamp.valueOf(LocalDateTime.now()),
+                        0, // Mark as deactive
+                        result,
+                        "Error: " + ex.getMessage());
+            }finally {
+                cockpitService.connectionClose(jdbcTemplate);
             }
 
         });
@@ -1598,18 +1619,18 @@ public class CockpitView extends VerticalLayout{
                         jdbcTemplate.update(
                                 "UPDATE FVM_MONITOR_RESULT SET IS_ACTIVE = 0 WHERE IS_ACTIVE = 1 AND ID = ?",
                                 monitoring.getID());
-
+                    }
                         logger.debug("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) " +
-                                "VALUES (" + monitoring.getID() + "," + Timestamp.valueOf(LocalDateTime.now())+ ",1, " + result + ",\"Query executed successfully\")");
+                                "VALUES (" + monitoring.getID() + "," + Timestamp.valueOf(LocalDateTime.now()) + ",1, " + result + ",\"Query executed successfully\")");
 
                         jdbcTemplate.update(
                                 "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
                                 monitoring.getID(),
                                 Timestamp.valueOf(LocalDateTime.now()),
-                                1, // Mark as active
+                                1, // Mark as deactive
                                 result,
                                 "Query executed successfully");
-                    }
+
                     if (ui != null) {
                         String finalResult = result;
                         ui.access(() -> {
@@ -1627,7 +1648,7 @@ public class CockpitView extends VerticalLayout{
                             "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
                             monitoring.getID(),
                             Timestamp.valueOf(LocalDateTime.now()),
-                            1, // Mark as active
+                            0, // Mark as active
                             result,
                             "Error: " + ex.getMessage());
 
