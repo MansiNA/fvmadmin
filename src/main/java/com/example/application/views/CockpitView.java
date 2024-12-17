@@ -45,6 +45,7 @@ import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.treegrid.TreeGrid;
+import com.vaadin.flow.data.provider.Query;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
@@ -82,6 +83,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.wontlost.ckeditor.VaadinCKEditor;
@@ -237,7 +239,7 @@ public class CockpitView extends VerticalLayout{
 
     // RichTextEditor editor = new RichTextEditor();
 
-    private List<fvm_monitoring>expanded_nodes=new ArrayList<>();
+    private static Map<Integer, fvm_monitoring> expandedNodesMap = new HashMap<>();
 
     private ComboBox<Configuration> comboBox;
     public static List<fvm_monitoring> param_Liste = new ArrayList<fvm_monitoring>();
@@ -745,25 +747,20 @@ public class CockpitView extends VerticalLayout{
             logger.info("updateTreeGrid");
 
             logger.debug("Try to expand tree...");
-            logger.debug("Expanded-Nodes: " + expanded_nodes.size());
+       //     logger.info("Expanded-Nodes: " + expanded_nodes.size());
             //treeGrid.expandRecursively(expanded_nodes,2);
             //treeGrid.expand(expanded_nodes);
             //treeGrid.scrollToIndex(1);
             //treeGrid.scrollToEnd();
 
 
-         /*   ui.access(() -> {
+            List<fvm_monitoring> expandedItems = rootItems.stream()
+                    .filter(rootItem -> expandedNodesMap.containsKey(rootItem.getID()))
+                    .collect(Collectors.toList());
 
-                treeGrid.expand(expanded_nodes);
-                treeGrid.getDataProvider().refreshAll();
-                Notification notification = Notification
-                        .show("Site updated...");
-            });
+            logger.info("Expanded-Nodes: " + expandedNodesMap.size());
 
-         */
-
-
-            treeGrid.expand(rootItems);
+            treeGrid.expand(expandedItems);
 
         }
 
@@ -889,16 +886,18 @@ public class CockpitView extends VerticalLayout{
         });
         treeGrid.addExpandListener(event -> {
             // System.out.println("yes..."+event.getItems().size());
-            logger.debug("Tree expanded...");
-            expanded_nodes.addAll(event.getItems());
-
+            for (fvm_monitoring item : event.getItems()) {
+                expandedNodesMap.put(item.getID(), item);
+            }
+            logger.info("Tree expanded..."+ event.getItems().size()+" expanded node: "+expandedNodesMap.size());
         });
 
         treeGrid.addCollapseListener(event -> {
             // System.out.println("yes..."+event.getItems().size());
-            logger.debug("Tree collapsed...");
-            expanded_nodes.removeAll(event.getItems());
-
+            for (fvm_monitoring item : event.getItems()) {
+                expandedNodesMap.remove(item.getID());
+            }
+            logger.info("Tree collapsed..."+ event.getItems().size()+" expanded node: "+expandedNodesMap.size());
         });
 
         menuButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
@@ -1627,7 +1626,7 @@ public class CockpitView extends VerticalLayout{
                                 "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
                                 monitoring.getID(),
                                 Timestamp.valueOf(LocalDateTime.now()),
-                                1, // Mark as deactive
+                                1, // Mark as active
                                 result,
                                 "Query executed successfully");
 
@@ -1642,13 +1641,13 @@ public class CockpitView extends VerticalLayout{
                     logger.error(ex.getMessage());
 
                     logger.debug("INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) " +
-                            "VALUES (" + monitoring.getID() + "," + Timestamp.valueOf(LocalDateTime.now())+ ",1, " + result + ", \"Error:" + ex.getMessage() +"\")");
+                            "VALUES (" + monitoring.getID() + "," + Timestamp.valueOf(LocalDateTime.now())+ ",0, " + result + ", \"Error:" + ex.getMessage() +"\")");
 
                     jdbcTemplate.update(
                             "INSERT INTO FVM_MONITOR_RESULT (ID, Zeitpunkt, IS_ACTIVE, RESULT, DB_MESSAGE) VALUES (?, ?, ?, ?, ?)",
                             monitoring.getID(),
                             Timestamp.valueOf(LocalDateTime.now()),
-                            0, // Mark as active
+                            0, // Mark as deactive
                             result,
                             "Error: " + ex.getMessage());
 
